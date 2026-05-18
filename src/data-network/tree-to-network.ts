@@ -86,7 +86,7 @@ export function parseNetwork(input: string): DataNetwork {
     cursor.nextSibling(); // Name (to cell)
     const to = slice(cursor.from, cursor.to);
     cursor.parent();
-    return { kind: "switch", from: [from[0] ?? "", from[1] ?? ""], to };
+    return { kind: "switch", from, to };
   };
 
   cursor.firstChild(); // enter Network, now at first child

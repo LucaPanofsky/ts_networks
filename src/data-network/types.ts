@@ -8,7 +8,7 @@ export type PropagateTerm = {
 
 export type SwitchTerm = {
   kind: "switch";
-  from: [string, string];
+  from: string[];
   to: string;
 };
 
