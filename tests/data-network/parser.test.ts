@@ -1,4 +1,5 @@
 import { parseNetwork } from "../../src/data-network/index.js";
+import { parser } from "../../src/data-network/parser.js";
 
 const input = `
 defnetwork mynetwork
@@ -89,6 +90,35 @@ describe("parseNetwork: with clause", () => {
     expect(term.kind === "propagate" && term.params).toEqual({
       param1: "asd",
       param2: "hello world",
+    });
+  });
+});
+
+const inputWithNumbers = `
+defnetwork myNet
+  signature: from [a] to b
+
+  propagate f from [a] to b
+    with: count=42, flag=true, ratio=3;
+end
+`;
+
+describe("parseNetwork: numeric and boolean param values", () => {
+  test("parse tree is clean (no error nodes)", () => {
+    const tree = parser.parse(inputWithNumbers.trim());
+    const cursor = tree.cursor();
+    do {
+      expect(cursor.name).not.toBe("⚠");
+    } while (cursor.next());
+  });
+
+  test("param values extracted correctly", () => {
+    const net = parseNetwork(inputWithNumbers);
+    const term = net.terms[0]!;
+    expect(term.kind === "propagate" && term.params).toEqual({
+      count: "42",
+      flag: "true",
+      ratio: "3",
     });
   });
 });
