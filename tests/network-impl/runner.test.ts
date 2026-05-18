@@ -4,8 +4,8 @@ import { Propagator } from "../../src/network-impl/propagator.js";
 import { Something } from "../../src/info-structure.js";
 import { naryUnpacking } from "../../src/nary-unpacking.js";
 
-const add = naryUnpacking((a: unknown, b: unknown) => (a as number) + (b as number));
-const double = naryUnpacking((a: unknown) => (a as number) * 2);
+const add = naryUnpacking((a: unknown, b: unknown) => (a as number) + (b as number), 2);
+const double = naryUnpacking((a: unknown) => (a as number) * 2, 1);
 
 function setup() {
   const cells = new Map([
