@@ -1,5 +1,5 @@
-import { Nothing, Something, Contradiction } from "../src/info-structure";
-import type { InfoStructure } from "../src/info-structure";
+import { Nothing, Something, Contradiction } from "../src/info-structure.js";
+import type { InfoStructure } from "../src/info-structure.js";
 
 const nothing = Nothing;
 const s42 = new Something(42);
