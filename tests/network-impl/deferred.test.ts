@@ -1,4 +1,4 @@
-import { Deferred } from "../../src/network-impl/deferred.js";
+import { Deferred } from "../../src/information-structures/deferred.js";
 
 describe("Deferred: initial state", () => {
   test("is not realized initially", () => {

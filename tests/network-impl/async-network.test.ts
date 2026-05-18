@@ -1,8 +1,8 @@
 import { run } from "../../src/network-impl/runner.js";
 import { Cell } from "../../src/network-impl/cell.js";
 import { Propagator } from "../../src/network-impl/propagator.js";
-import { APromise } from "../../src/network-impl/apromise.js";
-import { Deferred } from "../../src/network-impl/deferred.js";
+import { APromise } from "../../src/information-structures/apromise.js";
+import { Deferred } from "../../src/information-structures/deferred.js";
 import { Something } from "../../src/info-structure.js";
 import { naryUnpacking } from "../../src/nary-unpacking.js";
 

@@ -1,5 +1,5 @@
-import { APromise } from "../../src/network-impl/apromise.js";
-import { Deferred, ABORTED } from "../../src/network-impl/deferred.js";
+import { APromise } from "../../src/information-structures/apromise.js";
+import { Deferred, ABORTED } from "../../src/information-structures/deferred.js";
 import { Nothing, Something, Contradiction } from "../../src/info-structure.js";
 
 function makeAP<A>(value?: A): { ap: APromise<A>; d: Deferred<unknown> } {
