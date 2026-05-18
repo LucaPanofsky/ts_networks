@@ -6,7 +6,7 @@ const config: Config = {
   testMatch: ["**/tests/**/*.test.ts"],
   extensionsToTreatAsEsm: [".ts"],
   transform: {
-    "^.+\\.ts$": ["ts-jest", { tsconfig: "tsconfig.test.json", useESM: true }],
+    "^.+\\.[tj]s$": ["ts-jest", { tsconfig: "tsconfig.test.json", useESM: true }],
   },
   moduleNameMapper: {
     "^(\\.{1,2}/.*)\\.js$": "$1",

@@ -74,3 +74,13 @@ export function I(value: unknown): InfoStructure<unknown> {
   if (value instanceof Error) return new Contradiction("runtime/error", new Set(), value);
   return new Something(value);
 }
+
+export function value(v: unknown): InfoStructure<unknown> {
+  return new Something(v);
+}
+
+export function bind<A>(struct: InfoStructure<A>, f: (a: A) => InfoStructure<unknown>): InfoStructure<unknown> {
+  const c = struct.content();
+  if (c === undefined) return struct as InfoStructure<unknown>;
+  return f(c);
+}
