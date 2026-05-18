@@ -141,6 +141,44 @@ defnetwork myNet
 end
 `;
 
+describe("parse tree: keyword nodes are named (not anonymous)", () => {
+  const simple = "defnetwork test signature: from [a] to out; end";
+
+  test("first child of Network is the 'Defnetwork' keyword node", () => {
+    const tree = parser.parse(simple);
+    const cursor = tree.cursor();
+    cursor.firstChild(); // Network
+    cursor.firstChild(); // first visible child
+    expect(cursor.name).toBe("Defnetwork");
+  });
+
+  test("last child of Network is the 'End' keyword node", () => {
+    const tree = parser.parse(simple);
+    const cursor = tree.cursor(); // starts at Network (the @top rule)
+    cursor.lastChild();
+    expect(cursor.name).toBe("End");
+  });
+
+  test("all keyword node names are present in the full tree", () => {
+    const input = `
+      defnetwork test
+        signature: from [a] to b;
+        propagate f from [a] to b with: k=v;
+        switch from [a] to b;
+        cell x = 1;
+        constant y = 2;
+      end
+    `;
+    const tree = parser.parse(input.trim());
+    const names = new Set<string>();
+    const cursor = tree.cursor();
+    do { names.add(cursor.name); } while (cursor.next());
+    for (const kw of ["Defnetwork", "End", "Signature_", "From", "To", "Propagate", "With", "Switch", "Cell", "Constant"]) {
+      expect(names).toContain(kw);
+    }
+  });
+});
+
 describe("parseNetwork: numeric and boolean param values", () => {
   test("parse tree is clean (no error nodes)", () => {
     const tree = parser.parse(inputWithNumbers.trim());

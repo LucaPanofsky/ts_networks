@@ -1,31 +1,31 @@
 @top Network {
-  "defnetwork" Name Signature Term* "end"
+  Defnetwork Name Signature Term* End
 }
 
 Signature {
-  "signature" ":" "from" CellList "to" Name ";"
+  Signature_ ":" From CellList To Name ";"
 }
 
 Term { PropagateTerm | SwitchTerm | CellTerm | ConstantTerm }
 
 PropagateTerm {
-  "propagate" FunctionName "from" CellList "to" Name WithClause? ";"
+  Propagate FunctionName From CellList To Name WithClause? ";"
 }
 
 SwitchTerm {
-  "switch" "from" CellList "to" Name ";"
+  Switch From CellList To Name ";"
 }
 
 CellTerm {
-  "cell" Name "=" (String | Number | Boolean | Name) ";"
+  Cell Name "=" (String | Number | Boolean | Name) ";"
 }
 
 ConstantTerm {
-  "constant" Name "=" (String | Number | Boolean | Name) ";"
+  Constant Name "=" (String | Number | Boolean | Name) ";"
 }
 
 WithClause {
-  "with" ":" Param ("," Param)*
+  With ":" Param ("," Param)*
 }
 
 Param {
@@ -41,6 +41,16 @@ FunctionName {
 }
 
 @tokens {
+  Defnetwork { "defnetwork" }
+  End { "end" }
+  Signature_ { "signature" }
+  From { "from" }
+  To { "to" }
+  Propagate { "propagate" }
+  With { "with" }
+  Switch { "switch" }
+  Cell { "cell" }
+  Constant { "constant" }
   Name { $[a-zA-Z_] $[a-zA-Z0-9_?!]* }
   Boolean { "true" | "false" }
   Number { $[0-9]+ }
@@ -48,7 +58,7 @@ FunctionName {
   whitespace { $[ \t\n\r]+ }
   LineComment { "//" ![\n]* }
 
-  @precedence { "defnetwork", "end", "from", "to", "with", "switch", "propagate", "signature", "cell", "constant", Boolean, Name }
+  @precedence { Defnetwork, End, Signature_, From, To, Propagate, With, Switch, Cell, Constant, Boolean, Name }
 }
 
 @skip { whitespace | LineComment }

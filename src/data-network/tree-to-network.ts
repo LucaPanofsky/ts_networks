@@ -54,10 +54,13 @@ export function parseNetwork(input: string): DataNetworkAST {
 
   // cursor must be positioned at a PropagateTerm node on entry
   const collectPropagateTerm = (): PropagateTerm => {
-    cursor.firstChild(); // FunctionName
+    cursor.firstChild(); // Propagate keyword
+    cursor.nextSibling(); // FunctionName
     const fn = collectFunctionName();
+    cursor.nextSibling(); // From keyword
     cursor.nextSibling(); // CellList
     const from = collectCellList();
+    cursor.nextSibling(); // To keyword
     cursor.nextSibling(); // Name (to cell)
     const to = slice(cursor.from, cursor.to);
     let params: Record<string, string> = {};
@@ -70,7 +73,8 @@ export function parseNetwork(input: string): DataNetworkAST {
 
   // cursor must be positioned at a CellTerm or ConstantTerm node on entry
   const collectValueTerm = (kind: "cell" | "constant"): CellTerm | ConstantTerm => {
-    cursor.firstChild(); // Name (cell/constant name)
+    cursor.firstChild(); // Cell or Constant keyword
+    cursor.nextSibling(); // Name (cell/constant name)
     const termName = slice(cursor.from, cursor.to);
     cursor.nextSibling(); // String | Number | Boolean | Name (value)
     const raw = slice(cursor.from, cursor.to);
@@ -81,8 +85,11 @@ export function parseNetwork(input: string): DataNetworkAST {
 
   // cursor must be positioned at a SwitchTerm node on entry
   const collectSwitchTerm = (): SwitchTerm => {
-    cursor.firstChild(); // CellList
+    cursor.firstChild(); // Switch keyword
+    cursor.nextSibling(); // From keyword
+    cursor.nextSibling(); // CellList
     const from = collectCellList();
+    cursor.nextSibling(); // To keyword
     cursor.nextSibling(); // Name (to cell)
     const to = slice(cursor.from, cursor.to);
     cursor.parent();
@@ -98,8 +105,11 @@ export function parseNetwork(input: string): DataNetworkAST {
         break;
 
       case "Signature": {
-        cursor.firstChild(); // CellList
+        cursor.firstChild(); // Signature_ keyword
+        cursor.nextSibling(); // From keyword
+        cursor.nextSibling(); // CellList
         const from = collectCellList();
+        cursor.nextSibling(); // To keyword
         cursor.nextSibling(); // Name (to cell)
         signature = { from, to: slice(cursor.from, cursor.to) };
         cursor.parent();
