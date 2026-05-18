@@ -72,6 +72,7 @@ export class Something<A> implements InfoStructure<A> {
 export function I(value: unknown): InfoStructure<unknown> {
   if (value === null || value === undefined) return Nothing;
   if (value instanceof Error) return new Contradiction("runtime/error", new Set(), value);
+  if (value instanceof Something || value instanceof Contradiction || value === Nothing) return value as InfoStructure<unknown>;
   return new Something(value);
 }
 
