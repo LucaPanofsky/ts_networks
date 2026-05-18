@@ -1,0 +1,54 @@
+import { run } from "../../src/network-impl/runner.js";
+import { Cell } from "../../src/network-impl/cell.js";
+import { Propagator } from "../../src/network-impl/propagator.js";
+import { APromise } from "../../src/network-impl/apromise.js";
+import { Deferred } from "../../src/network-impl/deferred.js";
+import { Something } from "../../src/info-structure.js";
+import { naryUnpacking } from "../../src/nary-unpacking.js";
+
+function delayedValue(v: unknown, ms: number): APromise<unknown> {
+  const d = new Deferred<unknown>();
+  setTimeout(() => d.resolve(new Something(v)), ms);
+  return new APromise(d);
+}
+
+const asyncDouble = naryUnpacking((x: unknown) => delayedValue((x as number) * 2, 50), 1);
+
+describe("async network: propagator returning APromise", () => {
+  test("output is APromise and not realized immediately after run", () => {
+    const cells = new Map([
+      ["input", new Cell("input")],
+      ["output", new Cell("output")],
+    ]);
+    const p = new Propagator("asyncDouble", ["input"], "output", asyncDouble);
+    cells.get("input")!.addNeighbor(p);
+
+    cells.get("input")!.setContent(new Something(21));
+    run(cells, new Map([["asyncDouble", p]]), ["asyncDouble"]);
+
+    const out = cells.get("output")!.knows();
+    expect(out instanceof APromise).toBe(true);
+    expect((out as APromise<unknown>).deferred.isRealized).toBe(false);
+  });
+
+  test("output is realized after the promise resolves", async () => {
+    const cells = new Map([
+      ["input", new Cell("input")],
+      ["output", new Cell("output")],
+    ]);
+    const p = new Propagator("asyncDouble", ["input"], "output", asyncDouble);
+    cells.get("input")!.addNeighbor(p);
+
+    cells.get("input")!.setContent(new Something(21));
+    run(cells, new Map([["asyncDouble", p]]), ["asyncDouble"]);
+
+    const out = cells.get("output")!.knows() as APromise<unknown>;
+    
+    expect(out.deferred.isRealized).toBe(false);
+    
+    await out.deferred.promise;
+
+    expect(out.deferred.isRealized).toBe(true);
+    expect(out.content()).toEqual(new Something(42));
+  });
+});

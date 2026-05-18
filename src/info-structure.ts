@@ -75,19 +75,20 @@ export class Something<A> implements InfoStructure<A> {
 
 // ── I ────────────────────────────────────────────────────────────────────────
 
+export function isInfoStructure(value: unknown): value is InfoStructure<unknown> {
+  return (
+    value === Nothing ||
+    value instanceof Something ||
+    value instanceof Contradiction ||
+    (value !== null && typeof value === "object" && "bind" in value && "merge" in value && "content" in value)
+  );
+}
+
 export function I(value: unknown): InfoStructure<unknown> {
   if (value === null || value === undefined) return Nothing;
   if (value instanceof Error) return new Contradiction("runtime/error", new Set(), value);
-  if (value instanceof Something || value instanceof Contradiction || value === Nothing) return value as InfoStructure<unknown>;
+  if (isInfoStructure(value)) return value;
   return new Something(value);
 }
 
-export function value(v: unknown): InfoStructure<unknown> {
-  return new Something(v);
-}
 
-export function bind<A>(struct: InfoStructure<A>, f: (a: A) => InfoStructure<unknown>): InfoStructure<unknown> {
-  const c = struct.content();
-  if (c === undefined) return struct as InfoStructure<unknown>;
-  return f(c);
-}
