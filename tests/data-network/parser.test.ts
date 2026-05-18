@@ -15,7 +15,7 @@ defnetwork myLL
   signature: from [a, b] to c
 
   propagate myLL from [a, b] to c
-    with: param1=asd, param2=hello;
+    with: param1=asd, param2='hello world';
 end
 `;
 
@@ -88,7 +88,7 @@ describe("parseNetwork: with clause", () => {
   test("params parsed", () => {
     expect(term.kind === "propagate" && term.params).toEqual({
       param1: "asd",
-      param2: "hello", // unquoted in DSL, stored as plain string
+      param2: "hello world",
     });
   });
 });

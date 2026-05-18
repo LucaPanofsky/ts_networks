@@ -41,8 +41,9 @@ export function parseNetwork(input: string): DataNetwork {
       if (cursor.name === "Param") {
         if (!cursor.firstChild()) continue;
         const key = slice(cursor.from, cursor.to); // Name
-        cursor.nextSibling(); // Name (value)
-        params[key] = slice(cursor.from, cursor.to);
+        cursor.nextSibling(); // String or Name (value)
+        const raw = slice(cursor.from, cursor.to);
+        params[key] = cursor.name === "String" ? raw.slice(1, -1) : raw;
         cursor.parent();
       }
     } while (cursor.nextSibling());
