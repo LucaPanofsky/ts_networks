@@ -1,18 +1,21 @@
 {
   "name": "ts_networks",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Propagation networks implementation in TypeScript",
+  "main": "dist/index.js",
+  "author": "Luca Panofsky",
+  "license": "ISC",
   "scripts": {
     "build": "tsc",
     "start": "ts-node src/index.ts",
-    "dev": "ts-node --watch src/index.ts"
+    "dev": "ts-node --watch src/index.ts",
+    "test": "jest"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "@types/node": "^25.9.0",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.4.9",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3"
   }
