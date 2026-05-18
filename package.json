@@ -2,21 +2,27 @@
   "name": "ts_networks",
   "version": "1.0.0",
   "description": "Propagation networks implementation in TypeScript",
+  "type": "module",
   "main": "dist/index.js",
   "author": "Luca Panofsky",
   "license": "ISC",
   "scripts": {
-    "build": "tsc",
-    "start": "ts-node src/index.ts",
-    "dev": "ts-node --watch src/index.ts",
-    "test": "jest"
+    "generate": "lezer-generator src/data-network/grammar.grammar --output src/data-network/parser.js",
+    "build": "npm run generate && tsc",
+    "test": "npm run generate && NODE_OPTIONS=--experimental-vm-modules jest",
+    "dev": "ts-node --watch src/index.ts"
   },
   "devDependencies": {
+    "@lezer/generator": "^1.8.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^25.9.0",
     "jest": "^30.4.2",
     "ts-jest": "^29.4.9",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "@lezer/common": "^1.5.2",
+    "@lezer/lr": "^1.4.10"
   }
 }
