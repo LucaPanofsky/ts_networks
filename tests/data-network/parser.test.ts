@@ -3,7 +3,7 @@ import { parser } from "../../src/data-network/parser.js";
 
 const input = `
 defnetwork mynetwork
-  signature: from [a, b] to d
+  signature: from [a, b] to d;
 
   propagate myFunction.couldBeNamespaced from [a, b] to c;
 
@@ -13,7 +13,7 @@ end
 
 const inputWithParams = `
 defnetwork myLL
-  signature: from [a, b] to c
+  signature: from [a, b] to c;
 
   propagate myLL from [a, b] to c
     with: param1=asd, param2='hello world';
@@ -96,7 +96,7 @@ describe("parseNetwork: with clause", () => {
 
 const inputWithNumbers = `
 defnetwork myNet
-  signature: from [a] to b
+  signature: from [a] to b;
 
   propagate f from [a] to b
     with: count=42, flag=true, ratio=3;

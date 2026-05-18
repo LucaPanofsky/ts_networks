@@ -3,7 +3,7 @@
 }
 
 Signature {
-  "signature" ":" "from" CellList "to" Name
+  "signature" ":" "from" CellList "to" Name ";"
 }
 
 Term { PropagateTerm | SwitchTerm }
