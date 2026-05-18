@@ -12,7 +12,19 @@ export type SwitchTerm = {
   to: string;
 };
 
-export type Term = PropagateTerm | SwitchTerm;
+export type CellTerm = {
+  kind: "cell";
+  name: string;
+  value: string;
+};
+
+export type ConstantTerm = {
+  kind: "constant";
+  name: string;
+  value: string;
+};
+
+export type Term = PropagateTerm | SwitchTerm | CellTerm | ConstantTerm;
 
 export type DataNetwork = {
   name: string;

@@ -1,5 +1,5 @@
 import { parser } from "./parser.js";
-import type { DataNetwork, Term, PropagateTerm, SwitchTerm } from "./types.js";
+import type { DataNetwork, Term, PropagateTerm, SwitchTerm, CellTerm, ConstantTerm } from "./types.js";
 
 export function parseNetwork(input: string): DataNetwork {
   const tree = parser.parse(input);
@@ -67,6 +67,17 @@ export function parseNetwork(input: string): DataNetwork {
     return { kind: "propagate", fn, from, to, params };
   };
 
+  // cursor must be positioned at a CellTerm or ConstantTerm node on entry
+  const collectValueTerm = (kind: "cell" | "constant"): CellTerm | ConstantTerm => {
+    cursor.firstChild(); // Name (cell/constant name)
+    const termName = slice(cursor.from, cursor.to);
+    cursor.nextSibling(); // String | Number | Boolean | Name (value)
+    const raw = slice(cursor.from, cursor.to);
+    const value = cursor.name === "String" ? raw.slice(1, -1) : raw;
+    cursor.parent();
+    return { kind, name: termName, value };
+  };
+
   // cursor must be positioned at a SwitchTerm node on entry
   const collectSwitchTerm = (): SwitchTerm => {
     cursor.firstChild(); // CellList
@@ -94,9 +105,11 @@ export function parseNetwork(input: string): DataNetwork {
         break;
 
       case "Term":
-        cursor.firstChild(); // PropagateTerm or SwitchTerm
+        cursor.firstChild();
         if (cursor.name === "PropagateTerm") terms.push(collectPropagateTerm());
         else if (cursor.name === "SwitchTerm") terms.push(collectSwitchTerm());
+        else if (cursor.name === "CellTerm") terms.push(collectValueTerm("cell"));
+        else if (cursor.name === "ConstantTerm") terms.push(collectValueTerm("constant"));
         cursor.parent();
         break;
     }

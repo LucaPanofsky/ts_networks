@@ -94,6 +94,44 @@ describe("parseNetwork: with clause", () => {
   });
 });
 
+const inputWithCellsAndConstants = `
+defnetwork myNet
+  signature: from [a] to result;
+
+  cell x = 42;
+  constant pi = 3;
+  constant label = 'hello';
+end
+`;
+
+describe("parseNetwork: cell and constant terms", () => {
+  test("parse tree is clean (no error nodes)", () => {
+    const tree = parser.parse(inputWithCellsAndConstants.trim());
+    const cursor = tree.cursor();
+    do {
+      expect(cursor.name).not.toBe("⚠");
+    } while (cursor.next());
+  });
+
+  test("cell term extracted correctly", () => {
+    const net = parseNetwork(inputWithCellsAndConstants);
+    const term = net.terms[0]!;
+    expect(term).toEqual({ kind: "cell", name: "x", value: "42" });
+  });
+
+  test("constant term with number", () => {
+    const net = parseNetwork(inputWithCellsAndConstants);
+    const term = net.terms[1]!;
+    expect(term).toEqual({ kind: "constant", name: "pi", value: "3" });
+  });
+
+  test("constant term with string", () => {
+    const net = parseNetwork(inputWithCellsAndConstants);
+    const term = net.terms[2]!;
+    expect(term).toEqual({ kind: "constant", name: "label", value: "hello" });
+  });
+});
+
 const inputWithNumbers = `
 defnetwork myNet
   signature: from [a] to b;

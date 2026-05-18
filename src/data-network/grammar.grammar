@@ -6,7 +6,7 @@ Signature {
   "signature" ":" "from" CellList "to" Name ";"
 }
 
-Term { PropagateTerm | SwitchTerm }
+Term { PropagateTerm | SwitchTerm | CellTerm | ConstantTerm }
 
 PropagateTerm {
   "propagate" FunctionName "from" CellList "to" Name WithClause? ";"
@@ -14,6 +14,14 @@ PropagateTerm {
 
 SwitchTerm {
   "switch" "from" CellList "to" Name ";"
+}
+
+CellTerm {
+  "cell" Name "=" (String | Number | Boolean | Name) ";"
+}
+
+ConstantTerm {
+  "constant" Name "=" (String | Number | Boolean | Name) ";"
 }
 
 WithClause {
@@ -40,7 +48,7 @@ FunctionName {
   whitespace { $[ \t\n\r]+ }
   LineComment { "//" ![\n]* }
 
-  @precedence { "defnetwork", "end", "from", "to", "with", "switch", "propagate", "signature", Boolean, Name }
+  @precedence { "defnetwork", "end", "from", "to", "with", "switch", "propagate", "signature", "cell", "constant", Boolean, Name }
 }
 
 @skip { whitespace | LineComment }
