@@ -1,12 +1,12 @@
 import { parser } from "./parser.js";
-import type { DataNetwork, Term, PropagateTerm, SwitchTerm, CellTerm, ConstantTerm } from "./types.js";
+import type { DataNetworkAST, Term, PropagateTerm, SwitchTerm, CellTerm, ConstantTerm } from "./types.js";
 
-export function parseNetwork(input: string): DataNetwork {
+export function parseNetwork(input: string): DataNetworkAST {
   const tree = parser.parse(input);
   const cursor = tree.cursor();
 
   let name = "";
-  let signature: DataNetwork["signature"] = { from: [], to: "" };
+  let signature: DataNetworkAST["signature"] = { from: [], to: "" };
   const terms: Term[] = [];
 
   const slice = (from: number, to: number) => input.slice(from, to);

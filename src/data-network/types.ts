@@ -26,7 +26,7 @@ export type ConstantTerm = {
 
 export type Term = PropagateTerm | SwitchTerm | CellTerm | ConstantTerm;
 
-export type DataNetwork = {
+export type DataNetworkAST = {
   name: string;
   signature: { from: string[]; to: string };
   terms: Term[];
