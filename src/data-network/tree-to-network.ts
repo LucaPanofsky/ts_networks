@@ -43,7 +43,8 @@ export function parseNetwork(input: string): DataNetwork {
         const key = slice(cursor.from, cursor.to); // Name
         cursor.nextSibling(); // String or Name (value)
         const raw = slice(cursor.from, cursor.to);
-        params[key] = cursor.name === "String" ? raw.slice(1, -1) : raw;
+        const valueKind: string = cursor.name;
+        params[key] = valueKind === "String" ? raw.slice(1, -1) : raw;
         cursor.parent();
       }
     } while (cursor.nextSibling());
@@ -96,22 +97,25 @@ export function parseNetwork(input: string): DataNetwork {
         if (!name) name = slice(cursor.from, cursor.to);
         break;
 
-      case "Signature":
+      case "Signature": {
         cursor.firstChild(); // CellList
         const from = collectCellList();
         cursor.nextSibling(); // Name (to cell)
         signature = { from, to: slice(cursor.from, cursor.to) };
         cursor.parent();
         break;
+      }
 
-      case "Term":
+      case "Term": {
         cursor.firstChild();
-        if (cursor.name === "PropagateTerm") terms.push(collectPropagateTerm());
-        else if (cursor.name === "SwitchTerm") terms.push(collectSwitchTerm());
-        else if (cursor.name === "CellTerm") terms.push(collectValueTerm("cell"));
-        else if (cursor.name === "ConstantTerm") terms.push(collectValueTerm("constant"));
+        const termKind: string = cursor.name;
+        if (termKind === "PropagateTerm") terms.push(collectPropagateTerm());
+        else if (termKind === "SwitchTerm") terms.push(collectSwitchTerm());
+        else if (termKind === "CellTerm") terms.push(collectValueTerm("cell"));
+        else if (termKind === "ConstantTerm") terms.push(collectValueTerm("constant"));
         cursor.parent();
         break;
+      }
     }
   } while (cursor.nextSibling());
 
