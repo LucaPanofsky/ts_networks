@@ -112,6 +112,16 @@ describe("parseNetwork: numeric and boolean param values", () => {
     } while (cursor.next());
   });
 
+  test("boolean value has Boolean node type (not Name)", () => {
+    const tree = parser.parse(inputWithNumbers.trim());
+    const cursor = tree.cursor();
+    const nodeTypes: string[] = [];
+    do {
+      nodeTypes.push(cursor.name);
+    } while (cursor.next());
+    expect(nodeTypes).toContain("Boolean");
+  });
+
   test("param values extracted correctly", () => {
     const net = parseNetwork(inputWithNumbers);
     const term = net.terms[0]!;
