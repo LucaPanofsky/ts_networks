@@ -1,0 +1,19 @@
+{
+  "name": "ts_networks",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "ts-node src/index.ts",
+    "dev": "ts-node --watch src/index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^25.9.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
+  }
+}
