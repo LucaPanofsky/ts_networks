@@ -1,7 +1,7 @@
 import { run } from "../../src/network-impl/runner.js";
 import { Cell } from "../../src/network-impl/cell.js";
 import { Propagator } from "../../src/network-impl/propagator.js";
-import { Something } from "../../src/info-structure.js";
+import { Contradiction, Something } from "../../src/info-structure.js";
 import { naryUnpacking } from "../../src/nary-unpacking.js";
 
 const add = naryUnpacking((a: unknown, b: unknown) => (a as number) + (b as number), 2);
@@ -27,13 +27,14 @@ describe("runner: basic execution", () => {
     cells.get("a")!.setContent(new Something(3));
     cells.get("b")!.setContent(new Something(4));
     const result = run(cells, propagators, ["add"]);
-    expect(result.get("out")!.knows().equals(new Something(7))).toBe(true);
+    expect(result.type).toBe("done");
+    expect(result.cells.get("out")!.knows().equals(new Something(7))).toBe(true);
   });
 
   test("returns the same cells map", () => {
     const { cells, propagators } = setup();
     const result = run(cells, propagators, ["add"]);
-    expect(result).toBe(cells);
+    expect(result.cells).toBe(cells);
   });
 
   test("empty candidates returns cells unchanged", () => {
@@ -74,3 +75,21 @@ describe("runner: chained propagation", () => {
     expect(cells.get("out")!.knows().equals(new Something(7))).toBe(true);
   });
 });
+
+describe("runner: contradiction exit", () => {
+  test("returns exit when a propagator produces a contradiction", () => {
+    const cells = new Map([
+      ["a", new Cell("a")],
+      ["out", new Cell("out")],
+    ]);
+    cells.get("out")!.setContent(new Something(1));
+    const conflict = naryUnpacking((_a: unknown) => 2, 1);
+    const p = new Propagator("conflict", ["a"], "out", conflict);
+    cells.get("a")!.addNeighbor(p);
+    cells.get("a")!.setContent(new Something(99));
+    const result = run(cells, new Map([["conflict", p]]), ["conflict"]);
+    expect(result.type).toBe("exit");
+    expect((result as { type: "exit"; reason: unknown }).reason).toBeInstanceOf(Contradiction);
+  });
+});
+

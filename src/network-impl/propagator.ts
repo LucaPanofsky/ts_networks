@@ -1,13 +1,23 @@
-import type { InfoStructure } from "../info-structure.js";
+import { Contradiction, type InfoStructure } from "../info-structure.js";
 import type { Cell } from "./cell.js";
 
 export type NetworkMessage =
   | { type: "none" }
-  | { type: "next"; propagators: Set<unknown> };
+  | { type: "next"; propagators: Set<unknown> }
+  | { type: "exit"; reason: unknown };
 
 export const none: NetworkMessage = { type: "none" };
 
 type CellMap = Map<string, Cell>;
+
+export function rationalActivationStrategyI(out: Cell, result: InfoStructure<unknown>): NetworkMessage {
+  const before = out.knows();
+  out.mergeContent(result);
+  const after = out.knows();
+  if (after instanceof Contradiction) return { type: "exit", reason: after };
+  if (after.equals(before)) return none;
+  return { type: "next", propagators: out.neighbors() };
+}
 
 function compileCall(
   inputNames: string[],
@@ -17,58 +27,23 @@ function compileCall(
   switch (inputNames.length) {
     case 1: {
       const n0 = inputNames[0]!;
-      return (cells) => {
-        const result = unpacked(cells.get(n0)!.knows());
-        const out = cells.get(outputName)!;
-        const before = out.knows();
-        out.mergeContent(result);
-        if (out.knows().equals(before)) return none;
-        return { type: "next", propagators: out.neighbors() };
-      };
+      return (cells) => rationalActivationStrategyI(cells.get(outputName)!, unpacked(cells.get(n0)!.knows()));
     }
     case 2: {
       const n0 = inputNames[0]!, n1 = inputNames[1]!;
-      return (cells) => {
-        const result = unpacked(cells.get(n0)!.knows(), cells.get(n1)!.knows());
-        const out = cells.get(outputName)!;
-        const before = out.knows();
-        out.mergeContent(result);
-        if (out.knows().equals(before)) return none;
-        return { type: "next", propagators: out.neighbors() };
-      };
+      return (cells) => rationalActivationStrategyI(cells.get(outputName)!, unpacked(cells.get(n0)!.knows(), cells.get(n1)!.knows()));
     }
     case 3: {
       const n0 = inputNames[0]!, n1 = inputNames[1]!, n2 = inputNames[2]!;
-      return (cells) => {
-        const result = unpacked(cells.get(n0)!.knows(), cells.get(n1)!.knows(), cells.get(n2)!.knows());
-        const out = cells.get(outputName)!;
-        const before = out.knows();
-        out.mergeContent(result);
-        if (out.knows().equals(before)) return none;
-        return { type: "next", propagators: out.neighbors() };
-      };
+      return (cells) => rationalActivationStrategyI(cells.get(outputName)!, unpacked(cells.get(n0)!.knows(), cells.get(n1)!.knows(), cells.get(n2)!.knows()));
     }
     case 4: {
       const n0 = inputNames[0]!, n1 = inputNames[1]!, n2 = inputNames[2]!, n3 = inputNames[3]!;
-      return (cells) => {
-        const result = unpacked(cells.get(n0)!.knows(), cells.get(n1)!.knows(), cells.get(n2)!.knows(), cells.get(n3)!.knows());
-        const out = cells.get(outputName)!;
-        const before = out.knows();
-        out.mergeContent(result);
-        if (out.knows().equals(before)) return none;
-        return { type: "next", propagators: out.neighbors() };
-      };
+      return (cells) => rationalActivationStrategyI(cells.get(outputName)!, unpacked(cells.get(n0)!.knows(), cells.get(n1)!.knows(), cells.get(n2)!.knows(), cells.get(n3)!.knows()));
     }
     case 5: {
       const n0 = inputNames[0]!, n1 = inputNames[1]!, n2 = inputNames[2]!, n3 = inputNames[3]!, n4 = inputNames[4]!;
-      return (cells) => {
-        const result = unpacked(cells.get(n0)!.knows(), cells.get(n1)!.knows(), cells.get(n2)!.knows(), cells.get(n3)!.knows(), cells.get(n4)!.knows());
-        const out = cells.get(outputName)!;
-        const before = out.knows();
-        out.mergeContent(result);
-        if (out.knows().equals(before)) return none;
-        return { type: "next", propagators: out.neighbors() };
-      };
+      return (cells) => rationalActivationStrategyI(cells.get(outputName)!, unpacked(cells.get(n0)!.knows(), cells.get(n1)!.knows(), cells.get(n2)!.knows(), cells.get(n3)!.knows(), cells.get(n4)!.knows()));
     }
     default:
       throw new Error(`Propagator: arity ${inputNames.length} is not supported (max 5)`);
