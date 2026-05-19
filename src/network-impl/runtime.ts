@@ -2,6 +2,7 @@ import { I, type InfoStructure } from "../info-structure.js";
 import type { DataNetwork } from "../data-network/data-network.js";
 import type { Registry } from "../registry.js";
 import { naryUnpacking } from "../nary-unpacking.js";
+import { rankPropagators } from "../data-network/ranking.js";
 import { Cell } from "./cell.js";
 import { Propagator } from "./propagator.js";
 import { run, type RunResult } from "./runner.js";
@@ -9,7 +10,7 @@ import { run, type RunResult } from "./runner.js";
 export class NetworkRuntime {
   private readonly _cells: Map<string, Cell>;
   private readonly _propagators: Map<string, Propagator>;
-  private readonly _signature: { from: string[]; to: string };
+  private readonly _rankedPropagators: string[];
 
   constructor(network: DataNetwork, registry: Registry) {
     // Compile propagators: fn string → actual Propagator
@@ -32,7 +33,7 @@ export class NetworkRuntime {
       this._cells.set(name, cell);
     }
 
-    this._signature = network.signature;
+    this._rankedPropagators = rankPropagators(network);
   }
 
   get cells(): Map<string, Cell> {
@@ -61,13 +62,7 @@ export class NetworkRuntime {
       cell.setContent(I(value));
     }
 
-    // Default worklist: neighbors of each signature input cell, deduplicated
-    const candidates = worklist ?? [...new Set(
-      this._signature.from.flatMap(inputName =>
-        [...(freshCells.get(inputName)?.neighbors() ?? [])]
-          .map(p => (p as Propagator).name)
-      )
-    )];
+    const candidates = worklist ?? this._rankedPropagators;
 
     return run(freshCells, this._propagators, candidates);
   }
