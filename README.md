@@ -6,7 +6,7 @@ A TypeScript implementation of propagation networks, a computational model based
 
 ## Building Blocks
 
-### Information Structures
+### Core Information Structures
 
 An **information structure** is the blueprint for any value in the model. Every value — including `null`, errors, and plain data — is wrapped in an information structure.
 
@@ -54,6 +54,29 @@ I(42)            // → Something(42)
 I("hello")       // → Something("hello")
 ```
 
+### The Network Language
+
+Networks can be declared in a small DSL that compiles to a `DataNetwork`. A network definition names its inputs and output via a `signature`, then lists cells, constants, and propagators as terms.
+
+```
+defnetwork doubleAndAdd
+  signature: from [x] to out;
+  constant bias = 10;
+  propagate double from [x] to doubled;
+  propagate add from [doubled, bias] to out;
+end
+```
+
+| Term | Purpose |
+|------|---------|
+| `signature: from […] to name;` | Declares the network's interface |
+| `cell name = value;` | Declares a cell with an initial value |
+| `constant name = value;` | Declares a read-only cell |
+| `propagate fn from […] to name;` | Adds a propagator that calls `fn` |
+| `propagate fn from […] to name with: k=v, …;` | Propagator with named parameters |
+
+Function names in `propagate` are looked up in a `Registry` at compile time and wrapped with `naryUnpacking` to produce the runtime `Propagator`.
+
 ---
 
 ## Project Structure
@@ -74,6 +97,19 @@ npm run build   # compile TypeScript → dist/
 npm test        # run all tests
 npm run dev     # watch mode
 ```
+
+## Other Types
+
+### `MergeObject` & plain objects
+
+A plain object wrapped with `I({ x: 1 })` becomes `Something({ x: 1 })`. Its `merge` is **base semantics**: two `Something` values merge successfully only if they are identical; any difference produces a `Contradiction`. There is no awareness of fields.
+
+`MergeObject` lifts each field of the object individually into its own `InfoStructure`, enabling **recursive merge semantics**: two `MergeObject`s merge field by field, unioning keys that appear in only one side and merging values that appear in both. A conflict in a single field bubbles up as a `Contradiction` for the whole object.
+
+This makes `MergeObject` a safe accumulator for partial information: different propagators can each contribute a subset of fields, and the cell will accumulate them without conflict as long as no field is asserted twice with different values.
+
+**Functional behaviour is equivalent.** Both `Something({x:1})` and `MergeObject.lift({x:1})` deliver the same plain object `{x:1}` to a `bind` or `naryUnpacking` function. The distinction is purely in how `merge` treats incoming information.
+
 ## References
 
 - Sussman, Gerald Jay & Radul, Alexey — **[The Art of the Propagator](https://dspace.mit.edu/entities/publication/295b4ade-7ab5-4787-b5d1-417905fe7ab0)** (MIT-CSAIL-TR-2009-002, January 26, 2009)
