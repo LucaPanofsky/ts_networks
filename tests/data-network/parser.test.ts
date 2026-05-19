@@ -144,18 +144,21 @@ end
 describe("parse tree: keyword nodes are named (not anonymous)", () => {
   const simple = "defnetwork test signature: from [a] to out; end";
 
-  test("first child of Network is the 'Defnetwork' keyword node", () => {
+  test("first child of NetworkDef is the 'Defnetwork' keyword node", () => {
     const tree = parser.parse(simple);
     const cursor = tree.cursor();
-    cursor.firstChild(); // Network
-    cursor.firstChild(); // first visible child
+    cursor.firstChild(); // Document → Definition
+    cursor.firstChild(); // Definition → NetworkDef
+    cursor.firstChild(); // NetworkDef → first child
     expect(cursor.name).toBe("Defnetwork");
   });
 
-  test("last child of Network is the 'End' keyword node", () => {
+  test("last child of NetworkDef is the 'End' keyword node", () => {
     const tree = parser.parse(simple);
-    const cursor = tree.cursor(); // starts at Network (the @top rule)
-    cursor.lastChild();
+    const cursor = tree.cursor();
+    cursor.firstChild(); // Document → Definition
+    cursor.firstChild(); // Definition → NetworkDef
+    cursor.lastChild();  // last child of NetworkDef
     expect(cursor.name).toBe("End");
   });
 

@@ -1,17 +1,23 @@
 import { parser } from "./parser.js";
-import type { DataNetworkAST, Term, PropagateTerm, SwitchTerm, CellTerm, ConstantTerm } from "./types.js";
+import type {
+  ProgramAST, DataNetworkAST, RecordAST, FnAST,
+  Term, PropagateTerm, SwitchTerm, CellTerm, ConstantTerm,
+  FieldDecl, TypedParam,
+  Expr, LiteralExpr, VarExpr, CallExpr, BinaryExpr, UnaryExpr, FieldExpr,
+} from "./types.js";
 
-export function parseNetwork(input: string): DataNetworkAST {
+export function parseProgram(input: string): ProgramAST {
   const tree = parser.parse(input);
   const cursor = tree.cursor();
-
-  let name = "";
-  let signature: DataNetworkAST["signature"] = { from: [], to: "" };
-  const terms: Term[] = [];
-
   const slice = (from: number, to: number) => input.slice(from, to);
+  const cn = (): string => cursor.name;
 
-  // cursor must be positioned at a CellList node on entry
+  const networks: DataNetworkAST[] = [];
+  const records: RecordAST[] = [];
+  const fns: FnAST[] = [];
+
+  // ── helpers ────────────────────────────────────────────────────────────────
+
   const collectCellList = (): string[] => {
     const cells: string[] = [];
     if (!cursor.firstChild()) return cells;
@@ -22,7 +28,6 @@ export function parseNetwork(input: string): DataNetworkAST {
     return cells;
   };
 
-  // cursor must be positioned at a FunctionName node on entry
   const collectFunctionName = (): string => {
     const parts: string[] = [];
     if (!cursor.firstChild()) return "";
@@ -33,15 +38,14 @@ export function parseNetwork(input: string): DataNetworkAST {
     return parts.join(".");
   };
 
-  // cursor must be positioned at a WithClause node on entry
   const collectParams = (): Record<string, string> => {
     const params: Record<string, string> = {};
     if (!cursor.firstChild()) return params;
     do {
       if (cursor.name === "Param") {
         if (!cursor.firstChild()) continue;
-        const key = slice(cursor.from, cursor.to); // Name
-        cursor.nextSibling(); // String or Name (value)
+        const key = slice(cursor.from, cursor.to);
+        cursor.nextSibling();
         const raw = slice(cursor.from, cursor.to);
         const valueKind: string = cursor.name;
         params[key] = valueKind === "String" ? raw.slice(1, -1) : raw;
@@ -52,15 +56,14 @@ export function parseNetwork(input: string): DataNetworkAST {
     return params;
   };
 
-  // cursor must be positioned at a PropagateTerm node on entry
   const collectPropagateTerm = (): PropagateTerm => {
-    cursor.firstChild(); // Propagate keyword
+    cursor.firstChild();
     cursor.nextSibling(); // FunctionName
     const fn = collectFunctionName();
-    cursor.nextSibling(); // From keyword
+    cursor.nextSibling(); // From
     cursor.nextSibling(); // CellList
     const from = collectCellList();
-    cursor.nextSibling(); // To keyword
+    cursor.nextSibling(); // To
     cursor.nextSibling(); // Name (to cell)
     const to = slice(cursor.from, cursor.to);
     let params: Record<string, string> = {};
@@ -71,63 +74,234 @@ export function parseNetwork(input: string): DataNetworkAST {
     return { kind: "propagate", fn, from, to, params };
   };
 
-  // cursor must be positioned at a CellTerm or ConstantTerm node on entry
   const collectValueTerm = (kind: "cell" | "constant"): CellTerm | ConstantTerm => {
-    cursor.firstChild(); // Cell or Constant keyword
-    cursor.nextSibling(); // Name (cell/constant name)
+    cursor.firstChild();
+    cursor.nextSibling(); // Name
     const termName = slice(cursor.from, cursor.to);
-    cursor.nextSibling(); // String | Number | Boolean | Name (value)
+    cursor.nextSibling(); // value
     const raw = slice(cursor.from, cursor.to);
     const value = cursor.name === "String" ? raw.slice(1, -1) : raw;
     cursor.parent();
     return { kind, name: termName, value };
   };
 
-  // cursor must be positioned at a SwitchTerm node on entry
   const collectSwitchTerm = (): SwitchTerm => {
-    cursor.firstChild(); // Switch keyword
-    cursor.nextSibling(); // From keyword
+    cursor.firstChild();
+    cursor.nextSibling(); // From
     cursor.nextSibling(); // CellList
     const from = collectCellList();
-    cursor.nextSibling(); // To keyword
-    cursor.nextSibling(); // Name (to cell)
+    cursor.nextSibling(); // To
+    cursor.nextSibling(); // Name
     const to = slice(cursor.from, cursor.to);
     cursor.parent();
     return { kind: "switch", from, to };
   };
 
-  cursor.firstChild(); // enter Network, now at first child
+  // ── expression parser ──────────────────────────────────────────────────────
 
-  do {
-    switch (cursor.name) {
-      case "Name":
-        if (!name) name = slice(cursor.from, cursor.to);
-        break;
+  const parseExpr = (): Expr => {
+    const nodeName = cursor.name;
 
-      case "Signature": {
-        cursor.firstChild(); // Signature_ keyword
-        cursor.nextSibling(); // From keyword
-        cursor.nextSibling(); // CellList
-        const from = collectCellList();
-        cursor.nextSibling(); // To keyword
-        cursor.nextSibling(); // Name (to cell)
-        signature = { from, to: slice(cursor.from, cursor.to) };
-        cursor.parent();
-        break;
-      }
+    if (nodeName === "Expr") {
+      cursor.firstChild();
+      const result = parseExpr();
+      cursor.parent();
+      return result;
+    }
 
-      case "Term": {
+    if (nodeName === "BinExpr") {
+      cursor.firstChild();
+      const left = parseExpr();
+      cursor.nextSibling(); // operator (CompareOp | AddOp | MulOp | "||" | "&&")
+      const op = slice(cursor.from, cursor.to);
+      cursor.nextSibling();
+      const right = parseExpr();
+      cursor.parent();
+      return { kind: "binary", op, left, right } as BinaryExpr;
+    }
+
+    if (nodeName === "UnaryExpr") {
+      const op = "!"; // "!" token is anonymous — not in tree
+      cursor.firstChild(); // Expr (operand)
+      const expr = parseExpr();
+      cursor.parent();
+      return { kind: "unary", op, expr } as UnaryExpr;
+    }
+
+    if (nodeName === "FieldExpr") {
+      cursor.firstChild(); // Expr
+      const object = parseExpr();
+      cursor.nextSibling(); // "."
+      cursor.nextSibling(); // Name
+      const field = slice(cursor.from, cursor.to);
+      cursor.parent();
+      return { kind: "field", object, field } as FieldExpr;
+    }
+
+    if (nodeName === "CallExpr") {
+      cursor.firstChild(); // Name
+      const fn = slice(cursor.from, cursor.to);
+      const args: Expr[] = [];
+      if (cursor.nextSibling() && cursor.name === "ArgList") {
         cursor.firstChild();
-        const termKind: string = cursor.name;
-        if (termKind === "PropagateTerm") terms.push(collectPropagateTerm());
-        else if (termKind === "SwitchTerm") terms.push(collectSwitchTerm());
-        else if (termKind === "CellTerm") terms.push(collectValueTerm("cell"));
-        else if (termKind === "ConstantTerm") terms.push(collectValueTerm("constant"));
+        do {
+          if (cn() !== "⚠") args.push(parseExpr());
+        } while (cursor.nextSibling());
         cursor.parent();
-        break;
       }
+      cursor.parent();
+      return { kind: "call", fn, args } as CallExpr;
+    }
+
+    if (nodeName === "ParenExpr") {
+      cursor.firstChild(); // "("
+      cursor.nextSibling(); // Expr
+      const inner = parseExpr();
+      cursor.parent();
+      return inner;
+    }
+
+    if (nodeName === "Number") {
+      const raw = slice(cursor.from, cursor.to);
+      return { kind: "literal", value: Number(raw) } as LiteralExpr;
+    }
+
+    if (nodeName === "String") {
+      const raw = slice(cursor.from, cursor.to);
+      return { kind: "literal", value: raw.slice(1, -1) } as LiteralExpr;
+    }
+
+    if (nodeName === "Boolean") {
+      return { kind: "literal", value: slice(cursor.from, cursor.to) === "true" } as LiteralExpr;
+    }
+
+    // Name — variable reference
+    return { kind: "var", name: slice(cursor.from, cursor.to) } as VarExpr;
+  };
+
+  // ── NetworkDef ─────────────────────────────────────────────────────────────
+
+  const collectNetworkDef = (): DataNetworkAST => {
+    let name = "";
+    let signature: DataNetworkAST["signature"] = { from: [], to: "" };
+    const terms: Term[] = [];
+
+    if (!cursor.firstChild()) return { kind: "network", name, signature, terms };
+    do {
+      switch (cursor.name) {
+        case "Name":
+          if (!name) name = slice(cursor.from, cursor.to);
+          break;
+        case "Signature": {
+          cursor.firstChild();
+          cursor.nextSibling(); // From
+          cursor.nextSibling(); // CellList
+          const from = collectCellList();
+          cursor.nextSibling(); // To
+          cursor.nextSibling(); // Name
+          signature = { from, to: slice(cursor.from, cursor.to) };
+          cursor.parent();
+          break;
+        }
+        case "Term": {
+          cursor.firstChild();
+          const termKind: string = cursor.name;
+          if (termKind === "PropagateTerm") terms.push(collectPropagateTerm());
+          else if (termKind === "SwitchTerm") terms.push(collectSwitchTerm());
+          else if (termKind === "CellTerm") terms.push(collectValueTerm("cell"));
+          else if (termKind === "ConstantTerm") terms.push(collectValueTerm("constant"));
+          cursor.parent();
+          break;
+        }
+      }
+    } while (cursor.nextSibling());
+    cursor.parent();
+    return { kind: "network", name, signature, terms };
+  };
+
+  // ── RecordDef ──────────────────────────────────────────────────────────────
+
+  const collectRecordDef = (): RecordAST => {
+    let name = "";
+    const fields: FieldDecl[] = [];
+
+    if (!cursor.firstChild()) return { kind: "record", name, fields };
+    do {
+      if (cursor.name === "Name" && !name) {
+        name = slice(cursor.from, cursor.to);
+      } else if (cursor.name === "FieldDecl") {
+        cursor.firstChild(); // Name (field)
+        const fieldName = slice(cursor.from, cursor.to);
+        cursor.nextSibling(); // ":"
+        cursor.nextSibling(); // Name (predicate)
+        const predicate = slice(cursor.from, cursor.to);
+        cursor.parent();
+        fields.push({ name: fieldName, predicate });
+      }
+    } while (cursor.nextSibling());
+    cursor.parent();
+    return { kind: "record", name, fields };
+  };
+
+  // ── FnDef ──────────────────────────────────────────────────────────────────
+
+  const collectFnDef = (): FnAST => {
+    let name = "";
+    let params: TypedParam[] = [];
+    let returnType = "";
+    let body: Expr = { kind: "literal", value: 0 };
+
+    if (!cursor.firstChild()) return { kind: "fn", name, params, returnType, body };
+    do {
+      if (cursor.name === "Name" && !name) {
+        name = slice(cursor.from, cursor.to);
+      } else if (cursor.name === "MorphismDecl") {
+        cursor.firstChild(); // Morphism_
+        cursor.nextSibling(); // From (":" is invisible in tree)
+        cursor.nextSibling(); // first TypedParam or To
+        while (cn() === "TypedParam") {
+          cursor.firstChild(); // predicate Name
+          const predicate = slice(cursor.from, cursor.to);
+          cursor.nextSibling(); // param Name ("(" is invisible in tree)
+          const paramName = slice(cursor.from, cursor.to);
+          cursor.parent();
+          params.push({ predicate, name: paramName });
+          if (!cursor.nextSibling()) break;
+          if (cn() === ",") cursor.nextSibling();
+        }
+        // cursor should now be at To
+        cursor.nextSibling(); // Name (return type)
+        returnType = slice(cursor.from, cursor.to);
+        cursor.parent();
+      } else if (cursor.name === "ExpressionBody") {
+        cursor.firstChild(); // Expression_
+        cursor.nextSibling(); // Expr
+        body = parseExpr();
+        cursor.parent();
+      }
+    } while (cursor.nextSibling());
+    cursor.parent();
+    return { kind: "fn", name, params, returnType, body };
+  };
+
+  // ── top-level walk ─────────────────────────────────────────────────────────
+
+  cursor.firstChild(); // enter Document
+  do {
+    if (cursor.name === "Definition") {
+      cursor.firstChild();
+      if (cn() === "NetworkDef") networks.push(collectNetworkDef());
+      else if (cn() === "RecordDef") records.push(collectRecordDef());
+      else if (cn() === "FnDef") fns.push(collectFnDef());
+      cursor.parent();
     }
   } while (cursor.nextSibling());
 
-  return { name, signature, terms };
+  return { networks, records, fns };
+}
+
+export function parseNetwork(input: string): DataNetworkAST {
+  const program = parseProgram(input);
+  if (program.networks.length === 0) throw new Error("No defnetwork found in input");
+  return program.networks[0]!;
 }
