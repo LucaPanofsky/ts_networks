@@ -41,19 +41,30 @@ describe("createSandbox", () => {
     expect(typeof sandbox["abs"]).toBe("function");
   });
 
-  test("Vec2 constructor produces a value", () => {
-    const v = sandbox["Vec2"]!(3, 4);
-    expect(v).toBeTruthy();
+  test("Vec2 constructor returns a plain JS object", () => {
+    expect(sandbox["Vec2"]!(3, 4)).toEqual({ __type: "Vec2", x: 3, y: 4 });
   });
 
-  test("Vec2? returns true for a Vec2", () => {
+  test("Vec2? returns true for a value from the constructor", () => {
     const v = sandbox["Vec2"]!(3, 4);
     expect(sandbox["Vec2?"]!(v)).toBe(true);
   });
 
-  test("length of 3,4 is 25", () => {
+  test("Vec2? returns true for a plain JS object", () => {
+    expect(sandbox["Vec2?"]!({ __type: "Vec2", x: 3, y: 4 })).toBe(true);
+  });
+
+  test("Vec2? returns false for a wrong type", () => {
+    expect(sandbox["Vec2?"]!({ __type: "Other", x: 3, y: 4 })).toBe(false);
+  });
+
+  test("length from constructor value is 25", () => {
     const v = sandbox["Vec2"]!(3, 4);
     expect(sandbox["length"]!(v)).toBe(25);
+  });
+
+  test("length from plain JS object is 25", () => {
+    expect(sandbox["length"]!({ x: 3, y: 4 })).toBe(25);
   });
 
   test("abs of negative number", () => {

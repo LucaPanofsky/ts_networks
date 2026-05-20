@@ -1,4 +1,4 @@
-import { compileRecord, compileExpr, compileFn, compileProgram } from "../../../src/sandbox/scittle/compiler.js";
+import { compileRecord, compileExpr, compileFn, compileProgram, compileCoercedExportMap } from "../../../src/sandbox/scittle/compiler.js";
 import type { RecordAST, FnAST, ProgramAST, Expr } from "../../../src/data-network/types.js";
 
 // ── compileExpr ───────────────────────────────────────────────────────────────
@@ -184,13 +184,13 @@ describe("compileRecord", () => {
 
   test("emits constructor defn", () => {
     expect(compileRecord(vec2)).toContain(
-      "(defn Vec2 [x y] {:__type :Vec2 :x x :y y})"
+      `(defn Vec2 [x y] {:__type "Vec2" :x x :y y})`
     );
   });
 
   test("emits predicate defn", () => {
     expect(compileRecord(vec2)).toContain(
-      "(defn Vec2? [v] (= (:__type v) :Vec2))"
+      `(defn Vec2? [v] (= (:__type v) "Vec2"))`
     );
   });
 
@@ -201,8 +201,57 @@ describe("compileRecord", () => {
       fields: [{ name: "value", predicate: "Number?" }],
     };
     expect(compileRecord(rec)).toContain(
-      "(defn Wrapper [value] {:__type :Wrapper :value value})"
+      `(defn Wrapper [value] {:__type "Wrapper" :value value})`
     );
+  });
+});
+
+// ── compileCoercedExportMap ───────────────────────────────────────────────────
+
+describe("compileCoercedExportMap", () => {
+  const vec2: RecordAST = {
+    kind: "record",
+    name: "Vec2",
+    fields: [{ name: "x", predicate: "Number?" }, { name: "y", predicate: "Number?" }],
+  };
+  const absFn: FnAST = {
+    kind: "fn", name: "abs",
+    params: [{ predicate: "Number?", name: "x" }],
+    returnType: "Number?",
+    body: { kind: "var", name: "x" },
+  };
+  const piFn: FnAST = {
+    kind: "fn", name: "pi",
+    params: [], returnType: "Number?",
+    body: { kind: "literal", value: 3.14 },
+  };
+  const program: ProgramAST = { records: [vec2], fns: [absFn, piFn], networks: [] };
+  const out = compileCoercedExportMap(program);
+
+  test("output is a #js map literal", () => {
+    expect(out).toMatch(/^#js \{/);
+  });
+
+  test("Vec2 constructor is wrapped with arity 2", () => {
+    expect(out).toContain(
+      `"Vec2" (fn [a0 a1] (clj->js (Vec2 (js->clj a0 :keywordize-keys true) (js->clj a1 :keywordize-keys true))))`
+    );
+  });
+
+  test("Vec2? predicate is wrapped with arity 1", () => {
+    expect(out).toContain(
+      `"Vec2?" (fn [a0] (clj->js (Vec2? (js->clj a0 :keywordize-keys true))))`
+    );
+  });
+
+  test("fn with arity 1 is wrapped", () => {
+    expect(out).toContain(
+      `"abs" (fn [a0] (clj->js (abs (js->clj a0 :keywordize-keys true))))`
+    );
+  });
+
+  test("zero-arity fn is wrapped", () => {
+    expect(out).toContain(`"pi" (fn [] (clj->js (pi)))`);
   });
 });
 
@@ -241,11 +290,11 @@ describe("compileProgram", () => {
   });
 
   test("contains record constructor", () => {
-    expect(compileProgram(program)).toContain("(defn Vec2 [x y] {:__type :Vec2 :x x :y y})");
+    expect(compileProgram(program)).toContain(`(defn Vec2 [x y] {:__type "Vec2" :x x :y y})`);
   });
 
   test("contains record predicate", () => {
-    expect(compileProgram(program)).toContain("(defn Vec2? [v] (= (:__type v) :Vec2))");
+    expect(compileProgram(program)).toContain(`(defn Vec2? [v] (= (:__type v) "Vec2"))`);
   });
 
   test("contains fn", () => {
