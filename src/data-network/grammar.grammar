@@ -63,11 +63,11 @@ FieldDecl {
 // ── def fn ────────────────────────────────────────────────────────────────────
 
 FnDef {
-  Def Fn Name MorphismDecl ExpressionBody End
+  Defn Name FnSignature ExpressionBody End
 }
 
-MorphismDecl {
-  Morphism_ ":" From (TypedParam ("," TypedParam)*)? To Name ";"
+FnSignature {
+  Signature_ ":" From ("[" TypedParam ("," TypedParam)* "]")? To Name ";"
 }
 
 TypedParam {
@@ -119,11 +119,9 @@ MulOp { "*" | Divide }
 @tokens {
   Defnetwork  { "defnetwork" }
   Defrecord   { "defrecord" }
-  Def         { "def" }
-  Fn          { "fn" }
+  Defn        { "defn" }
   End         { "end" }
   Signature_  { "signature" }
-  Morphism_   { "morphism" }
   Expression_ { "expression" }
   From        { "from" }
   To          { "to" }
@@ -141,7 +139,7 @@ MulOp { "*" | Divide }
   whitespace  { $[ \t\n\r]+ }
   LineComment { "//" ![\n]* }
 
-  @precedence { LineComment, Defnetwork, Defrecord, End, Signature_, Morphism_, Expression_, From, To, Propagate, With, Switch, Cell, Constant, Fn, Def, Boolean, Name, Divide }
+  @precedence { LineComment, Defnetwork, Defrecord, Defn, End, Signature_, Expression_, From, To, Propagate, With, Switch, Cell, Constant, Boolean, Name, Divide }
 }
 
 @precedence { field @left, not, mul @left, add @left, compare @left, and @left, or @left }

@@ -6,9 +6,9 @@ import type { BinaryExpr, CallExpr, FieldExpr, FnAST, LiteralExpr, RecordAST, Un
 
 const recordInput = `
 defrecord Point
-  x: Number;
-  y: Number;
-  label: String;
+  x: Number?;
+  y: Number?;
+  label: String?;
 end
 `;
 
@@ -37,15 +37,15 @@ describe("parseProgram: defrecord basic", () => {
   });
 
   test("first field predicate", () => {
-    expect(rec.fields[0]!.predicate).toBe("Number");
+    expect(rec.fields[0]!.predicate).toBe("Number?");
   });
 
   test("second field", () => {
-    expect(rec.fields[1]).toEqual({ name: "y", predicate: "Number" });
+    expect(rec.fields[1]).toEqual({ name: "y", predicate: "Number?" });
   });
 
   test("third field", () => {
-    expect(rec.fields[2]).toEqual({ name: "label", predicate: "String" });
+    expect(rec.fields[2]).toEqual({ name: "label", predicate: "String?" });
   });
 });
 
@@ -59,16 +59,16 @@ describe("parseProgram: defrecord parse tree is clean", () => {
   });
 });
 
-// ── def fn — basic ────────────────────────────────────────────────────────────
+// ── defn — basic ────────────────────────────────────────────────────────────
 
 const fnSimple = `
-def fn add
-  morphism: from Number(x), Number(y) to Number;
+defn add
+  signature: from [Number?(x), Number?(y)] to Number?;
   expression x + y;
 end
 `;
 
-describe("parseProgram: def fn basic", () => {
+describe("parseProgram: defn basic", () => {
   const prog = parseProgram(fnSimple);
   const fn = prog.fns[0]! as FnAST;
 
@@ -89,7 +89,7 @@ describe("parseProgram: def fn basic", () => {
   });
 
   test("first param predicate", () => {
-    expect(fn.params[0]!.predicate).toBe("Number");
+    expect(fn.params[0]!.predicate).toBe("Number?");
   });
 
   test("first param name", () => {
@@ -97,11 +97,11 @@ describe("parseProgram: def fn basic", () => {
   });
 
   test("second param", () => {
-    expect(fn.params[1]).toEqual({ predicate: "Number", name: "y" });
+    expect(fn.params[1]).toEqual({ predicate: "Number?", name: "y" });
   });
 
   test("return type", () => {
-    expect(fn.returnType).toBe("Number");
+    expect(fn.returnType).toBe("Number?");
   });
 
   test("body is binary expr", () => {
@@ -121,7 +121,7 @@ describe("parseProgram: def fn basic", () => {
   });
 });
 
-describe("parseProgram: def fn parse tree is clean", () => {
+describe("parseProgram: defn parse tree is clean", () => {
   test("no error nodes", () => {
     const tree = parser.parse(fnSimple.trim());
     const cursor = tree.cursor();
@@ -131,16 +131,16 @@ describe("parseProgram: def fn parse tree is clean", () => {
   });
 });
 
-// ── def fn — no params ────────────────────────────────────────────────────────
+// ── defn — no params ────────────────────────────────────────────────────────
 
 const fnNoParams = `
-def fn pi
-  morphism: from to Number;
+defn pi
+  signature: from to Number?;
   expression 3;
 end
 `;
 
-describe("parseProgram: def fn no params", () => {
+describe("parseProgram: defn no params", () => {
   const prog = parseProgram(fnNoParams);
   const fn = prog.fns[0]!;
 
@@ -149,7 +149,7 @@ describe("parseProgram: def fn no params", () => {
   });
 
   test("return type", () => {
-    expect(fn.returnType).toBe("Number");
+    expect(fn.returnType).toBe("Number?");
   });
 
   test("body is literal 3", () => {
@@ -160,7 +160,7 @@ describe("parseProgram: def fn no params", () => {
 // ── expressions ───────────────────────────────────────────────────────────────
 
 function parseFnBody(expr: string) {
-  const src = `def fn f morphism: from to Number; expression ${expr}; end`;
+  const src = `defn f signature: from to Number?; expression ${expr}; end`;
   const prog = parseProgram(src);
   return prog.fns[0]!.body;
 }
@@ -318,12 +318,12 @@ describe("parseProgram: expression — precedence and nesting", () => {
 
 const multiInput = `
 defrecord Vec2
-  x: Number;
-  y: Number;
+  x: Number?;
+  y: Number?;
 end
 
-def fn length
-  morphism: from Vec2(v) to Number;
+defn length
+  signature: from [Vec2?(v)] to Number?;
   expression v.x * v.x + v.y * v.y;
 end
 

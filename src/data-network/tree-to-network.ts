@@ -255,23 +255,25 @@ export function parseProgram(input: string): ProgramAST {
     do {
       if (cursor.name === "Name" && !name) {
         name = slice(cursor.from, cursor.to);
-      } else if (cursor.name === "MorphismDecl") {
-        cursor.firstChild(); // Morphism_
-        cursor.nextSibling(); // From (":" is invisible in tree)
-        cursor.nextSibling(); // first TypedParam or To
-        while (cn() === "TypedParam") {
-          cursor.firstChild(); // predicate Name
-          const predicate = slice(cursor.from, cursor.to);
-          cursor.nextSibling(); // param Name ("(" is invisible in tree)
-          const paramName = slice(cursor.from, cursor.to);
-          cursor.parent();
-          params.push({ predicate, name: paramName });
-          if (!cursor.nextSibling()) break;
-          if (cn() === ",") cursor.nextSibling();
-        }
-        // cursor should now be at To
-        cursor.nextSibling(); // Name (return type)
-        returnType = slice(cursor.from, cursor.to);
+      } else if (cursor.name === "FnSignature") {
+        let seenTo = false;
+        if (!cursor.firstChild()) continue;
+        do {
+          if (cn() === "TypedParam") {
+            const names: string[] = [];
+            if (cursor.firstChild()) {
+              do {
+                if (cn() === "Name") names.push(slice(cursor.from, cursor.to));
+              } while (cursor.nextSibling());
+              cursor.parent();
+            }
+            if (names.length >= 2) params.push({ predicate: names[0]!, name: names[1]! });
+          } else if (cn() === "To") {
+            seenTo = true;
+          } else if (cn() === "Name" && seenTo) {
+            returnType = slice(cursor.from, cursor.to);
+          }
+        } while (cursor.nextSibling());
         cursor.parent();
       } else if (cursor.name === "ExpressionBody") {
         cursor.firstChild(); // Expression_
