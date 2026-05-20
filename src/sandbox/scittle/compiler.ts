@@ -39,10 +39,11 @@ export function compileFn(fn: FnAST): string {
   return `(defn ${fn.name} [${params}] ${compileExpr(fn.body)})`;
 }
 
-export function compileProgram(program: ProgramAST): string {
+export function compileProgram(program: ProgramAST, extraForms: string[] = []): string {
   const forms: string[] = [
     ...program.records.map(compileRecord),
     ...program.fns.map(compileFn),
+    ...extraForms,
   ];
   return `(do\n${forms.join("\n")})`;
 }
