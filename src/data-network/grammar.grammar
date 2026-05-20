@@ -1,4 +1,14 @@
-@top Network {
+@top Document {
+  Definition*
+}
+
+Definition {
+  NetworkDef | RecordDef | FnDef
+}
+
+// ── defnetwork ────────────────────────────────────────────────────────────────
+
+NetworkDef {
   Defnetwork Name Signature Term* End
 }
 
@@ -40,25 +50,98 @@ FunctionName {
   Name ("." Name)*
 }
 
+// ── defrecord ─────────────────────────────────────────────────────────────────
+
+RecordDef {
+  Defrecord Name FieldDecl* End
+}
+
+FieldDecl {
+  Name ":" Name ";"
+}
+
+// ── def fn ────────────────────────────────────────────────────────────────────
+
+FnDef {
+  Defn Name FnSignature ExpressionBody End
+}
+
+FnSignature {
+  Signature_ ":" From ("[" TypedParam ("," TypedParam)* "]")? To Name ";"
+}
+
+TypedParam {
+  Name "(" Name ")"
+}
+
+ExpressionBody {
+  Expression_ Expr ";"
+}
+
+// ── expressions ───────────────────────────────────────────────────────────────
+
+Expr {
+  BinExpr |
+  UnaryExpr |
+  FieldExpr |
+  CallExpr |
+  ParenExpr |
+  Name |
+  Number |
+  String |
+  Boolean
+}
+
+BinExpr {
+  Expr !or "||" Expr |
+  Expr !and "&&" Expr |
+  Expr !compare CompareOp Expr |
+  Expr !add AddOp Expr |
+  Expr !mul MulOp Expr
+}
+
+UnaryExpr { "!" !not Expr }
+
+FieldExpr { Expr !field "." Name }
+
+CallExpr { Name "(" ArgList? ")" }
+
+ParenExpr { "(" Expr ")" }
+
+ArgList { Expr ("," Expr)* }
+
+CompareOp { "==" | "!=" | "<=" | ">=" | "<" | ">" }
+AddOp { "+" | "-" }
+MulOp { "*" | Divide }
+
+// ── tokens ────────────────────────────────────────────────────────────────────
+
 @tokens {
-  Defnetwork { "defnetwork" }
-  End { "end" }
-  Signature_ { "signature" }
-  From { "from" }
-  To { "to" }
-  Propagate { "propagate" }
-  With { "with" }
-  Switch { "switch" }
-  Cell { "cell" }
-  Constant { "constant" }
-  Name { $[a-zA-Z_] $[a-zA-Z0-9_?!]* }
-  Boolean { "true" | "false" }
-  Number { $[0-9]+ }
-  String { "'" (!['])* "'" }
-  whitespace { $[ \t\n\r]+ }
+  Defnetwork  { "defnetwork" }
+  Defrecord   { "defrecord" }
+  Defn        { "defn" }
+  End         { "end" }
+  Signature_  { "signature" }
+  Expression_ { "expression" }
+  From        { "from" }
+  To          { "to" }
+  Propagate   { "propagate" }
+  With        { "with" }
+  Switch      { "switch" }
+  Cell        { "cell" }
+  Constant    { "constant" }
+  Name        { $[a-zA-Z_] $[a-zA-Z0-9_?!]* }
+  Boolean     { "true" | "false" }
+  Number      { $[0-9]+ ("." $[0-9]+)? }
+  String      { "'" (!['])* "'" }
+  "==" ">=" "<=" "!=" "&&" "||"
+  Divide      { "/" }
+  whitespace  { $[ \t\n\r]+ }
   LineComment { "//" ![\n]* }
 
-  @precedence { Defnetwork, End, Signature_, From, To, Propagate, With, Switch, Cell, Constant, Boolean, Name }
+  @precedence { LineComment, Defnetwork, Defrecord, Defn, End, Signature_, Expression_, From, To, Propagate, With, Switch, Cell, Constant, Boolean, Name, Divide }
 }
+
+@precedence { field @left, not, mul @left, add @left, compare @left, and @left, or @left }
 
 @skip { whitespace | LineComment }
