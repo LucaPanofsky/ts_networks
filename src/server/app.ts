@@ -5,6 +5,7 @@ import { parseProgram } from "../data-network/tree-to-network.js";
 import { compileProgram, compileCoercedExportMap } from "../sandbox/scittle/compiler.js";
 import { compile } from "../sandbox/scittle/index.js";
 import { openDb, upsertProgram, getProgram, listPrograms, deleteProgram } from "./db.js";
+import { validateProgram } from "../validation/index.js";
 import type { RunResult } from "../network-impl/runner.js";
 
 function serializeResult(result: RunResult) {
@@ -44,6 +45,7 @@ export function createApp(dbPath: string): Hono {
       return c.json({ error: "parse error", detail: String(e) }, 400);
     }
 
+    const report = validateProgram(program);
     const clojure_source = compileProgram(program, [compileCoercedExportMap(program)]);
 
     upsertProgram(db, {
@@ -55,7 +57,7 @@ export function createApp(dbPath: string): Hono {
       records_json:   JSON.stringify(program.records.map(r => ({ name: r.name, fields: r.fields }))),
     });
 
-    return c.json(getProgram(db, c.req.param("name")));
+    return c.json({ ...getProgram(db, c.req.param("name")), report });
   });
 
   app.delete("/programs/:name", (c) => {
