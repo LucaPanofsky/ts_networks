@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/assets/css/semtx.css" />
+    <link rel="stylesheet" href="/assets/css/style.css" />
+    <script
+      src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.91/dist/_hyperscript.min.js"
+      integrity="sha384-OT9bNmUa5rM34SmxFpRftn2F6GbgM/4xnTmn0z106OE5uvsigkdtUMOpdPKOigyO"
+      crossorigin="anonymous"
+    ></script>
+    <title>ts-networks</title>
+  </head>
+
+  <script type="text/hyperscript-template" id="program-card">
+    #for p in programs
+      <div class="card card-outline cursor-pointer program-card"
+           onclick="location.href='/programs/${p.name}'">
+  
+        <header class="card-header">
+          <span class="prog-name">${p.name}</span>
+          <div class="toolbar">
+            <span class="caption">${p.updated}</span>
+            <button class="card-delete-btn"
+                    onclick="event.stopPropagation(); deleteProgram('${p.name}')"
+                    aria-label="Delete ${p.name}">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                   fill="none" stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                <path d="M10 11v6"/><path d="M14 11v6"/>
+                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+              </svg>
+            </button>
+          </div>
+        </header>
+  
+        <div class="card-body stack-sm">
+          #if p.networks.length > 0
+            <div class="prog-section">
+              <p class="label-uppercase">Networks</p>
+              #for n in p.networks
+                <div class="sig-row">
+                  <span class="sig-name">${n.name}</span>
+                  <span class="sig-flow">
+                    <span class="sig-inputs">${n.from.join(' · ')}</span>
+                    <span class="sig-arrow">→</span>
+                    <span class="sig-output">${n.to}</span>
+                  </span>
+                </div>
+              #end
+            </div>
+          #end
+  
+          #if p.functions.length > 0
+            <div class="prog-section">
+              <p class="label-uppercase">Functions</p>
+              #for f in p.functions
+                <div class="sig-row">
+                  <span class="sig-name">${f.name}</span>
+                  <span class="sig-flow">
+                    <span class="sig-inputs">${f.from.join(' · ')}</span>
+                    <span class="sig-arrow">→</span>
+                    <span class="sig-output">${f.to}</span>
+                  </span>
+                </div>
+              #end
+            </div>
+          #end
+  
+          #if p.records.length > 0
+            <div class="prog-section">
+              <p class="label-uppercase">Records</p>
+              <div class="flex flex-wrap gap-1">
+                #for r in p.records
+                  <span class="badge">${r.name}</span>
+                #end
+              </div>
+            </div>
+          #end
+        </div>
+      </div>
+    #end
+  </script>
+
+  <body _="
+    init call loadPrograms()
+    on programsLoaded
+      add .hidden to #loading
+      if event.detail.length == 0
+        remove .hidden from #empty-state
+      else
+        render #program-card with programs: event.detail
+        put it into #programs-grid
+        remove .hidden from #programs-grid
+      end
+    end
+  ">
+
+    <div class="sidebar-layout log-pinned">
+
+      <aside class="dock">
+        <a href="/" class="dock-item active" title="Home">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+        </a>
+        <a href="#" class="dock-item" title="Settings">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </a>
+        <button class="dock-item" title="New program" _="on click get #new-program-dialog then result.showModal() end">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+        </button>
+      </aside>
+
+      <div class="flex-1 flex-col flex">
+
+        <main class="p-6">
+
+          <h3 class="mb-6">Programs</h3>
+
+          <div id="drop-zone" class="drop-zone mb-6">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="16 16 12 12 8 16"/>
+              <line x1="12" y1="12" x2="12" y2="21"/>
+              <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+            </svg>
+            <p>Drop a DSL file here</p>
+          </div>
+
+          <!-- Loading skeletons -->
+          <div id="loading" class="three-col">
+            <div class="card card-outline">
+              <div class="card-body stack-sm">
+                <div class="skeleton skeleton-text" style="width: 35%"></div>
+                <div class="skeleton skeleton-text"></div>
+                <div class="skeleton skeleton-text" style="width: 70%"></div>
+              </div>
+            </div>
+            <div class="card card-outline">
+              <div class="card-body stack-sm">
+                <div class="skeleton skeleton-text" style="width: 45%"></div>
+                <div class="skeleton skeleton-text"></div>
+                <div class="skeleton skeleton-text" style="width: 60%"></div>
+              </div>
+            </div>
+            <div class="card card-outline">
+              <div class="card-body stack-sm">
+                <div class="skeleton skeleton-text" style="width: 30%"></div>
+                <div class="skeleton skeleton-text"></div>
+                <div class="skeleton skeleton-text" style="width: 75%"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Empty state -->
+          <div id="empty-state" class="empty-state hidden">
+            <div class="empty-state-icon">◻</div>
+            <p>No programs yet — create one to get started.</p>
+          </div>
+
+          <!-- Programs grid -->
+          <div id="programs-grid" class="three-col hidden"></div>
+
+        </main>
+
+      </div><!-- end right column -->
+
+      <div class="log-strip" title="Toggle log panel" onclick="toggleLog()"></div>
+
+      <aside class="log-panel">
+        <div class="log-content">
+          <div class="log-header">Log</div>
+          <div class="log-messages" id="log-messages"></div>
+        </div>
+      </aside>
+
+    </div><!-- end sidebar-layout -->
+
+    <!-- New program dialog -->
+    <dialog id="new-program-dialog" class="dialog-sm">
+      <div class="dialog-header">
+        New program
+        <button
+          class="dialog-close"
+          _="on click get the closest <dialog/> then result.close()"
+        >✕</button>
+      </div>
+      <div class="dialog-body">
+        <div class="form-group">
+          <label for="prog-name">Name</label>
+          <input type="text" id="prog-name" placeholder="my-program" autocomplete="off" />
+        </div>
+        <div class="form-group">
+          <label for="prog-dsl">DSL</label>
+          <textarea
+            id="prog-dsl"
+            rows="12"
+            placeholder="defrecord …"
+            ></textarea>
+        </div>
+        <p id="dialog-error" class="form-error hidden"></p>
+      </div>
+      <div class="dialog-footer">
+        <button class="btn-ghost" _="on click get the closest <dialog/> then result.close() end">Cancel</button>
+        <button id="save-btn" class="btn-primary" _="on click call saveProgram() end">Save</button>
+      </div>
+    </dialog>
+
+    <script>
+      const dropZone = document.getElementById("drop-zone");
+
+      dropZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropZone.classList.add("drag-over");
+      });
+
+      dropZone.addEventListener("dragleave", () => {
+        dropZone.classList.remove("drag-over");
+      });
+
+      dropZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropZone.classList.remove("drag-over");
+        const file = e.dataTransfer.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          document.getElementById("prog-name").value = file.name.replace(/\.[^/.]+$/, "");
+          document.getElementById("prog-dsl").value  = reader.result;
+          document.getElementById("dialog-error").classList.add("hidden");
+          document.getElementById("new-program-dialog").showModal();
+        };
+        reader.readAsText(file);
+      });
+
+      async function loadPrograms() {
+        document.getElementById("loading").classList.remove("hidden");
+        document.getElementById("programs-grid").classList.add("hidden");
+        document.getElementById("empty-state").classList.add("hidden");
+
+        const raw = await fetch("/programs").then((r) => r.json());
+
+        const programs = raw.map((p) => ({
+          name:      p.name,
+          updated:   new Date(p.updated_at).toLocaleString(),
+          networks:  p.networks,
+          functions: p.functions,
+          records:   p.records,
+        }));
+
+        document.body.dispatchEvent(new CustomEvent("programsLoaded", { detail: programs }));
+      }
+
+      function toggleLog() {
+        document.querySelector(".sidebar-layout").classList.toggle("log-pinned");
+      }
+
+      function appendLog(text, isError = false) {
+        const el = document.createElement("div");
+        el.className = "log-line" + (isError ? " log-error" : "");
+        el.textContent = text;
+        const messages = document.getElementById("log-messages");
+        messages.appendChild(el);
+        messages.scrollTop = messages.scrollHeight;
+      }
+
+      function connectLogStream() {
+        const es = new EventSource("/events");
+        es.onmessage = (e) => appendLog(e.data);
+        es.onerror   = () => es.close();
+      }
+
+      connectLogStream();
+
+      async function deleteProgram(name) {
+        if (!confirm(`Delete "${name}"?`)) return;
+        await fetch(`/programs/${encodeURIComponent(name)}`, { method: "DELETE" });
+        loadPrograms();
+      }
+
+      async function saveProgram() {
+        const name = document.getElementById("prog-name").value.trim();
+        const dsl  = document.getElementById("prog-dsl").value.trim();
+        const err  = document.getElementById("dialog-error");
+        const btn  = document.getElementById("save-btn");
+
+        if (!name || !dsl) return;
+
+        btn.classList.add("loading");
+        err.classList.add("hidden");
+
+        try {
+          const res = await fetch(`/programs/${encodeURIComponent(name)}`, {
+            method:  "PUT",
+            headers: { "Content-Type": "application/json" },
+            body:    JSON.stringify({ dsl }),
+          });
+
+          if (!res.ok) {
+            const data = await res.json();
+            err.textContent = data.detail ?? data.error;
+            err.classList.remove("hidden");
+            return;
+          }
+
+          document.getElementById("new-program-dialog").close();
+          document.getElementById("prog-name").value = "";
+          document.getElementById("prog-dsl").value  = "";
+          loadPrograms();
+        } catch (e) {
+          err.textContent = String(e);
+          err.classList.remove("hidden");
+        } finally {
+          btn.classList.remove("loading");
+        }
+      }
+    </script>
+
+  </body>
+</html>
