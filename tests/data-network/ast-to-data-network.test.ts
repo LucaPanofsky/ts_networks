@@ -2,6 +2,7 @@ import { astToDataNetwork } from "../../src/data-network/index.js";
 import type { DataNetworkAST } from "../../src/data-network/index.js";
 
 const base: DataNetworkAST = {
+  kind: "network",
   name: "myNet",
   signature: { from: ["a", "b"], to: "out" },
   terms: [],
