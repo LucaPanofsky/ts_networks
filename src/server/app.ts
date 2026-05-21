@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { serveStatic } from "@hono/node-server/serve-static";
 import { Nothing, Something, Contradiction, type InfoStructure } from "../info-structure.js";
 import { parseProgram } from "../data-network/tree-to-network.js";
 import { compileProgram, compileCoercedExportMap } from "../sandbox/scittle/compiler.js";
@@ -82,6 +83,8 @@ export function createApp(dbPath: string): Hono {
     const result = network.invoke(body.inputs ?? {});
     return c.json(serializeResult(result));
   });
+
+  app.use("/*", serveStatic({ root: "./ui" }));
 
   return app;
 }
