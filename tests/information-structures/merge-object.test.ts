@@ -24,14 +24,10 @@ describe("MergeObject.lift: structure of lifted fields", () => {
     expect(m.fields()["arr"]!.equals(new Something(arr))).toBe(true);
   });
 
-  test("nested object becomes a MergeObject", () => {
-    const m = MergeObject.lift({ inner: { bar: 1 } });
-    expect(m.fields()["inner"] instanceof MergeObject).toBe(true);
-  });
-
-  test("nested object fields are correctly lifted", () => {
+  test("nested object is recursively lifted", () => {
     const m = MergeObject.lift({ inner: { bar: 1 } });
     const inner = m.fields()["inner"] as MergeObject;
+    expect(inner instanceof MergeObject).toBe(true);
     expect(inner.fields()["bar"]!.equals(new Something(1))).toBe(true);
   });
 
