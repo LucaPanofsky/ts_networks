@@ -6,23 +6,25 @@ const s42 = new Something(42);
 const s99 = new Something(99);
 const contra = new Contradiction("test", new Set());
 
-const all: InfoStructure<unknown>[] = [nothing, s42, s99, contra];
+const named: [string, InfoStructure<unknown>][] = [
+  ["Nothing", nothing],
+  ["Something(42)", s42],
+  ["Something(99)", s99],
+  ["Contradiction", contra],
+];
 
 describe("merge: idempotent (a ⊕ a = a)", () => {
-  test.each([
-    ["Nothing", nothing],
-    ["Something(42)", s42],
-    ["Contradiction", contra],
-  ])("%s", (_name, a) => {
+  test.each(named)("%s", (_name, a) => {
     expect(a.merge(a).equals(a)).toBe(true);
   });
 });
 
 describe("merge: commutative (a ⊕ b = b ⊕ a)", () => {
-  for (const [nameA, a] of all.entries()) {
-    for (const [nameB, b] of all.entries()) {
-      if (nameB <= nameA) continue;
-      test(`all[${nameA}] ⊕ all[${nameB}]`, () => {
+  for (let i = 0; i < named.length; i++) {
+    for (let j = i + 1; j < named.length; j++) {
+      const [nameA, a] = named[i]!;
+      const [nameB, b] = named[j]!;
+      test(`${nameA} ⊕ ${nameB}`, () => {
         const ab = a.merge(b);
         const ba = b.merge(a);
         expect(ab.equals(ba)).toBe(true);
@@ -33,10 +35,13 @@ describe("merge: commutative (a ⊕ b = b ⊕ a)", () => {
 });
 
 describe("merge: associative ((a ⊕ b) ⊕ c = a ⊕ (b ⊕ c))", () => {
-  for (const [nameA, a] of all.entries()) {
-    for (const [nameB, b] of all.entries()) {
-      for (const [nameC, c] of all.entries()) {
-        test(`all[${nameA}] ⊕ all[${nameB}] ⊕ all[${nameC}]`, () => {
+  for (let i = 0; i < named.length; i++) {
+    for (let j = 0; j < named.length; j++) {
+      for (let k = 0; k < named.length; k++) {
+        const [nameA, a] = named[i]!;
+        const [nameB, b] = named[j]!;
+        const [nameC, c] = named[k]!;
+        test(`(${nameA} ⊕ ${nameB}) ⊕ ${nameC}`, () => {
           const lhs = a.merge(b).merge(c);
           const rhs = a.merge(b.merge(c));
           expect(lhs.equals(rhs)).toBe(true);

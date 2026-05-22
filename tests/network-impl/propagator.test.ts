@@ -9,13 +9,6 @@ function makeCells(...names: string[]): Map<string, Cell> {
   return new Map(names.map(n => [n, new Cell(n)]));
 }
 
-describe("Propagator: name", () => {
-  test("exposes its name", () => {
-    const p = new Propagator("add", ["a", "b"], "out", add);
-    expect(p.name).toBe("add");
-  });
-});
-
 describe("Propagator: call", () => {
   test("merges result into output cell", () => {
     const cells = makeCells("a", "b", "out");

@@ -129,7 +129,12 @@ describe("checkArities: errors", () => {
     `);
     const errors = checkArities(prog);
     expect(errors).toHaveLength(1);
-    expect(errors[0]!.message).toBe('"negate" expects 1 input(s) but is called with 2');
+    expect(errors[0]).toMatchObject({
+      severity: "error",
+      check:    "arities",
+      network:  "broken",
+      message:  '"negate" expects 1 input(s) but is called with 2',
+    });
   });
 
   test("wrong arity for a record constructor", () => {

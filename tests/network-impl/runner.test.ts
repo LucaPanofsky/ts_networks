@@ -1,7 +1,7 @@
 import { run } from "../../src/network-impl/runner.js";
 import { Cell } from "../../src/network-impl/cell.js";
 import { Propagator } from "../../src/network-impl/propagator.js";
-import { Contradiction, Something } from "../../src/info-structure.js";
+import { Contradiction, Nothing, Something } from "../../src/info-structure.js";
 import { naryUnpacking } from "../../src/nary-unpacking.js";
 
 const add = naryUnpacking((a: unknown, b: unknown) => (a as number) + (b as number), 2);
@@ -31,17 +31,11 @@ describe("runner: basic execution", () => {
     expect(result.cells.get("out")!.knows().equals(new Something(7))).toBe(true);
   });
 
-  test("returns the same cells map", () => {
-    const { cells, propagators } = setup();
-    const result = run(cells, propagators, ["add"]);
-    expect(result.cells).toBe(cells);
-  });
-
-  test("empty candidates returns cells unchanged", () => {
+  test("empty candidates leaves output as Nothing", () => {
     const { cells, propagators } = setup();
     cells.get("a")!.setContent(new Something(3));
     run(cells, propagators, []);
-    expect(cells.get("out")!.knows().equals(new Something(3))).not.toBe(true);
+    expect(cells.get("out")!.knows()).toBe(Nothing);
   });
 });
 

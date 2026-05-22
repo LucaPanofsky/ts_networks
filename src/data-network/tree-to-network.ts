@@ -282,7 +282,8 @@ export function parseProgram(input: string): ProgramAST {
         cursor.firstChild(); // first child of LetBody (LetBinding or Expr)
         const bindings: LetBinding[] = [];
         do {
-          if (cursor.name === "LetBinding") {
+          const nodeName = cursor.name as string;
+          if (nodeName === "LetBinding") {
             cursor.firstChild(); // Let keyword
             cursor.nextSibling(); // Name
             const bindingName = slice(cursor.from, cursor.to);
