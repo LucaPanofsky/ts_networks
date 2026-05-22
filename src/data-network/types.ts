@@ -114,10 +114,19 @@ export type FnAST = {
   body: Expr;
 };
 
+// ── Derive declarations ───────────────────────────────────────────────────────
+
+export type DeriveAST = {
+  kind: "derive";
+  sub: string;
+  sup: string;
+};
+
 // ── Program ───────────────────────────────────────────────────────────────────
 
 export type ProgramAST = {
   networks: DataNetworkAST[];
   records: RecordAST[];
   fns: FnAST[];
+  derives: DeriveAST[];
 };

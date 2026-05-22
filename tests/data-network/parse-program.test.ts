@@ -396,3 +396,70 @@ describe("parseProgram: multi-definition document", () => {
     } while (cursor.next());
   });
 });
+
+// ── derive ────────────────────────────────────────────────────────────────────
+
+const deriveInput = `
+derive Student? from Person?;
+derive GradStudent? from Student?;
+`;
+
+describe("parseProgram: derive", () => {
+  const prog = parseProgram(deriveInput);
+
+  test("derives count", () => {
+    expect(prog.derives).toHaveLength(2);
+  });
+
+  test("first derive sub", () => {
+    expect(prog.derives[0]!.sub).toBe("Student?");
+  });
+
+  test("first derive sup", () => {
+    expect(prog.derives[0]!.sup).toBe("Person?");
+  });
+
+  test("second derive sub", () => {
+    expect(prog.derives[1]!.sub).toBe("GradStudent?");
+  });
+
+  test("second derive sup", () => {
+    expect(prog.derives[1]!.sup).toBe("Student?");
+  });
+
+  test("kind is derive", () => {
+    expect(prog.derives[0]!.kind).toBe("derive");
+  });
+
+  test("no error nodes", () => {
+    const tree = parser.parse(deriveInput.trim());
+    const cursor = tree.cursor();
+    do {
+      expect(cursor.name).not.toBe("⚠");
+    } while (cursor.next());
+  });
+});
+
+describe("parseProgram: derive alongside other definitions", () => {
+  const mixed = `
+defrecord Person
+  name: String?;
+end
+
+derive Student? from Person?;
+`;
+  const prog = parseProgram(mixed);
+
+  test("record still parsed", () => {
+    expect(prog.records[0]!.name).toBe("Person");
+  });
+
+  test("derive still parsed", () => {
+    expect(prog.derives[0]!.sub).toBe("Student?");
+  });
+
+  test("derives array empty when absent", () => {
+    const empty = parseProgram("defrecord Foo\n  x: Number?;\nend");
+    expect(empty.derives).toHaveLength(0);
+  });
+});
