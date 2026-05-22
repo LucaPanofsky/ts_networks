@@ -24,11 +24,7 @@ end
 `;
 
 describe("compile: end-to-end", () => {
-  let result: Awaited<ReturnType<typeof compile>>;
-
-  beforeAll(async () => {
-    result = await compile(dsl);
-  }, 30000);
+  const result = compile(dsl);
 
   test("sandbox exposes Vec2 constructor", () => {
     expect(typeof result.sandbox["Vec2"]).toBe("function");

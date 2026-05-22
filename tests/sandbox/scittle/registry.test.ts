@@ -8,7 +8,7 @@ const vec2: RecordAST = {
 };
 
 const lengthFn: FnAST = {
-  kind: "fn", name: "length",
+  kind: "fn", isPredicate: false, name: "length",
   params: [{ predicate: "Vec2?", name: "v" }],
   returnType: "Number?",
   body: { kind: "literal", value: 0 },
