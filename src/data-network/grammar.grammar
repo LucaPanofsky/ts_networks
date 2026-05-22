@@ -23,7 +23,7 @@ PropagateTerm {
 }
 
 SwitchTerm {
-  Switch From CellList To Name ";"
+  Switch FunctionName? From CellList To Name ";"
 }
 
 CellTerm {

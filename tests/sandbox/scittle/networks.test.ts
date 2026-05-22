@@ -1,7 +1,8 @@
 import { buildNetworks } from "../../../src/sandbox/scittle/networks.js";
+import { compile } from "../../../src/sandbox/scittle/index.js";
 import { createRegistry } from "../../../src/registry.js";
 import { parseProgram } from "../../../src/data-network/tree-to-network.js";
-import { Something } from "../../../src/info-structure.js";
+import { Something, Nothing } from "../../../src/info-structure.js";
 
 const src = `
 defnetwork equations
@@ -75,5 +76,77 @@ describe("buildNetworks: doubler network invocation", () => {
   test("doubles the input", () => {
     const result = doubler.invoke({ x: 7 });
     expect(result.cells.get("y")!.knows()).toEqual(new Something(14));
+  });
+});
+
+describe("buildNetworks: switch — with explicit predicate", () => {
+  const src = `
+defn positive?
+  signature: from [Number?(x)] to Boolean?;
+  expression x > 0;
+end
+
+defnetwork gate
+  signature: from [test, value] to result;
+  switch positive? from [test, value] to result;
+end
+`;
+  const compiled = compile(src);
+  const gate = compiled.networks.get("gate")!;
+
+  test("passes value through when predicate is true", () => {
+    const result = gate.invoke({ test: 5, value: 42 });
+    expect(result.cells.get("result")!.knows()).toEqual(new Something(42));
+  });
+
+  test("returns Nothing when predicate is false", () => {
+    const result = gate.invoke({ test: -1, value: 42 });
+    expect(result.cells.get("result")!.knows()).toBe(Nothing);
+  });
+
+  test("returns Nothing when test cell is zero", () => {
+    const result = gate.invoke({ test: 0, value: 42 });
+    expect(result.cells.get("result")!.knows()).toBe(Nothing);
+  });
+});
+
+describe("buildNetworks: switch — default __SWITCH with true?", () => {
+  const switchSrc = `
+defnetwork gate
+  signature: from [test, value] to result;
+  switch from [test, value] to result;
+end
+`;
+  const compiled = compile(switchSrc);
+  const gate = compiled.networks.get("gate")!;
+
+  test("passes value through when test cell is boolean true", () => {
+    const result = gate.invoke({ test: true, value: 42 });
+    expect(result.cells.get("result")!.knows()).toEqual(new Something(42));
+  });
+
+  test("returns Nothing when test cell is false", () => {
+    const result = gate.invoke({ test: false, value: 42 });
+    expect(result.cells.get("result")!.knows()).toBe(Nothing);
+  });
+
+  test("returns Nothing when test cell is a non-boolean truthy value", () => {
+    const result = gate.invoke({ test: "anything", value: 42 });
+    expect(result.cells.get("result")!.knows()).toBe(Nothing);
+  });
+
+  test("returns Nothing when test cell is the string 'true'", () => {
+    const result = gate.invoke({ test: "true", value: 42 });
+    expect(result.cells.get("result")!.knows()).toBe(Nothing);
+  });
+
+  test("returns Nothing when test cell is 1", () => {
+    const result = gate.invoke({ test: 1, value: 42 });
+    expect(result.cells.get("result")!.knows()).toBe(Nothing);
+  });
+
+  test("returns Nothing when value cell is not provided", () => {
+    const result = gate.invoke({ test: true });
+    expect(result.cells.get("result")!.knows()).toBe(Nothing);
   });
 });

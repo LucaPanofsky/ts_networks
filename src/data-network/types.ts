@@ -10,6 +10,7 @@ export type PropagateTerm = {
 
 export type SwitchTerm = {
   kind: "switch";
+  fn: string | null;
   from: string[];
   to: string;
 };
