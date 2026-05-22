@@ -88,15 +88,20 @@ export function parseProgram(input: string): ProgramAST {
   };
 
   const collectSwitchTerm = (): SwitchTerm => {
-    cursor.firstChild();
-    cursor.nextSibling(); // From
+    cursor.firstChild(); // Switch keyword
+    cursor.nextSibling(); // FunctionName or From
+    let fn: string | null = null;
+    if (cursor.name === "FunctionName") {
+      fn = collectFunctionName();
+      cursor.nextSibling(); // From
+    }
     cursor.nextSibling(); // CellList
     const from = collectCellList();
     cursor.nextSibling(); // To
     cursor.nextSibling(); // Name
     const to = slice(cursor.from, cursor.to);
     cursor.parent();
-    return { kind: "switch", from, to };
+    return { kind: "switch", fn, from, to };
   };
 
   // ── expression parser ──────────────────────────────────────────────────────

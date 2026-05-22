@@ -66,12 +66,16 @@ describe("parseNetwork: propagate term", () => {
   });
 });
 
-describe("parseNetwork: switch term", () => {
+describe("parseNetwork: switch term — no predicate", () => {
   const net = parseNetwork(input);
   const term = net.terms[1]! as SwitchTerm;
 
   test("kind", () => {
     expect(term.kind).toBe("switch");
+  });
+
+  test("fn is null when omitted", () => {
+    expect(term.fn).toBeNull();
   });
 
   test("from cells", () => {
@@ -80,6 +84,32 @@ describe("parseNetwork: switch term", () => {
 
   test("to cell", () => {
     expect(term.to).toBe("d");
+  });
+});
+
+describe("parseNetwork: switch term — with predicate", () => {
+  const net = parseNetwork(`
+    defnetwork test
+      signature: from [a] to b;
+      switch even? from [a] to b;
+    end
+  `);
+  const term = net.terms[0]! as SwitchTerm;
+
+  test("kind", () => {
+    expect(term.kind).toBe("switch");
+  });
+
+  test("fn is the predicate name", () => {
+    expect(term.fn).toBe("even?");
+  });
+
+  test("from cells", () => {
+    expect(term.from).toEqual(["a"]);
+  });
+
+  test("to cell", () => {
+    expect(term.to).toBe("b");
   });
 });
 

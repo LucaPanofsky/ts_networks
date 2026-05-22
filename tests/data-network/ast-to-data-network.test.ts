@@ -97,7 +97,7 @@ describe("astToDataNetwork", () => {
   it("SwitchTerm adds a propagator with fn __SWITCH", () => {
     const ast: DataNetworkAST = {
       ...base,
-      terms: [{ kind: "switch", from: ["a", "b"], to: "c" }],
+      terms: [{ kind: "switch", fn: null, from: ["a", "b"], to: "c" }],
     };
     const net = astToDataNetwork(ast);
     expect(net.propagators.has("__SWITCH__a__b__to__c")).toBe(true);
