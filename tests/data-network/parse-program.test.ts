@@ -1,6 +1,6 @@
 import { parseProgram } from "../../src/data-network/tree-to-network.js";
 import { parser } from "../../src/data-network/parser.js";
-import type { BinaryExpr, CallExpr, FieldExpr, FnAST, LiteralExpr, RecordAST, UnaryExpr, VarExpr } from "../../src/data-network/types.js";
+import type { BinaryExpr, CallExpr, FieldExpr, FnAST, LetExpr, LiteralExpr, RecordAST, UnaryExpr, VarExpr } from "../../src/data-network/types.js";
 
 // ── defrecord ─────────────────────────────────────────────────────────────────
 
@@ -311,6 +311,122 @@ describe("parseProgram: expression — precedence and nesting", () => {
     expect(body.op).toBe("+");
     expect((body.left as CallExpr).kind).toBe("call");
     expect((body.right as LiteralExpr).value).toBe(1);
+  });
+});
+
+// ── defn — isPredicate flag ────────────────────────────────────────────────────
+
+describe("parseProgram: defn sets isPredicate false", () => {
+  const prog = parseProgram(fnSimple);
+  test("isPredicate is false", () => {
+    expect(prog.fns[0]!.isPredicate).toBe(false);
+  });
+});
+
+// ── defpredicate ──────────────────────────────────────────────────────────────
+
+const predicateSimple = `
+defpredicate even?
+  signature: from [Number?(x)] to Boolean?;
+  expression x == 0;
+end
+`;
+
+describe("parseProgram: defpredicate basic", () => {
+  const prog = parseProgram(predicateSimple);
+  const fn = prog.fns[0]!;
+
+  test("appears in fns array", () => {
+    expect(prog.fns).toHaveLength(1);
+  });
+
+  test("isPredicate is true", () => {
+    expect(fn.isPredicate).toBe(true);
+  });
+
+  test("kind is fn", () => {
+    expect(fn.kind).toBe("fn");
+  });
+
+  test("name", () => {
+    expect(fn.name).toBe("even?");
+  });
+
+  test("param predicate", () => {
+    expect(fn.params[0]!.predicate).toBe("Number?");
+  });
+
+  test("param name", () => {
+    expect(fn.params[0]!.name).toBe("x");
+  });
+
+  test("return type", () => {
+    expect(fn.returnType).toBe("Boolean?");
+  });
+
+  test("no error nodes", () => {
+    const tree = parser.parse(predicateSimple.trim());
+    const cursor = tree.cursor();
+    do {
+      expect(cursor.name).not.toBe("⚠");
+    } while (cursor.next());
+  });
+});
+
+// ── let bindings ──────────────────────────────────────────────────────────────
+
+const fnWithLet = `
+defn compute
+  signature: from [Number?(x), Number?(y)] to Number?;
+  expression
+    let a = x + y;
+    let b = a * 2;
+    b;
+end
+`;
+
+describe("parseProgram: let — body is LetExpr", () => {
+  const prog = parseProgram(fnWithLet);
+  const fn = prog.fns[0]!;
+
+  test("body kind is let", () => {
+    expect(fn.body.kind).toBe("let");
+  });
+
+  test("two bindings", () => {
+    expect((fn.body as LetExpr).bindings).toHaveLength(2);
+  });
+
+  test("first binding name", () => {
+    expect((fn.body as LetExpr).bindings[0]!.name).toBe("a");
+  });
+
+  test("first binding value is binary expr", () => {
+    expect((fn.body as LetExpr).bindings[0]!.value.kind).toBe("binary");
+  });
+
+  test("second binding name", () => {
+    expect((fn.body as LetExpr).bindings[1]!.name).toBe("b");
+  });
+
+  test("body is var b", () => {
+    expect((fn.body as LetExpr).body).toEqual({ kind: "var", name: "b" });
+  });
+
+  test("no error nodes", () => {
+    const tree = parser.parse(fnWithLet.trim());
+    const cursor = tree.cursor();
+    do {
+      expect(cursor.name).not.toBe("⚠");
+    } while (cursor.next());
+  });
+});
+
+describe("parseProgram: let — no bindings leaves body as plain Expr", () => {
+  const prog = parseProgram(fnSimple);
+
+  test("body kind is binary (not let)", () => {
+    expect(prog.fns[0]!.body.kind).toBe("binary");
   });
 });
 

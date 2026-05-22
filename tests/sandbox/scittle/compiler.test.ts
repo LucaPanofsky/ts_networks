@@ -305,3 +305,40 @@ describe("compileProgram", () => {
     expect(compileProgram({ records: [], fns: [], networks: [] })).toBe("(do\n)");
   });
 });
+
+// ── compileExpr: let ──────────────────────────────────────────────────────────
+
+describe("compileExpr: let", () => {
+  test("single binding", () => {
+    const expr: Expr = {
+      kind: "let",
+      bindings: [{ name: "x", value: { kind: "literal", value: 1 } }],
+      body: { kind: "var", name: "x" },
+    };
+    expect(compileExpr(expr)).toBe("(let [x 1] x)");
+  });
+
+  test("multiple bindings", () => {
+    const expr: Expr = {
+      kind: "let",
+      bindings: [
+        { name: "a", value: { kind: "literal", value: 1 } },
+        { name: "b", value: { kind: "literal", value: 2 } },
+      ],
+      body: { kind: "binary", op: "+", left: { kind: "var", name: "a" }, right: { kind: "var", name: "b" } },
+    };
+    expect(compileExpr(expr)).toBe("(let [a 1 b 2] (+ a b))");
+  });
+
+  test("binding value can itself be a complex expression", () => {
+    const expr: Expr = {
+      kind: "let",
+      bindings: [{
+        name: "sum",
+        value: { kind: "binary", op: "+", left: { kind: "var", name: "x" }, right: { kind: "var", name: "y" } },
+      }],
+      body: { kind: "var", name: "sum" },
+    };
+    expect(compileExpr(expr)).toBe("(let [sum (+ x y)] sum)");
+  });
+});

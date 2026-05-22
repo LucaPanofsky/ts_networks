@@ -3,7 +3,7 @@
 }
 
 Definition {
-  NetworkDef | RecordDef | FnDef
+  NetworkDef | RecordDef | FnDef | PredicateDef
 }
 
 // ── defnetwork ────────────────────────────────────────────────────────────────
@@ -66,6 +66,10 @@ FnDef {
   Defn Name FnSignature ExpressionBody End
 }
 
+PredicateDef {
+  Defpredicate Name FnSignature ExpressionBody End
+}
+
 FnSignature {
   Signature_ ":" From ("[" TypedParam ("," TypedParam)* "]")? To Name ";"
 }
@@ -75,7 +79,15 @@ TypedParam {
 }
 
 ExpressionBody {
-  Expression_ Expr ";"
+  Expression_ LetBody
+}
+
+LetBody {
+  LetBinding* Expr ";"
+}
+
+LetBinding {
+  Let Name "=" Expr ";"
 }
 
 // ── expressions ───────────────────────────────────────────────────────────────
@@ -117,9 +129,11 @@ MulOp { "*" | Divide }
 // ── tokens ────────────────────────────────────────────────────────────────────
 
 @tokens {
-  Defnetwork  { "defnetwork" }
-  Defrecord   { "defrecord" }
-  Defn        { "defn" }
+  Defnetwork   { "defnetwork" }
+  Defrecord    { "defrecord" }
+  Defn         { "defn" }
+  Defpredicate { "defpredicate" }
+  Let          { "let" }
   End         { "end" }
   Signature_  { "signature" }
   Expression_ { "expression" }
@@ -139,7 +153,7 @@ MulOp { "*" | Divide }
   whitespace  { $[ \t\n\r]+ }
   LineComment { "//" ![\n]* }
 
-  @precedence { LineComment, Defnetwork, Defrecord, Defn, End, Signature_, Expression_, From, To, Propagate, With, Switch, Cell, Constant, Boolean, Name, Divide }
+  @precedence { LineComment, Defnetwork, Defrecord, Defn, Defpredicate, End, Signature_, Expression_, From, To, Propagate, With, Switch, Cell, Constant, Let, Boolean, Name, Divide }
 }
 
 @precedence { field @left, not, mul @left, add @left, compare @left, and @left, or @left }

@@ -85,7 +85,18 @@ export type FieldExpr = {
   field: string;
 };
 
-export type Expr = LiteralExpr | VarExpr | CallExpr | BinaryExpr | UnaryExpr | FieldExpr;
+export type LetBinding = {
+  name:  string;
+  value: Expr;
+};
+
+export type LetExpr = {
+  kind:     "let";
+  bindings: LetBinding[];
+  body:     Expr;
+};
+
+export type Expr = LiteralExpr | VarExpr | CallExpr | BinaryExpr | UnaryExpr | FieldExpr | LetExpr;
 
 // ── Function definitions ──────────────────────────────────────────────────────
 
@@ -96,6 +107,7 @@ export type TypedParam = {
 
 export type FnAST = {
   kind: "fn";
+  isPredicate: boolean;
   name: string;
   params: TypedParam[];
   returnType: string;
