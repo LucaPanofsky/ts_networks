@@ -12,7 +12,7 @@
   "scripts": {
     "generate": "lezer-generator src/data-network/grammar.grammar --output src/data-network/parser.js",
     "build": "npm run generate && tsc",
-    "test": "npm run generate && NODE_OPTIONS=--experimental-vm-modules jest",
+    "test": "npm run generate && jest",
     "dev": "ts-node --watch src/index.ts"
   },
   "devDependencies": {
@@ -30,7 +30,6 @@
     "@lezer/common": "^1.5.2",
     "@lezer/lr": "^1.4.10",
     "better-sqlite3": "^12.10.0",
-    "hono": "^4.12.21",
-    "nbb": "^1.4.207"
+    "hono": "^4.12.21"
   }
 }

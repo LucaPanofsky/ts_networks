@@ -19,11 +19,7 @@ end
 `;
 
 describe("createSandbox", () => {
-  let sandbox: Awaited<ReturnType<typeof createSandbox>>;
-
-  beforeAll(async () => {
-    sandbox = await createSandbox(parseProgram(src));
-  }, 30000);
+  const sandbox = createSandbox(parseProgram(src));
 
   test("exposes Vec2 constructor", () => {
     expect(typeof sandbox["Vec2"]).toBe("function");

@@ -14,18 +14,18 @@ export type ProgramMeta = {
 };
 
 export type ProgramFull = ProgramMeta & {
-  dsl:            string;
-  clojure_source: string;
+  dsl:       string;
+  js_source: string;
 };
 
 type ProgramRow = {
-  name:           string;
-  dsl:            string;
-  clojure_source: string;
-  networks_json:  string;
+  name:          string;
+  dsl:           string;
+  js_source:     string;
+  networks_json: string;
   functions_json: string;
-  records_json:   string;
-  updated_at:     number;
+  records_json:  string;
+  updated_at:    number;
 };
 
 export type Db = Database.Database;
@@ -36,7 +36,7 @@ export function openDb(path: string): Db {
     CREATE TABLE IF NOT EXISTS programs (
       name           TEXT PRIMARY KEY,
       dsl            TEXT NOT NULL,
-      clojure_source TEXT NOT NULL,
+      js_source      TEXT NOT NULL,
       networks_json  TEXT NOT NULL,
       functions_json TEXT NOT NULL,
       records_json   TEXT NOT NULL,
@@ -48,15 +48,15 @@ export function openDb(path: string): Db {
 
 export function upsertProgram(db: Db, row: Omit<ProgramRow, "updated_at">): void {
   db.prepare(`
-    INSERT INTO programs (name, dsl, clojure_source, networks_json, functions_json, records_json, updated_at)
-    VALUES (@name, @dsl, @clojure_source, @networks_json, @functions_json, @records_json, @updated_at)
+    INSERT INTO programs (name, dsl, js_source, networks_json, functions_json, records_json, updated_at)
+    VALUES (@name, @dsl, @js_source, @networks_json, @functions_json, @records_json, @updated_at)
     ON CONFLICT(name) DO UPDATE SET
-      dsl            = excluded.dsl,
-      clojure_source = excluded.clojure_source,
-      networks_json  = excluded.networks_json,
+      dsl           = excluded.dsl,
+      js_source     = excluded.js_source,
+      networks_json = excluded.networks_json,
       functions_json = excluded.functions_json,
-      records_json   = excluded.records_json,
-      updated_at     = excluded.updated_at
+      records_json  = excluded.records_json,
+      updated_at    = excluded.updated_at
   `).run({ ...row, updated_at: Date.now() });
 }
 
@@ -91,7 +91,7 @@ function rowToMeta(row: Omit<ProgramRow, "dsl" | "clojure_source">): ProgramMeta
 function rowToFull(row: ProgramRow): ProgramFull {
   return {
     ...rowToMeta(row),
-    dsl:            row.dsl,
-    clojure_source: row.clojure_source,
+    dsl:       row.dsl,
+    js_source: row.js_source,
   };
 }

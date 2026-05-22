@@ -11,9 +11,9 @@ export type CompiledProgram = {
   networks: Map<string, NetworkRuntime>;
 };
 
-export async function compile(dsl: string): Promise<CompiledProgram> {
+export function compile(dsl: string): CompiledProgram {
   const program  = parseProgram(dsl);
-  const sandbox  = await createSandbox(program);
+  const sandbox  = createSandbox(program);
   const registry = buildRegistry(program, sandbox);
   const networks = buildNetworks(program, registry);
   return { sandbox, registry, networks };

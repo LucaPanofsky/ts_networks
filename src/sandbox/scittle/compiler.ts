@@ -1,80 +1,70 @@
 import type { RecordAST, FnAST, ProgramAST, Expr } from "../../data-network/types.js";
 
-const BINARY_OPS: Record<string, string> = {
-  "==": "=",
-  "!=": "not=",
-  "&&": "and",
-  "||": "or",
-};
+function mangle(name: string): string {
+  return name.replace(/\?/g, "$").replace(/!/g, "_");
+}
 
 export function compileExpr(expr: Expr): string {
   switch (expr.kind) {
     case "literal": {
-      if (typeof expr.value === "string") return `"${expr.value.replace(/"/g, '\\"')}"`;
+      if (typeof expr.value === "string") return `"${expr.value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
       return String(expr.value);
     }
     case "var":
-      return expr.name;
+      return mangle(expr.name);
     case "binary": {
-      const op = BINARY_OPS[expr.op] ?? expr.op;
-      return `(${op} ${compileExpr(expr.left)} ${compileExpr(expr.right)})`;
+      const op = expr.op === "==" ? "===" : expr.op === "!=" ? "!==" : expr.op;
+      return `(${compileExpr(expr.left)} ${op} ${compileExpr(expr.right)})`;
     }
     case "unary":
-      return `(not ${compileExpr(expr.expr)})`;
+      return `(!${compileExpr(expr.expr)})`;
     case "field":
-      return `(:${expr.field} ${compileExpr(expr.object)})`;
+      return `${compileExpr(expr.object)}.${expr.field}`;
     case "call": {
       if (expr.fn === "if") {
         const [cond, then_, else_] = expr.args;
-        return `(if ${compileExpr(cond!)} ${compileExpr(then_!)} ${compileExpr(else_!)})`;
+        return `(${compileExpr(cond!)} ? ${compileExpr(then_!)} : ${compileExpr(else_!)})`;
       }
-      const args = expr.args.map(compileExpr).join(" ");
-      return args ? `(${expr.fn} ${args})` : `(${expr.fn})`;
+      const args = expr.args.map(compileExpr).join(", ");
+      return `${mangle(expr.fn)}(${args})`;
     }
     case "let": {
-      const bindings = expr.bindings.map(b => `${b.name} ${compileExpr(b.value)}`).join(" ");
-      return `(let [${bindings}] ${compileExpr(expr.body)})`;
+      const bindings = expr.bindings.map(b => `const ${b.name} = ${compileExpr(b.value)};`).join(" ");
+      return `(() => { ${bindings} return ${compileExpr(expr.body)}; })()`;
     }
   }
 }
 
 export function compileFn(fn: FnAST): string {
-  const params = fn.params.map(p => p.name).join(" ");
-  return `(defn ${fn.name} [${params}] ${compileExpr(fn.body)})`;
-}
-
-export function compileProgram(program: ProgramAST, extraForms: string[] = []): string {
-  const forms: string[] = [
-    ...program.records.map(compileRecord),
-    ...program.fns.map(compileFn),
-    ...extraForms,
-  ];
-  return `(do\n${forms.join("\n")})`;
+  const params = fn.params.map(p => p.name).join(", ");
+  return `const ${mangle(fn.name)} = function(${params}) { return ${compileExpr(fn.body)}; };`;
 }
 
 export function compileRecord(rec: RecordAST): string {
-  const fields = rec.fields.map(f => f.name).join(" ");
-  const fieldEntries = rec.fields.map(f => `:${f.name} ${f.name}`).join(" ");
-  const constructor = `(defn ${rec.name} [${fields}] {:__type "${rec.name}" ${fieldEntries}})`;
-  const predicate = `(defn ${rec.name}? [v] (= (:__type v) "${rec.name}"))`;
+  const fields = rec.fields.map(f => f.name).join(", ");
+  const fieldEntries = rec.fields.map(f => `${f.name}: ${f.name}`).join(", ");
+  const constructor = `const ${rec.name} = function(${fields}) { return { __type: "${rec.name}", ${fieldEntries} }; };`;
+  const predVar = mangle(`${rec.name}?`);
+  const predicate = `const ${predVar} = function(v) { return v.__type === "${rec.name}"; };`;
   return `${constructor}\n${predicate}`;
 }
 
-function coercedWrapper(name: string, arity: number): string {
-  const args = Array.from({ length: arity }, (_, i) => `a${i}`);
-  const argsStr = args.join(" ");
-  const coercedArgs = args.map(a => `(js->clj ${a} :keywordize-keys true)`).join(" ");
-  const call = arity === 0 ? `(${name})` : `(${name} ${coercedArgs})`;
-  return `"${name}" (fn [${argsStr}] (clj->js ${call}))`;
-}
-
-export function compileCoercedExportMap(program: ProgramAST): string {
+function compileExportMap(program: ProgramAST): string {
   const entries: string[] = [
     ...program.records.flatMap(r => [
-      coercedWrapper(r.name, r.fields.length),
-      coercedWrapper(`${r.name}?`, 1),
+      `"${r.name}": ${r.name}`,
+      `"${r.name}?": ${mangle(r.name + "?")}`,
     ]),
-    ...program.fns.map(f => coercedWrapper(f.name, f.params.length)),
+    ...program.fns.map(f => `"${f.name}": ${mangle(f.name)}`),
   ];
-  return `#js {${entries.join(" ")}}`;
+  return entries.length === 0 ? "return {};" : `return { ${entries.join(", ")} };`;
+}
+
+export function compileProgram(program: ProgramAST): string {
+  const lines: string[] = [
+    ...program.records.map(compileRecord),
+    ...program.fns.map(compileFn),
+    compileExportMap(program),
+  ];
+  return lines.join("\n");
 }
