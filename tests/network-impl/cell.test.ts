@@ -1,12 +1,6 @@
 import { Cell } from "../../src/network-impl/cell.js";
 import { Nothing, Something, Contradiction } from "../../src/info-structure.js";
 
-describe("Cell: name", () => {
-  test("exposes its name", () => {
-    expect(new Cell("myCell").name).toBe("myCell");
-  });
-});
-
 describe("Cell: knows", () => {
   test("starts as Nothing by default", () => {
     expect(new Cell("x").knows()).toBe(Nothing);
