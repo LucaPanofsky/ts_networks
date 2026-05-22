@@ -76,6 +76,76 @@ describe("APromise: merge", () => {
   });
 });
 
+describe("APromise: flatten — already realized", () => {
+  test("realized with Something flattens to Something", async () => {
+    const d = new Deferred<unknown>();
+    d.resolve(new Something(42));
+    const ap = new APromise(d);
+    const flat = ap.flatten() as APromise<unknown>;
+    expect(await flat.deferred.promise).toEqual(new Something(42));
+  });
+
+  test("realized with nested APromise flattens through to inner value", async () => {
+    const d_inner = new Deferred<unknown>();
+    d_inner.resolve(new Something(42));
+    const inner = new APromise(d_inner);
+
+    const d_outer = new Deferred<unknown>();
+    d_outer.resolve(inner);
+    const outer = new APromise(d_outer);
+
+    const flat = outer.flatten() as APromise<unknown>;
+    expect(await flat.deferred.promise).toEqual(new Something(42));
+  });
+
+  test("realized with Nothing flattens to Nothing", async () => {
+    const d = new Deferred<unknown>();
+    d.resolve(Nothing);
+    const ap = new APromise(d);
+    const flat = ap.flatten() as APromise<unknown>;
+    expect(await flat.deferred.promise).toBe(Nothing);
+  });
+});
+
+describe("APromise: flatten — not yet realized", () => {
+  test("resolves to Something after deferred resolves", async () => {
+    const d = new Deferred<unknown>();
+    const ap = new APromise(d);
+    const flat = ap.flatten() as APromise<unknown>;
+    d.resolve(new Something(7));
+    expect(await flat.deferred.promise).toEqual(new Something(7));
+  });
+
+  test("resolves through nested APromise resolved after flatten call", async () => {
+    const d_outer = new Deferred<unknown>();
+    const outer = new APromise(d_outer);
+    const flat = outer.flatten() as APromise<unknown>;
+
+    const d_inner = new Deferred<unknown>();
+    const inner = new APromise(d_inner);
+    d_outer.resolve(inner);
+    d_inner.resolve(new Something(99));
+
+    expect(await flat.deferred.promise).toEqual(new Something(99));
+  });
+
+  test("deep nesting: three levels flatten to inner value", async () => {
+    const d1 = new Deferred<unknown>();
+    const d2 = new Deferred<unknown>();
+    const d3 = new Deferred<unknown>();
+    const ap1 = new APromise(d1);
+    const ap2 = new APromise(d2);
+    const ap3 = new APromise(d3);
+
+    d1.resolve(ap2);
+    d2.resolve(ap3);
+    d3.resolve(new Something(123));
+
+    const flat = ap1.flatten() as APromise<unknown>;
+    expect(await flat.deferred.promise).toEqual(new Something(123));
+  });
+});
+
 describe("APromise: abort", () => {
   test("abort resolves deferred with ABORTED contradiction", async () => {
     const { ap } = makeAP();
