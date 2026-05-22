@@ -31,6 +31,10 @@ export function compileExpr(expr: Expr): string {
       const args = expr.args.map(compileExpr).join(" ");
       return args ? `(${expr.fn} ${args})` : `(${expr.fn})`;
     }
+    case "let": {
+      const bindings = expr.bindings.map(b => `${b.name} ${compileExpr(b.value)}`).join(" ");
+      return `(let [${bindings}] ${compileExpr(expr.body)})`;
+    }
   }
 }
 

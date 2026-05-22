@@ -4,6 +4,7 @@ import type {
   Term, PropagateTerm, SwitchTerm, CellTerm, ConstantTerm,
   FieldDecl, TypedParam,
   Expr, LiteralExpr, VarExpr, CallExpr, BinaryExpr, UnaryExpr, FieldExpr,
+  LetBinding,
 } from "./types.js";
 
 export function parseProgram(input: string): ProgramAST {
@@ -245,13 +246,13 @@ export function parseProgram(input: string): ProgramAST {
 
   // ── FnDef ──────────────────────────────────────────────────────────────────
 
-  const collectFnDef = (): FnAST => {
+  const collectFnDef = (isPredicate: boolean): FnAST => {
     let name = "";
     let params: TypedParam[] = [];
     let returnType = "";
     let body: Expr = { kind: "literal", value: 0 };
 
-    if (!cursor.firstChild()) return { kind: "fn", name, params, returnType, body };
+    if (!cursor.firstChild()) return { kind: "fn", isPredicate, name, params, returnType, body };
     do {
       if (cursor.name === "Name" && !name) {
         name = slice(cursor.from, cursor.to);
@@ -277,13 +278,29 @@ export function parseProgram(input: string): ProgramAST {
         cursor.parent();
       } else if (cursor.name === "ExpressionBody") {
         cursor.firstChild(); // Expression_
-        cursor.nextSibling(); // Expr
-        body = parseExpr();
-        cursor.parent();
+        cursor.nextSibling(); // LetBody
+        cursor.firstChild(); // first child of LetBody (LetBinding or Expr)
+        const bindings: LetBinding[] = [];
+        do {
+          if (cursor.name === "LetBinding") {
+            cursor.firstChild(); // Let keyword
+            cursor.nextSibling(); // Name
+            const bindingName = slice(cursor.from, cursor.to);
+            cursor.nextSibling(); // Expr
+            const bindingValue = parseExpr();
+            cursor.parent();
+            bindings.push({ name: bindingName, value: bindingValue });
+          } else {
+            const bodyExpr = parseExpr();
+            body = bindings.length > 0 ? { kind: "let", bindings, body: bodyExpr } : bodyExpr;
+          }
+        } while (cursor.nextSibling());
+        cursor.parent(); // exit LetBody
+        cursor.parent(); // exit ExpressionBody
       }
     } while (cursor.nextSibling());
     cursor.parent();
-    return { kind: "fn", name, params, returnType, body };
+    return { kind: "fn", isPredicate, name, params, returnType, body };
   };
 
   // ── top-level walk ─────────────────────────────────────────────────────────
@@ -294,7 +311,8 @@ export function parseProgram(input: string): ProgramAST {
       cursor.firstChild();
       if (cn() === "NetworkDef") networks.push(collectNetworkDef());
       else if (cn() === "RecordDef") records.push(collectRecordDef());
-      else if (cn() === "FnDef") fns.push(collectFnDef());
+      else if (cn() === "FnDef") fns.push(collectFnDef(false));
+      else if (cn() === "PredicateDef") fns.push(collectFnDef(true));
       cursor.parent();
     }
   } while (cursor.nextSibling());
