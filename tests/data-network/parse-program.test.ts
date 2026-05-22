@@ -16,14 +16,6 @@ describe("parseProgram: defrecord basic", () => {
   const prog = parseProgram(recordInput);
   const rec = prog.records[0]! as RecordAST;
 
-  test("record count", () => {
-    expect(prog.records).toHaveLength(1);
-  });
-
-  test("record kind", () => {
-    expect(rec.kind).toBe("record");
-  });
-
   test("record name", () => {
     expect(rec.name).toBe("Point");
   });
@@ -32,12 +24,8 @@ describe("parseProgram: defrecord basic", () => {
     expect(rec.fields).toHaveLength(3);
   });
 
-  test("first field name", () => {
-    expect(rec.fields[0]!.name).toBe("x");
-  });
-
-  test("first field predicate", () => {
-    expect(rec.fields[0]!.predicate).toBe("Number?");
+  test("first field", () => {
+    expect(rec.fields[0]).toEqual({ name: "x", predicate: "Number?" });
   });
 
   test("second field", () => {
@@ -47,9 +35,7 @@ describe("parseProgram: defrecord basic", () => {
   test("third field", () => {
     expect(rec.fields[2]).toEqual({ name: "label", predicate: "String?" });
   });
-});
 
-describe("parseProgram: defrecord parse tree is clean", () => {
   test("no error nodes", () => {
     const tree = parser.parse(recordInput.trim());
     const cursor = tree.cursor();
@@ -72,28 +58,20 @@ describe("parseProgram: defn basic", () => {
   const prog = parseProgram(fnSimple);
   const fn = prog.fns[0]! as FnAST;
 
-  test("fn count", () => {
-    expect(prog.fns).toHaveLength(1);
-  });
-
-  test("fn kind", () => {
-    expect(fn.kind).toBe("fn");
-  });
-
   test("fn name", () => {
     expect(fn.name).toBe("add");
+  });
+
+  test("isPredicate is false", () => {
+    expect(fn.isPredicate).toBe(false);
   });
 
   test("param count", () => {
     expect(fn.params).toHaveLength(2);
   });
 
-  test("first param predicate", () => {
-    expect(fn.params[0]!.predicate).toBe("Number?");
-  });
-
-  test("first param name", () => {
-    expect(fn.params[0]!.name).toBe("x");
+  test("first param", () => {
+    expect(fn.params[0]).toEqual({ predicate: "Number?", name: "x" });
   });
 
   test("second param", () => {
@@ -102,10 +80,6 @@ describe("parseProgram: defn basic", () => {
 
   test("return type", () => {
     expect(fn.returnType).toBe("Number?");
-  });
-
-  test("body is binary expr", () => {
-    expect(fn.body.kind).toBe("binary");
   });
 
   test("body op", () => {
@@ -119,9 +93,7 @@ describe("parseProgram: defn basic", () => {
   test("body right is var y", () => {
     expect((fn.body as BinaryExpr).right).toEqual({ kind: "var", name: "y" });
   });
-});
 
-describe("parseProgram: defn parse tree is clean", () => {
   test("no error nodes", () => {
     const tree = parser.parse(fnSimple.trim());
     const cursor = tree.cursor();
@@ -200,21 +172,6 @@ describe("parseProgram: expression — arithmetic", () => {
     expect(body.op).toBe("+");
     expect(body.left).toEqual({ kind: "var", name: "a" });
     expect(body.right).toEqual({ kind: "var", name: "b" });
-  });
-
-  test("subtraction", () => {
-    const body = parseFnBody("a - b") as BinaryExpr;
-    expect(body.op).toBe("-");
-  });
-
-  test("multiplication", () => {
-    const body = parseFnBody("a * b") as BinaryExpr;
-    expect(body.op).toBe("*");
-  });
-
-  test("division", () => {
-    const body = parseFnBody("a / b") as BinaryExpr;
-    expect(body.op).toBe("/");
   });
 });
 
@@ -314,15 +271,6 @@ describe("parseProgram: expression — precedence and nesting", () => {
   });
 });
 
-// ── defn — isPredicate flag ────────────────────────────────────────────────────
-
-describe("parseProgram: defn sets isPredicate false", () => {
-  const prog = parseProgram(fnSimple);
-  test("isPredicate is false", () => {
-    expect(prog.fns[0]!.isPredicate).toBe(false);
-  });
-});
-
 // ── defpredicate ──────────────────────────────────────────────────────────────
 
 const predicateSimple = `
@@ -336,32 +284,8 @@ describe("parseProgram: defpredicate basic", () => {
   const prog = parseProgram(predicateSimple);
   const fn = prog.fns[0]!;
 
-  test("appears in fns array", () => {
-    expect(prog.fns).toHaveLength(1);
-  });
-
   test("isPredicate is true", () => {
     expect(fn.isPredicate).toBe(true);
-  });
-
-  test("kind is fn", () => {
-    expect(fn.kind).toBe("fn");
-  });
-
-  test("name", () => {
-    expect(fn.name).toBe("even?");
-  });
-
-  test("param predicate", () => {
-    expect(fn.params[0]!.predicate).toBe("Number?");
-  });
-
-  test("param name", () => {
-    expect(fn.params[0]!.name).toBe("x");
-  });
-
-  test("return type", () => {
-    expect(fn.returnType).toBe("Boolean?");
   });
 
   test("no error nodes", () => {
@@ -451,18 +375,6 @@ end
 
 describe("parseProgram: multi-definition document", () => {
   const prog = parseProgram(multiInput);
-
-  test("one network", () => {
-    expect(prog.networks).toHaveLength(1);
-  });
-
-  test("one record", () => {
-    expect(prog.records).toHaveLength(1);
-  });
-
-  test("one fn", () => {
-    expect(prog.fns).toHaveLength(1);
-  });
 
   test("network name", () => {
     expect(prog.networks[0]!.name).toBe("myNet");

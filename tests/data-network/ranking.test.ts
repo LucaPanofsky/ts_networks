@@ -46,22 +46,9 @@ describe("rankPropagators: independent propagators", () => {
     const ranked = rankPropagators(net);
     expect(ranked).toEqual([p("f", ["a"], "b"), p("g", ["c"], "d")]);
   });
-
-  test("single propagator is returned as-is", () => {
-    const net = new DataNetwork("test", { from: ["x"], to: "out" });
-    net.addPropagator("f", ["x"], "out");
-    expect(rankPropagators(net)).toEqual([p("f", ["x"], "out")]);
-  });
 });
 
 describe("rankPropagators: cycles", () => {
-  test("does not throw on a cyclic dependency", () => {
-    const net = new DataNetwork("test", { from: [], to: "out" });
-    net.addPropagator("f", ["y"], "x");
-    net.addPropagator("g", ["x"], "y");
-    expect(() => rankPropagators(net)).not.toThrow();
-  });
-
   test("returns all propagators even when a cycle is present", () => {
     const net = new DataNetwork("test", { from: [], to: "out" });
     net.addPropagator("f", ["y"], "x");

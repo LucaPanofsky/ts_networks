@@ -66,21 +66,18 @@ describe("Hierarchy.ancestors", () => {
     expect(ancs.size).toBe(2);
   });
 
-  test("cached result matches fresh result", () => {
+  test("ancestors are stable across multiple calls", () => {
     const h = new Hierarchy<string>();
     h.derive("b", "a");
-    const first = h.ancestors("b");
-    const second = h.ancestors("b");
-    expect(first.size).toBe(second.size);
+    expect(h.ancestors("b")).toEqual(h.ancestors("b"));
   });
 
-  test("cache is invalidated after new derive", () => {
+  test("ancestors reflect a new derive added after first call", () => {
     const h = new Hierarchy<string>();
     h.derive("b", "a");
-    const before = h.ancestors("b").size;
+    h.ancestors("b"); // prime any cache
     h.derive("b", "z");
-    const after = h.ancestors("b").size;
-    expect(after).toBe(before + 1);
+    expect(h.ancestors("b").has("z")).toBe(true);
   });
 });
 

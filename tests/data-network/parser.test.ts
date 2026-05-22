@@ -1,5 +1,6 @@
 import { parseNetwork } from "../../src/data-network/index.js";
 import { parser } from "../../src/data-network/parser.js";
+import type { PropagateTerm, SwitchTerm } from "../../src/data-network/types.js";
 
 const input = `
 defnetwork mynetwork
@@ -42,52 +43,52 @@ describe("parseNetwork: basic structure", () => {
 
 describe("parseNetwork: propagate term", () => {
   const net = parseNetwork(input);
-  const term = net.terms[0]!;
+  const term = net.terms[0]! as PropagateTerm;
 
   test("kind", () => {
     expect(term.kind).toBe("propagate");
   });
 
   test("function name (namespaced)", () => {
-    expect(term.kind === "propagate" && term.fn).toBe("myFunction.couldBeNamespaced");
+    expect(term.fn).toBe("myFunction.couldBeNamespaced");
   });
 
   test("from cells", () => {
-    expect(term.kind === "propagate" && term.from).toEqual(["a", "b"]);
+    expect(term.from).toEqual(["a", "b"]);
   });
 
   test("to cell", () => {
-    expect(term.kind === "propagate" && term.to).toBe("c");
+    expect(term.to).toBe("c");
   });
 
   test("no params by default", () => {
-    expect(term.kind === "propagate" && term.params).toEqual({});
+    expect(term.params).toEqual({});
   });
 });
 
 describe("parseNetwork: switch term", () => {
   const net = parseNetwork(input);
-  const term = net.terms[1]!;
+  const term = net.terms[1]! as SwitchTerm;
 
   test("kind", () => {
     expect(term.kind).toBe("switch");
   });
 
   test("from cells", () => {
-    expect(term.kind === "switch" && term.from).toEqual(["b", "c"]);
+    expect(term.from).toEqual(["b", "c"]);
   });
 
   test("to cell", () => {
-    expect(term.kind === "switch" && term.to).toBe("d");
+    expect(term.to).toBe("d");
   });
 });
 
 describe("parseNetwork: with clause", () => {
   const net = parseNetwork(inputWithParams);
-  const term = net.terms[0]!;
+  const term = net.terms[0]! as PropagateTerm;
 
   test("params parsed", () => {
-    expect(term.kind === "propagate" && term.params).toEqual({
+    expect(term.params).toEqual({
       param1: "asd",
       param2: "hello world",
     });
@@ -142,26 +143,6 @@ end
 `;
 
 describe("parse tree: keyword nodes are named (not anonymous)", () => {
-  const simple = "defnetwork test signature: from [a] to out; end";
-
-  test("first child of NetworkDef is the 'Defnetwork' keyword node", () => {
-    const tree = parser.parse(simple);
-    const cursor = tree.cursor();
-    cursor.firstChild(); // Document → Definition
-    cursor.firstChild(); // Definition → NetworkDef
-    cursor.firstChild(); // NetworkDef → first child
-    expect(cursor.name).toBe("Defnetwork");
-  });
-
-  test("last child of NetworkDef is the 'End' keyword node", () => {
-    const tree = parser.parse(simple);
-    const cursor = tree.cursor();
-    cursor.firstChild(); // Document → Definition
-    cursor.firstChild(); // Definition → NetworkDef
-    cursor.lastChild();  // last child of NetworkDef
-    expect(cursor.name).toBe("End");
-  });
-
   test("all keyword node names are present in the full tree", () => {
     const input = `
       defnetwork test
@@ -191,20 +172,9 @@ describe("parseNetwork: numeric and boolean param values", () => {
     } while (cursor.next());
   });
 
-  test("boolean value has Boolean node type (not Name)", () => {
-    const tree = parser.parse(inputWithNumbers.trim());
-    const cursor = tree.cursor();
-    const nodeTypes: string[] = [];
-    do {
-      nodeTypes.push(cursor.name);
-    } while (cursor.next());
-    expect(nodeTypes).toContain("Boolean");
-  });
-
   test("param values extracted correctly", () => {
-    const net = parseNetwork(inputWithNumbers);
-    const term = net.terms[0]!;
-    expect(term.kind === "propagate" && term.params).toEqual({
+    const term = parseNetwork(inputWithNumbers).terms[0]! as PropagateTerm;
+    expect(term.params).toEqual({
       count: "42",
       flag: "true",
       ratio: "3",

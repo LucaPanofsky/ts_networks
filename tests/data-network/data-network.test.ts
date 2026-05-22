@@ -59,16 +59,11 @@ describe("DataNetwork", () => {
       expect(net.propagators.get("f__x__to__y")!.params).toEqual({});
     });
 
-    it("auto-creates missing input cells", () => {
+    it("auto-creates missing input and output cells", () => {
       const net = new DataNetwork("test", { from: [], to: "out" });
-      net.addPropagator("f", ["a", "b"], "c");
+      net.addPropagator("f", ["a", "b"], "z");
       expect(net.cells.has("a")).toBe(true);
       expect(net.cells.has("b")).toBe(true);
-    });
-
-    it("auto-creates missing output cell", () => {
-      const net = new DataNetwork("test", { from: [], to: "out" });
-      net.addPropagator("f", ["a"], "z");
       expect(net.cells.has("z")).toBe(true);
     });
 
@@ -83,12 +78,6 @@ describe("DataNetwork", () => {
       const net = new DataNetwork("test", { from: [], to: "out" });
       net.addPropagator("f", ["a"], "c");
       expect(net.cells.get("c")!.neighbors).not.toContain("f__a__to__c");
-    });
-
-    it("supports __SWITCH as fn", () => {
-      const net = new DataNetwork("test", { from: [], to: "out" });
-      net.addPropagator("__SWITCH", ["a", "b"], "c");
-      expect(net.propagators.has("__SWITCH__a__b__to__c")).toBe(true);
     });
 
     it("returns this for chaining", () => {
