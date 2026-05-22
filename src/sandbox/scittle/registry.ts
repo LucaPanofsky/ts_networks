@@ -3,8 +3,20 @@ import type { Registry } from "../../registry.js";
 import type { ProgramAST } from "../../data-network/types.js";
 import type { Sandbox } from "./runtime.js";
 
+const trueP = (v: unknown): boolean => v === true;
+
+function registerBuiltins(registry: Registry): void {
+  registry.register({
+    fnName: "true?",
+    arity: 1,
+    impl: trueP,
+    morphism: { from: ["Any?"], to: "Boolean?" },
+  });
+}
+
 export function buildRegistry(program: ProgramAST, sandbox: Sandbox): Registry {
   const registry = createRegistry();
+  registerBuiltins(registry);
 
   for (const fn of program.fns) {
     registry.register({

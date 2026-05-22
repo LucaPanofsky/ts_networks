@@ -21,7 +21,7 @@ export function astToDataNetwork(ast: DataNetworkAST): DataNetwork {
     } else if (term.kind === "propagate") {
       net.addPropagator(term.fn, term.from, term.to, term.params);
     } else if (term.kind === "switch") {
-      net.addPropagator("__SWITCH", term.from, term.to);
+      net.addPropagator("__SWITCH", term.from, term.to, { predicate: term.fn ?? "true?" });
     }
   }
 

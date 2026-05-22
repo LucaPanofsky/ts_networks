@@ -16,9 +16,18 @@ export class NetworkRuntime {
     // Compile propagators: fn string → actual Propagator
     this._propagators = new Map();
     for (const [name, p] of network.propagators) {
-      const entry = registry.get(p.fn);
-      if (!entry) throw new Error(`NetworkRuntime: unknown function "${p.fn}" in registry`);
-      const unpacked = naryUnpacking(entry.impl, entry.arity);
+      let unpacked: (...args: InfoStructure<unknown>[]) => InfoStructure<unknown>;
+      if (p.fn === "__SWITCH") {
+        const predName = p.params["predicate"] ?? "true?";
+        const predEntry = registry.get(predName);
+        if (!predEntry) throw new Error(`NetworkRuntime: unknown predicate "${predName}" for switch`);
+        const switchImpl = (a: unknown, b: unknown) => predEntry.impl(a) ? b : null;
+        unpacked = naryUnpacking(switchImpl, 2);
+      } else {
+        const entry = registry.get(p.fn);
+        if (!entry) throw new Error(`NetworkRuntime: unknown function "${p.fn}" in registry`);
+        unpacked = naryUnpacking(entry.impl, entry.arity);
+      }
       this._propagators.set(name, new Propagator(name, p.from, p.to, unpacked));
     }
 

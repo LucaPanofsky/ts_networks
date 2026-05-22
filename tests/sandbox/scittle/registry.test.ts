@@ -108,8 +108,8 @@ describe("buildRegistry: field accessors", () => {
 });
 
 describe("buildRegistry: entry count", () => {
-  test("total entries = 1 fn + 1 constructor + 2 accessors", () => {
+  test("total entries = 1 builtin + 1 fn + 1 constructor + 2 accessors", () => {
     const registry = buildRegistry(program, mockSandbox);
-    expect(registry.entries()).toHaveLength(4);
+    expect(registry.entries()).toHaveLength(5);
   });
 });
