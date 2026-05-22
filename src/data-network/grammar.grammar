@@ -3,7 +3,7 @@
 }
 
 Definition {
-  NetworkDef | RecordDef | FnDef | PredicateDef
+  NetworkDef | RecordDef | FnDef | PredicateDef | DeriveDef
 }
 
 // ── defnetwork ────────────────────────────────────────────────────────────────
@@ -48,6 +48,12 @@ CellList {
 
 FunctionName {
   Name ("." Name)*
+}
+
+// ── derive ────────────────────────────────────────────────────────────────────
+
+DeriveDef {
+  Derive Name From Name ";"
 }
 
 // ── defrecord ─────────────────────────────────────────────────────────────────
@@ -133,6 +139,7 @@ MulOp { "*" | Divide }
   Defrecord    { "defrecord" }
   Defn         { "defn" }
   Defpredicate { "defpredicate" }
+  Derive       { "derive" }
   Let          { "let" }
   End         { "end" }
   Signature_  { "signature" }
@@ -153,7 +160,7 @@ MulOp { "*" | Divide }
   whitespace  { $[ \t\n\r]+ }
   LineComment { "//" ![\n]* }
 
-  @precedence { LineComment, Defnetwork, Defrecord, Defn, Defpredicate, End, Signature_, Expression_, From, To, Propagate, With, Switch, Cell, Constant, Let, Boolean, Name, Divide }
+  @precedence { LineComment, Defnetwork, Defrecord, Defn, Defpredicate, Derive, End, Signature_, Expression_, From, To, Propagate, With, Switch, Cell, Constant, Let, Boolean, Name, Divide }
 }
 
 @precedence { field @left, not, mul @left, add @left, compare @left, and @left, or @left }

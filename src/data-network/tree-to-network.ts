@@ -1,6 +1,6 @@
 import { parser } from "./parser.js";
 import type {
-  ProgramAST, DataNetworkAST, RecordAST, FnAST,
+  ProgramAST, DataNetworkAST, RecordAST, FnAST, DeriveAST,
   Term, PropagateTerm, SwitchTerm, CellTerm, ConstantTerm,
   FieldDecl, TypedParam,
   Expr, LiteralExpr, VarExpr, CallExpr, BinaryExpr, UnaryExpr, FieldExpr,
@@ -16,6 +16,7 @@ export function parseProgram(input: string): ProgramAST {
   const networks: DataNetworkAST[] = [];
   const records: RecordAST[] = [];
   const fns: FnAST[] = [];
+  const derives: DeriveAST[] = [];
 
   // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -180,6 +181,19 @@ export function parseProgram(input: string): ProgramAST {
     return { kind: "var", name: slice(cursor.from, cursor.to) } as VarExpr;
   };
 
+  // ── DeriveDef ──────────────────────────────────────────────────────────────
+
+  const collectDeriveDef = (): DeriveAST => {
+    cursor.firstChild(); // Derive keyword
+    cursor.nextSibling(); // Name (sub)
+    const sub = slice(cursor.from, cursor.to);
+    cursor.nextSibling(); // From keyword
+    cursor.nextSibling(); // Name (sup)
+    const sup = slice(cursor.from, cursor.to);
+    cursor.parent();
+    return { kind: "derive", sub, sup };
+  };
+
   // ── NetworkDef ─────────────────────────────────────────────────────────────
 
   const collectNetworkDef = (): DataNetworkAST => {
@@ -314,11 +328,12 @@ export function parseProgram(input: string): ProgramAST {
       else if (cn() === "RecordDef") records.push(collectRecordDef());
       else if (cn() === "FnDef") fns.push(collectFnDef(false));
       else if (cn() === "PredicateDef") fns.push(collectFnDef(true));
+      else if (cn() === "DeriveDef") derives.push(collectDeriveDef());
       cursor.parent();
     }
   } while (cursor.nextSibling());
 
-  return { networks, records, fns };
+  return { networks, records, fns, derives };
 }
 
 export function parseNetwork(input: string): DataNetworkAST {
