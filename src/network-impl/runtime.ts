@@ -6,13 +6,18 @@ import { rankPropagators } from "../data-network/ranking.js";
 import { Cell } from "./cell.js";
 import { Propagator, type NetworkMessage } from "./propagator.js";
 import { run, type RunResult } from "./runner.js";
+import { AsyncPropagator, wrapSync } from "./async-propagator.js";
+import { asyncRun } from "./async-runner.js";
+import { APromise } from "../information-structures/apromise.js";
 
 export class NetworkRuntime {
   private readonly _cells: Map<string, Cell>;
   private readonly _propagators: Map<string, Propagator>;
   private readonly _rankedPropagators: string[];
+  private readonly _network: DataNetwork;
 
   constructor(network: DataNetwork, registry: Registry) {
+    this._network = network;
     // Compile propagators: fn string → actual Propagator
     this._propagators = new Map();
     for (const [name, p] of network.propagators) {
@@ -101,5 +106,51 @@ export class NetworkRuntime {
       this.restart(freshCells, mappedInputs);
 
     return run(freshCells, this._propagators, candidates, onRecurse);
+  }
+
+  async invokeAsync(inputs: Record<string, unknown>, worklist?: string[]): Promise<RunResult> {
+    const freshCells = new Map<string, Cell>();
+    for (const [name, template] of this._cells) {
+      const fresh = new Cell(name, template.knows());
+      for (const neighbor of template.neighbors()) {
+        fresh.addNeighbor(neighbor);
+      }
+      freshCells.set(name, fresh);
+    }
+
+    for (const [name, value] of Object.entries(inputs)) {
+      const cell = freshCells.get(name);
+      if (!cell) throw new Error(`NetworkRuntime.invokeAsync: unknown cell "${name}"`);
+      cell.setContent(I(value));
+    }
+
+    // Build async propagator map: __RECURSIVE awaits APromise inputs; all others wrap sync.
+    const asyncPropagators = new Map<string, AsyncPropagator>();
+    for (const [name, p] of this._propagators) {
+      asyncPropagators.set(name, wrapSync(p));
+    }
+
+    // Override __RECURSIVE propagators with async-aware versions.
+    for (const [pName, p] of this._network.propagators) {
+      if (p.fn !== "__RECURSIVE") continue;
+      const fromNames = [...p.from];
+      const signatureFrom = [...this._network.signature.from];
+      asyncPropagators.set(pName, new AsyncPropagator(pName, async (cells) => {
+        const mappedInputs: Record<string, InfoStructure<unknown>> = {};
+        for (let i = 0; i < signatureFrom.length; i++) {
+          let info = cells.get(fromNames[i]!)!.knows();
+          if (info instanceof APromise) info = await info.deferred.promise as InfoStructure<unknown>;
+          if (!(info instanceof Something)) return { type: "none" };
+          mappedInputs[signatureFrom[i]!] = info;
+        }
+        return { type: "recurse", mappedInputs };
+      }));
+    }
+
+    const candidates = worklist ?? this._rankedPropagators;
+    const onRecurse = (mappedInputs: Record<string, InfoStructure<unknown>>) =>
+      this.restart(freshCells, mappedInputs);
+
+    return asyncRun(freshCells, asyncPropagators, candidates, onRecurse);
   }
 }
