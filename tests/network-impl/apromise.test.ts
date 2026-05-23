@@ -69,10 +69,26 @@ describe("APromise: merge", () => {
     expect(await merged.deferred.promise).toEqual(new Something(5));
   });
 
-  test("Nothing × APromise: returns APromise", () => {
+  test("Nothing × APromise: returns APromise (a pending computation is more informative than no information)", () => {
     const { ap } = makeAP();
     const result = Nothing.merge(ap);
     expect(result).toBe(ap);
+  });
+
+  test("APromise × Nothing (pending): Nothing wins — promise is superseded", () => {
+    const { ap } = makeAP();
+    expect(ap.merge(Nothing)).toBe(Nothing);
+  });
+
+  test("APromise × Nothing (already resolved): returns resolved value", () => {
+    const { ap, d } = makeAP<unknown>();
+    d.resolve(new Something(42));
+    expect(ap.merge(Nothing)).toEqual(new Something(42));
+  });
+
+  test("APromise × Nothing: returns Nothing (Nothing is a resolved state, more informative than pending)", () => {
+    const { ap } = makeAP();
+    expect(ap.merge(Nothing)).toBe(Nothing);
   });
 });
 
