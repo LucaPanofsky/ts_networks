@@ -451,19 +451,6 @@ Compiles to a JS ternary. All three arguments are required.
 if(n > 0, n, 0 - n)   // absolute value
 ```
 
-### `decide`
-
-Multi-branch conditional, like Clojure's `cond`. Arguments are predicate/value pairs, with an optional default as the last argument (odd arity).
-
-```
-decide(small?(x),  'small',
-       medium?(x), 'medium',
-       large?(x),  'large',
-       'unknown')         // default
-```
-
-Even arity (no default) returns `null` if no predicate matches.
-
 ### `match`
 
 Structural pattern matching on records. Each arm tests `__type` and optionally destructures fields. A wildcard arm (`_`) catches everything.
