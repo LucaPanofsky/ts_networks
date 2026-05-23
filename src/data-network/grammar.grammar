@@ -71,7 +71,11 @@ RecordDef {
 }
 
 FieldDecl {
-  Name ":" Name ";"
+  Name ":" (Name | VectorTypeRef) ";"
+}
+
+VectorTypeRef {
+  "[" Name "]"
 }
 
 // ── def fn ────────────────────────────────────────────────────────────────────
@@ -85,7 +89,7 @@ PredicateDef {
 }
 
 FnSignature {
-  Signature_ ":" From ("[" TypedParam ("," TypedParam)* "]")? To Name ";"
+  Signature_ ":" From ("[" TypedParam ("," TypedParam)* "]")? To (Name | VectorTypeRef) ";"
 }
 
 TypedParam {

@@ -25,15 +25,15 @@ describe("parseProgram: defrecord basic", () => {
   });
 
   test("first field", () => {
-    expect(rec.fields[0]).toEqual({ name: "x", predicate: "Number?" });
+    expect(rec.fields[0]).toEqual({ name: "x", type: { kind: "scalar", predicate: "Number?" } });
   });
 
   test("second field", () => {
-    expect(rec.fields[1]).toEqual({ name: "y", predicate: "Number?" });
+    expect(rec.fields[1]).toEqual({ name: "y", type: { kind: "scalar", predicate: "Number?" } });
   });
 
   test("third field", () => {
-    expect(rec.fields[2]).toEqual({ name: "label", predicate: "String?" });
+    expect(rec.fields[2]).toEqual({ name: "label", type: { kind: "scalar", predicate: "String?" } });
   });
 
   test("no error nodes", () => {
@@ -79,7 +79,7 @@ describe("parseProgram: defn basic", () => {
   });
 
   test("return type", () => {
-    expect(fn.returnType).toBe("Number?");
+    expect(fn.returnType).toEqual({ kind: "scalar", predicate: "Number?" });
   });
 
   test("body op", () => {
@@ -121,7 +121,7 @@ describe("parseProgram: defn no params", () => {
   });
 
   test("return type", () => {
-    expect(fn.returnType).toBe("Number?");
+    expect(fn.returnType).toEqual({ kind: "scalar", predicate: "Number?" });
   });
 
   test("body is literal 3", () => {
@@ -575,7 +575,7 @@ describe("parseProgram: defagent", () => {
   });
 
   test("returnType", () => {
-    expect(agent.returnType).toBe("String?");
+    expect(agent.returnType).toEqual({ kind: "scalar", predicate: "String?" });
   });
 
   test("config", () => {

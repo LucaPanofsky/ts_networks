@@ -1,6 +1,7 @@
 import { createRegistry } from "../../registry.js";
 import type { Registry } from "../../registry.js";
 import type { ProgramAST } from "../../data-network/types.js";
+import { typeRefToString } from "../../data-network/types.js";
 import type { Sandbox } from "./runtime.js";
 
 const trueP = (v: unknown): boolean => v === true;
@@ -23,7 +24,7 @@ export function buildRegistry(program: ProgramAST, sandbox: Sandbox): Registry {
       fnName: fn.name,
       arity: fn.params.length,
       impl: sandbox[fn.name]!,
-      morphism: { from: fn.params.map(p => p.predicate), to: fn.returnType },
+      morphism: { from: fn.params.map(p => p.predicate), to: typeRefToString(fn.returnType) },
     });
   }
 
@@ -32,7 +33,7 @@ export function buildRegistry(program: ProgramAST, sandbox: Sandbox): Registry {
       fnName: rec.name,
       arity: rec.fields.length,
       impl: sandbox[rec.name]!,
-      morphism: { from: rec.fields.map(f => f.predicate), to: `${rec.name}?` },
+      morphism: { from: rec.fields.map(f => typeRefToString(f.type)), to: `${rec.name}?` },
     });
 
     for (const field of rec.fields) {
@@ -41,7 +42,7 @@ export function buildRegistry(program: ProgramAST, sandbox: Sandbox): Registry {
         fnName: `${rec.name}.${key}`,
         arity: 1,
         impl: (v: unknown) => (v as Record<string, unknown>)[key],
-        morphism: { from: [`${rec.name}?`], to: field.predicate },
+        morphism: { from: [`${rec.name}?`], to: typeRefToString(field.type) },
       });
     }
   }

@@ -148,7 +148,7 @@ describe("compileFn", () => {
       kind: "fn", isPredicate: false,
       name: "double",
       params: [{ predicate: "Number?", name: "x" }],
-      returnType: "Number?",
+      returnType: { kind: "scalar", predicate: "Number?" },
       body: { kind: "binary", op: "*", left: { kind: "var", name: "x" }, right: { kind: "literal", value: 2 } },
     };
     expect(compileFn(fn)).toBe("const double = function(x) { return (x * 2); };");
@@ -159,7 +159,7 @@ describe("compileFn", () => {
       kind: "fn", isPredicate: false,
       name: "add",
       params: [{ predicate: "Number?", name: "x" }, { predicate: "Number?", name: "y" }],
-      returnType: "Number?",
+      returnType: { kind: "scalar", predicate: "Number?" },
       body: { kind: "binary", op: "+", left: { kind: "var", name: "x" }, right: { kind: "var", name: "y" } },
     };
     expect(compileFn(fn)).toBe("const add = function(x, y) { return (x + y); };");
@@ -170,7 +170,7 @@ describe("compileFn", () => {
       kind: "fn", isPredicate: false,
       name: "pi",
       params: [],
-      returnType: "Number?",
+      returnType: { kind: "scalar", predicate: "Number?" },
       body: { kind: "literal", value: 3.14 },
     };
     expect(compileFn(fn)).toBe("const pi = function() { return 3.14; };");
@@ -181,7 +181,7 @@ describe("compileFn", () => {
       kind: "fn", isPredicate: false,
       name: "getX",
       params: [{ predicate: "Vec2?", name: "v" }],
-      returnType: "Number?",
+      returnType: { kind: "scalar", predicate: "Number?" },
       body: { kind: "field", object: { kind: "var", name: "v" }, field: "x" },
     };
     expect(compileFn(fn)).toBe("const getX = function(v) { return v.x; };");
@@ -192,7 +192,7 @@ describe("compileFn", () => {
       kind: "fn", isPredicate: false,
       name: "abs",
       params: [{ predicate: "Number?", name: "x" }],
-      returnType: "Number?",
+      returnType: { kind: "scalar", predicate: "Number?" },
       body: {
         kind: "call", fn: "if",
         args: [
@@ -213,8 +213,8 @@ describe("compileRecord", () => {
     kind: "record",
     name: "Vec2",
     fields: [
-      { name: "x", predicate: "Number?" },
-      { name: "y", predicate: "Number?" },
+      { name: "x", type: { kind: "scalar", predicate: "Number?" } },
+      { name: "y", type: { kind: "scalar", predicate: "Number?" } },
     ],
   };
 
@@ -234,7 +234,7 @@ describe("compileRecord", () => {
     const rec: RecordAST = {
       kind: "record",
       name: "Wrapper",
-      fields: [{ name: "value", predicate: "Number?" }],
+      fields: [{ name: "value", type: { kind: "scalar", predicate: "Number?" } }],
     };
     expect(compileRecord(rec)).toContain(
       `const Wrapper = function(value) { return { __type: "Wrapper", value: value }; };`
@@ -248,14 +248,14 @@ describe("compileProgram", () => {
   const vec2: RecordAST = {
     kind: "record",
     name: "Vec2",
-    fields: [{ name: "x", predicate: "Number?" }, { name: "y", predicate: "Number?" }],
+    fields: [{ name: "x", type: { kind: "scalar", predicate: "Number?" } }, { name: "y", type: { kind: "scalar", predicate: "Number?" } }],
   };
 
   const lengthFn: FnAST = {
     kind: "fn", isPredicate: false,
     name: "length",
     params: [{ predicate: "Vec2?", name: "v" }],
-    returnType: "Number?",
+    returnType: { kind: "scalar", predicate: "Number?" },
     body: {
       kind: "binary", op: "+",
       left:  { kind: "binary", op: "*", left: { kind: "field", object: { kind: "var", name: "v" }, field: "x" }, right: { kind: "field", object: { kind: "var", name: "v" }, field: "x" } },

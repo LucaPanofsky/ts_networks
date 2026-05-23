@@ -65,3 +65,4 @@ export declare const DeriveDef: number;
 export declare const Derive: number;
 export declare const AgentDef: number;
 export declare const Defagent: number;
+export declare const VectorTypeRef: number;

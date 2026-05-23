@@ -36,11 +36,20 @@ export type DataNetworkAST = {
   terms: Term[];
 };
 
+// ── Type references ───────────────────────────────────────────────────────────
+
+export type ScalarType = { kind: "scalar"; predicate: string };
+export type VectorType = { kind: "vector"; element: string };
+export type TypeRef    = ScalarType | VectorType;
+
+export const typeRefToString = (t: TypeRef): string =>
+  t.kind === "scalar" ? t.predicate : `[${t.element}]`;
+
 // ── Record definitions ────────────────────────────────────────────────────────
 
 export type FieldDecl = {
   name: string;
-  predicate: string;
+  type: TypeRef;
 };
 
 export type RecordAST = {
@@ -133,7 +142,7 @@ export type FnAST = {
   isPredicate: boolean;
   name: string;
   params: TypedParam[];
-  returnType: string;
+  returnType: TypeRef;
   body: Expr;
 };
 
@@ -151,7 +160,7 @@ export type AgentAST = {
   kind: "agent";
   name: string;
   params: TypedParam[];
-  returnType: string;
+  returnType: TypeRef;
   prompt: string;
   config: Record<string, string>;
 };
