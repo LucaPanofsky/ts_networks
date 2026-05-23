@@ -12,7 +12,7 @@
   "scripts": {
     "generate": "lezer-generator src/data-network/grammar.grammar --output src/data-network/parser.js",
     "bundle": "esbuild src/editor/main.ts --bundle --outfile=public/editor.bundle.js --format=iife",
-    "build": "npm run generate && npm run bundle && tsc",
+    "build": "npm run generate && npm run bundle && tsc && sed 's|from \"./prompt-tokenizer\"|from \"./prompt-tokenizer.js\"|' src/data-network/parser.js > dist/data-network/parser.js && cp src/data-network/parser.terms.js dist/data-network/parser.terms.js",
     "test": "npm run generate && jest",
     "dev": "ts-node --watch src/index.ts"
   },

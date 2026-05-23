@@ -1,20 +1,22 @@
 import type { DataNetwork } from "../data-network/data-network.js";
 
+const nodeId = (id: string) => id.replace(/\./g, "_");
+
 export function networkToMermaid(net: DataNetwork): string {
-  const lines: string[] = ["flowchart-elk LR"];
+  const lines: string[] = ["flowchart LR"];
 
   for (const [id, cell] of net.cells) {
     const label = cell.content !== undefined ? `${id} = ${cell.content}` : id;
-    lines.push(`  ${id}(["${label}"])`);
+    lines.push(`  ${nodeId(id)}(["${label}"])`);
   }
 
   for (const [id, prop] of net.propagators) {
     const label = prop.fn === "__SWITCH" ? "⇄" : prop.fn;
-    lines.push(`  ${id}["${label}"]`);
+    lines.push(`  ${nodeId(id)}["${label}"]`);
     for (const from of prop.from) {
-      lines.push(`  ${from} --> ${id}`);
+      lines.push(`  ${nodeId(from)} --> ${nodeId(id)}`);
     }
-    lines.push(`  ${id} --> ${prop.to}`);
+    lines.push(`  ${nodeId(id)} --> ${nodeId(prop.to)}`);
   }
 
   return lines.join("\n");
