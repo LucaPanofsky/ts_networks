@@ -263,7 +263,7 @@ describe("compileProgram", () => {
     },
   };
 
-  const program: ProgramAST = { records: [vec2], fns: [lengthFn], networks: [], derives: [] };
+  const program: ProgramAST = { records: [vec2], fns: [lengthFn], networks: [], derives: [], agents: [] };
 
   test("record constructor appears before fn", () => {
     const out = compileProgram(program);
@@ -298,7 +298,7 @@ describe("compileProgram", () => {
   });
 
   test("empty program emits bare return", () => {
-    expect(compileProgram({ records: [], fns: [], networks: [], derives: [] })).toBe("return {};");
+    expect(compileProgram({ records: [], fns: [], networks: [], derives: [], agents: [] })).toBe("return {};");
   });
 });
 

@@ -533,3 +533,70 @@ describe("parseProgram: match expression", () => {
     expect(arm.body).toEqual({ kind: "literal", value: "other" });
   });
 });
+
+// ── defagent ──────────────────────────────────────────────────────────────────
+
+const agentDsl = `
+defagent analyzeDocument
+  signature: from [String?(text)] to String?;
+  with: model = 'claude-opus-4-7', temperature = '0.2';
+  """
+  # Task
+
+  Analyze the text: {{text}}
+
+  Return a value like "positive", "negative", or "neutral".
+  Use "neutral" as the default when unsure.
+  """;
+end
+`;
+
+describe("parseProgram: defagent", () => {
+  const prog = parseProgram(agentDsl);
+  const agent = prog.agents[0]!;
+
+  test("no parse errors", () => {
+    const tree = parser.parse(agentDsl.trim());
+    const cursor = tree.cursor();
+    do { expect(cursor.name).not.toBe("⚠"); } while (cursor.next());
+  });
+
+  test("agents array has one entry", () => {
+    expect(prog.agents).toHaveLength(1);
+  });
+
+  test("name", () => {
+    expect(agent.name).toBe("analyzeDocument");
+  });
+
+  test("params", () => {
+    expect(agent.params).toHaveLength(1);
+    expect(agent.params[0]).toEqual({ predicate: "String?", name: "text" });
+  });
+
+  test("returnType", () => {
+    expect(agent.returnType).toBe("String?");
+  });
+
+  test("config", () => {
+    expect(agent.config["model"]).toBe("claude-opus-4-7");
+    expect(agent.config["temperature"]).toBe("0.2");
+  });
+
+  test("prompt contains markdown content", () => {
+    expect(agent.prompt).toContain("# Task");
+    expect(agent.prompt).toContain("{{text}}");
+    expect(agent.prompt).toContain('"positive"');
+    expect(agent.prompt).toContain('"neutral"');
+  });
+
+  test("prompt strips surrounding triple quotes", () => {
+    expect(agent.prompt.startsWith('"""')).toBe(false);
+    expect(agent.prompt.endsWith('"""')).toBe(false);
+  });
+
+  test("agents array empty when absent", () => {
+    const empty = parseProgram("defrecord Foo\n  x: Number?;\nend");
+    expect(empty.agents).toHaveLength(0);
+  });
+});
