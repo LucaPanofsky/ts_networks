@@ -8,7 +8,9 @@
     body { font-family: monospace; background: #1e1e1e; color: #d4d4d4; height: 100vh; display: flex; flex-direction: column; }
     #toolbar { padding: 8px 12px; background: #252526; border-bottom: 1px solid #3c3c3c; font-size: 12px; color: #858585; }
     #main { display: flex; flex: 1; overflow: hidden; }
-    #editor-pane { flex: 0 0 min(75ch, 50%); overflow: hidden; border-right: 1px solid #3c3c3c; }
+    #editor-pane { flex: 0 0 auto; width: min(75ch, 50%); overflow: hidden; min-width: 60ch; max-width: calc(100% - 48px); }
+    #resize-handle { flex: 0 0 48px; background: #3c3c3c; cursor: col-resize; transition: background 0.15s; }
+    #resize-handle:hover, #resize-handle.active { background: #007acc; }
     #diagram-pane { flex: 1; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #f8f8f8; background-image: radial-gradient(circle, #c0c0c0 1px, transparent 1px); background-size: 20px 20px; cursor: grab; }
     #diagram-pane.panning { cursor: grabbing; }
     #diagram { height: -webkit-fill-available; width: 100%; align-items: center; justify-content: center; display: flex; transform-origin: center center; }
@@ -42,6 +44,7 @@
   <div id="toolbar">ts-networks · SSE dev view</div>
   <div id="main">
     <div id="editor-pane"></div>
+    <div id="resize-handle"></div>
     <div id="diagram-pane"><div id="diagram"></div></div>
   </div>
   <div id="status">waiting for program…</div>
@@ -56,6 +59,34 @@
 
   <script src="/editor.bundle.js"></script>
   <script>
+    // ── resize handle ─────────────────────────────────────────────────────────
+    const handle = document.getElementById("resize-handle");
+    const editorPane = document.getElementById("editor-pane");
+    let resizing = false;
+
+    handle.addEventListener("mousedown", (e) => {
+      resizing = true;
+      handle.classList.add("active");
+      document.body.style.userSelect = "none";
+      document.body.style.cursor = "col-resize";
+    });
+
+    window.addEventListener("mousemove", (e) => {
+      if (!resizing) return;
+      const mainRect = document.getElementById("main").getBoundingClientRect();
+      const minWidth = parseFloat(getComputedStyle(editorPane).minWidth);
+      const newWidth = Math.min(Math.max(e.clientX - mainRect.left, minWidth), mainRect.width - 48);
+      editorPane.style.width = `${newWidth}px`;
+    });
+
+    window.addEventListener("mouseup", () => {
+      if (!resizing) return;
+      resizing = false;
+      handle.classList.remove("active");
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+    });
+
     // ── zoom + pan ────────────────────────────────────────────────────────────
     const pane = document.getElementById("diagram-pane");
     const diagram = document.getElementById("diagram");
