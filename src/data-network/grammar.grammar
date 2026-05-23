@@ -167,40 +167,45 @@ CompareOp { "==" | "!=" | "<=" | ">=" | "<" | ">" }
 AddOp { "+" | "-" }
 MulOp { "*" | Divide }
 
+// ── keywords as specializations of Name ──────────────────────────────────────
+
+kw<term> { @specialize[@name={term}]<Name, term> }
+
+Defnetwork   { kw<"defnetwork"> }
+Defrecord    { kw<"defrecord"> }
+Defn         { kw<"defn"> }
+Defpredicate { kw<"defpredicate"> }
+Defagent     { kw<"defagent"> }
+Derive       { kw<"derive"> }
+Let          { kw<"let"> }
+End          { kw<"end"> }
+Signature_   { kw<"signature"> }
+Expression_  { kw<"expression"> }
+From         { kw<"from"> }
+To           { kw<"to"> }
+Propagate    { kw<"propagate"> }
+With         { kw<"with"> }
+Switch       { kw<"switch"> }
+Cell         { kw<"cell"> }
+Constant     { kw<"constant"> }
+Match        { kw<"match"> }
+When         { kw<"when"> }
+Boolean      { kw<"true"> | kw<"false"> }
+
 // ── tokens ────────────────────────────────────────────────────────────────────
 
 @tokens {
-  Defnetwork   { "defnetwork" }
-  Defrecord    { "defrecord" }
-  Defn         { "defn" }
-  Defpredicate { "defpredicate" }
-  Derive       { "derive" }
-  Let          { "let" }
-  End         { "end" }
-  Signature_  { "signature" }
-  Expression_ { "expression" }
-  From        { "from" }
-  To          { "to" }
-  Propagate   { "propagate" }
-  With        { "with" }
-  Switch      { "switch" }
-  Cell        { "cell" }
-  Constant    { "constant" }
-  Defagent    { "defagent" }
-  Match       { "match" }
-  When        { "when" }
-  Arrow       { "->" }
-  Pipe        { "|" }
   Name        { $[a-zA-Z_] $[a-zA-Z0-9_?!]* }
-  Boolean     { "true" | "false" }
   Number      { $[0-9]+ ("." $[0-9]+)? }
   String      { "'" (!['])* "'" }
   "==" ">=" "<=" "!=" "&&" "||"
   Divide      { "/" }
+  Arrow       { "->" }
+  Pipe        { "|" }
   whitespace  { $[ \t\n\r]+ }
-  LineComment { "//" ![\n]* }
+  LineComment  { "//" ![\n]* }
 
-  @precedence { LineComment, Defnetwork, Defrecord, Defn, Defpredicate, Defagent, Derive, End, Signature_, Expression_, From, To, Propagate, With, Switch, Cell, Constant, Let, Match, When, Boolean, Name, Divide }
+  @precedence { LineComment, "==" ">=" "<=" "!=" "&&" "||", Arrow, Divide, Number, String, Name }
 }
 
 @precedence { field @left, not, mul @left, add @left, compare @left, and @left, or @left }
