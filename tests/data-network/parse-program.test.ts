@@ -539,7 +539,7 @@ describe("parseProgram: match expression", () => {
 const agentDsl = `
 defagent analyzeDocument
   signature: from [String?(text)] to String?;
-  with: model = 'claude-opus-4-7', temperature = '0.2'
+  with: model = 'claude-opus-4-7', temperature = '0.2';
   """
   # Task
 

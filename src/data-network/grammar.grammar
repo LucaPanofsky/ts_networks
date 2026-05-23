@@ -19,7 +19,7 @@ Signature {
 Term { PropagateTerm | SwitchTerm | CellTerm | ConstantTerm }
 
 PropagateTerm {
-  Propagate FunctionName From CellList To Name WithClause? ";"
+  Propagate FunctionName From CellList To Name (WithClause | ";")
 }
 
 SwitchTerm {
@@ -35,7 +35,7 @@ ConstantTerm {
 }
 
 WithClause {
-  With ":" Param ("," Param)*
+  With ":" Param ("," Param)* ";"
 }
 
 Param {
