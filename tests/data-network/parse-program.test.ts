@@ -1,6 +1,6 @@
 import { parseProgram } from "../../src/data-network/tree-to-network.js";
 import { parser } from "../../src/data-network/parser.js";
-import type { BinaryExpr, CallExpr, FieldExpr, FnAST, LetExpr, LiteralExpr, RecordAST, UnaryExpr, VarExpr } from "../../src/data-network/types.js";
+import type { BinaryExpr, CallExpr, FieldExpr, FnAST, LetExpr, LiteralExpr, MatchExpr, RecordAST, RecordPattern, UnaryExpr, VarExpr } from "../../src/data-network/types.js";
 
 // ── defrecord ─────────────────────────────────────────────────────────────────
 
@@ -461,5 +461,75 @@ derive Student? from Person?;
   test("derives array empty when absent", () => {
     const empty = parseProgram("defrecord Foo\n  x: Number?;\nend");
     expect(empty.derives).toHaveLength(0);
+  });
+});
+
+// ── match expression ──────────────────────────────────────────────────────────
+
+const matchDsl = `
+defn classify
+  signature: from [Shape?(s)] to String?;
+  expression
+    match s
+      | Circle { radius: r } when r > 10 -> 'large'
+      | Circle { radius: r } -> 'small'
+      | _ -> 'other'
+    end;
+end
+`;
+
+describe("parseProgram: match expression", () => {
+  const prog = parseProgram(matchDsl);
+  const fn = prog.fns[0]!;
+
+  test("no parse errors", () => {
+    const tree = parser.parse(matchDsl.trim());
+    const cursor = tree.cursor();
+    do { expect(cursor.name).not.toBe("⚠"); } while (cursor.next());
+  });
+
+  test("body kind is match", () => {
+    expect(fn.body.kind).toBe("match");
+  });
+
+  test("subject is var s", () => {
+    expect((fn.body as MatchExpr).subject).toEqual({ kind: "var", name: "s" });
+  });
+
+  test("three arms", () => {
+    expect((fn.body as MatchExpr).arms).toHaveLength(3);
+  });
+
+  test("first arm: record pattern Circle with binding radius->r", () => {
+    const arm = (fn.body as MatchExpr).arms[0]!;
+    expect(arm.pattern.kind).toBe("record-pattern");
+    const pat = arm.pattern as RecordPattern;
+    expect(pat.recordName).toBe("Circle");
+    expect(pat.bindings).toHaveLength(1);
+    expect(pat.bindings[0]).toEqual({ field: "radius", as: "r" });
+  });
+
+  test("first arm: guard is r > 10", () => {
+    const arm = (fn.body as MatchExpr).arms[0]!;
+    expect(arm.guard).not.toBeNull();
+    expect(arm.guard!.kind).toBe("binary");
+  });
+
+  test("first arm: body is literal 'large'", () => {
+    const arm = (fn.body as MatchExpr).arms[0]!;
+    expect(arm.body).toEqual({ kind: "literal", value: "large" });
+  });
+
+  test("second arm: no guard", () => {
+    const arm = (fn.body as MatchExpr).arms[1]!;
+    expect(arm.guard).toBeNull();
+    expect(arm.body).toEqual({ kind: "literal", value: "small" });
+  });
+
+  test("third arm: wildcard pattern", () => {
+    const arm = (fn.body as MatchExpr).arms[2]!;
+    expect(arm.pattern.kind).toBe("wildcard");
+    expect(arm.guard).toBeNull();
+    expect(arm.body).toEqual({ kind: "literal", value: "other" });
   });
 });

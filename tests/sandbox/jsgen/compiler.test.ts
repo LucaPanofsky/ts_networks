@@ -1,5 +1,5 @@
 import { compileRecord, compileExpr, compileFn, compileProgram } from "../../../src/sandbox/jsgen/compiler.js";
-import type { RecordAST, FnAST, ProgramAST, Expr } from "../../../src/data-network/types.js";
+import type { RecordAST, FnAST, ProgramAST, Expr, MatchExpr } from "../../../src/data-network/types.js";
 
 // ── compileExpr ───────────────────────────────────────────────────────────────
 
@@ -77,6 +77,42 @@ describe("compileExpr: call", () => {
       kind: "call", fn: "max",
       args: [{ kind: "var", name: "a" }, { kind: "var", name: "b" }],
     })).toBe("max(a, b)");
+  });
+
+  test("decide with default — two pairs + fallback", () => {
+    expect(compileExpr({
+      kind: "call", fn: "decide",
+      args: [
+        { kind: "call", fn: "p1?", args: [{ kind: "var", name: "x" }] },
+        { kind: "literal", value: 1 },
+        { kind: "call", fn: "p2?", args: [{ kind: "var", name: "x" }] },
+        { kind: "literal", value: 2 },
+        { kind: "literal", value: 0 },
+      ],
+    })).toBe("(p1$(x) ? 1 : (p2$(x) ? 2 : 0))");
+  });
+
+  test("decide without default — even arity falls back to null", () => {
+    expect(compileExpr({
+      kind: "call", fn: "decide",
+      args: [
+        { kind: "call", fn: "p1?", args: [{ kind: "var", name: "x" }] },
+        { kind: "literal", value: 1 },
+        { kind: "call", fn: "p2?", args: [{ kind: "var", name: "x" }] },
+        { kind: "literal", value: 2 },
+      ],
+    })).toBe("(p1$(x) ? 1 : (p2$(x) ? 2 : null))");
+  });
+
+  test("decide single pair with default", () => {
+    expect(compileExpr({
+      kind: "call", fn: "decide",
+      args: [
+        { kind: "call", fn: "ok?", args: [{ kind: "var", name: "x" }] },
+        { kind: "var", name: "x" },
+        { kind: "literal", value: 0 },
+      ],
+    })).toBe("(ok$(x) ? x : 0)");
   });
 
   test("if becomes ternary", () => {
@@ -300,5 +336,63 @@ describe("compileExpr: let", () => {
       body: { kind: "var", name: "sum" },
     };
     expect(compileExpr(expr)).toBe("(() => { const sum = (x + y); return sum; })()");
+  });
+});
+
+// ── compileExpr: match ────────────────────────────────────────────────────────
+
+describe("compileExpr: match", () => {
+  test("record pattern with guard and wildcard fallback", () => {
+    const expr: MatchExpr = {
+      kind: "match",
+      subject: { kind: "var", name: "s" },
+      arms: [
+        {
+          pattern: { kind: "record-pattern", recordName: "Circle", bindings: [{ field: "radius", as: "r" }] },
+          guard: { kind: "binary", op: ">", left: { kind: "var", name: "r" }, right: { kind: "literal", value: 10 } },
+          body: { kind: "literal", value: "large" },
+        },
+        {
+          pattern: { kind: "record-pattern", recordName: "Circle", bindings: [{ field: "radius", as: "r" }] },
+          guard: null,
+          body: { kind: "literal", value: "small" },
+        },
+        {
+          pattern: { kind: "wildcard" },
+          guard: null,
+          body: { kind: "literal", value: "other" },
+        },
+      ],
+    };
+    expect(compileExpr(expr)).toBe(
+      `(() => { const __v = s; if (__v.__type === "Circle") { const r = __v.radius; if ((r > 10)) return "large"; } if (__v.__type === "Circle") { const r = __v.radius; return "small"; } return "other"; })()`
+    );
+  });
+
+  test("multiple field bindings", () => {
+    const expr: MatchExpr = {
+      kind: "match",
+      subject: { kind: "var", name: "p" },
+      arms: [
+        {
+          pattern: { kind: "record-pattern", recordName: "Point", bindings: [{ field: "x", as: "x" }, { field: "y", as: "y" }] },
+          guard: null,
+          body: { kind: "binary", op: "+", left: { kind: "var", name: "x" }, right: { kind: "var", name: "y" } },
+        },
+        { pattern: { kind: "wildcard" }, guard: null, body: { kind: "literal", value: 0 } },
+      ],
+    };
+    expect(compileExpr(expr)).toBe(
+      `(() => { const __v = p; if (__v.__type === "Point") { const x = __v.x; const y = __v.y; return (x + y); } return 0; })()`
+    );
+  });
+
+  test("wildcard-only arm (catch-all fn)", () => {
+    const expr: MatchExpr = {
+      kind: "match",
+      subject: { kind: "var", name: "x" },
+      arms: [{ pattern: { kind: "wildcard" }, guard: null, body: { kind: "literal", value: 42 } }],
+    };
+    expect(compileExpr(expr)).toBe(`(() => { const __v = x; return 42; })()`);
   });
 });

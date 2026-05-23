@@ -97,7 +97,29 @@ export type LetExpr = {
   body:     Expr;
 };
 
-export type Expr = LiteralExpr | VarExpr | CallExpr | BinaryExpr | UnaryExpr | FieldExpr | LetExpr;
+export type WildcardPattern = { kind: "wildcard" };
+
+export type RecordPattern = {
+  kind: "record-pattern";
+  recordName: string;
+  bindings: { field: string; as: string }[];
+};
+
+export type MatchPattern = WildcardPattern | RecordPattern;
+
+export type MatchArm = {
+  pattern: MatchPattern;
+  guard: Expr | null;
+  body: Expr;
+};
+
+export type MatchExpr = {
+  kind: "match";
+  subject: Expr;
+  arms: MatchArm[];
+};
+
+export type Expr = LiteralExpr | VarExpr | CallExpr | BinaryExpr | UnaryExpr | FieldExpr | LetExpr | MatchExpr;
 
 // ── Function definitions ──────────────────────────────────────────────────────
 
