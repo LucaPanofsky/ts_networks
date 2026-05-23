@@ -1,5 +1,5 @@
-import { buildNetworks } from "../../../src/sandbox/scittle/networks.js";
-import { compile } from "../../../src/sandbox/scittle/index.js";
+import { buildNetworks } from "../../../src/sandbox/jsgen/networks.js";
+import { compile } from "../../../src/sandbox/jsgen/index.js";
 import { createRegistry } from "../../../src/registry.js";
 import { parseProgram } from "../../../src/data-network/tree-to-network.js";
 import { Something, Nothing } from "../../../src/info-structure.js";
