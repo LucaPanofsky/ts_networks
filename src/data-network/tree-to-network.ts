@@ -1,6 +1,6 @@
 import { parser } from "./parser.js";
 import type {
-  ProgramAST, DataNetworkAST, RecordAST, FnAST, DeriveAST,
+  ProgramAST, DataNetworkAST, RecordAST, FnAST, DeriveAST, AgentAST,
   Term, PropagateTerm, SwitchTerm, CellTerm, ConstantTerm,
   FieldDecl, TypedParam,
   Expr, LiteralExpr, VarExpr, CallExpr, BinaryExpr, UnaryExpr, FieldExpr,
@@ -17,6 +17,7 @@ export function parseProgram(input: string): ProgramAST {
   const records: RecordAST[] = [];
   const fns: FnAST[] = [];
   const derives: DeriveAST[] = [];
+  const agents: AgentAST[] = [];
 
   // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -385,6 +386,50 @@ export function parseProgram(input: string): ProgramAST {
     return { kind: "fn", isPredicate, name, params, returnType, body };
   };
 
+  // ── AgentDef ───────────────────────────────────────────────────────────────
+
+  const collectAgentDef = (): AgentAST => {
+    let name = "";
+    let params: TypedParam[] = [];
+    let returnType = "";
+    let config: Record<string, string> = {};
+    let prompt = "";
+
+    if (!cursor.firstChild()) return { kind: "agent", name, params, returnType, prompt, config };
+    do {
+      if (cursor.name === "Name" && !name) {
+        name = slice(cursor.from, cursor.to);
+      } else if (cursor.name === "FnSignature") {
+        let seenTo = false;
+        if (!cursor.firstChild()) continue;
+        do {
+          if (cn() === "TypedParam") {
+            const names: string[] = [];
+            if (cursor.firstChild()) {
+              do {
+                if (cn() === "Name") names.push(slice(cursor.from, cursor.to));
+              } while (cursor.nextSibling());
+              cursor.parent();
+            }
+            if (names.length >= 2) params.push({ predicate: names[0]!, name: names[1]! });
+          } else if (cn() === "To") {
+            seenTo = true;
+          } else if (cn() === "Name" && seenTo) {
+            returnType = slice(cursor.from, cursor.to);
+          }
+        } while (cursor.nextSibling());
+        cursor.parent();
+      } else if (cursor.name === "WithClause") {
+        config = collectParams();
+      } else if (cursor.name === "PromptString") {
+        const raw = slice(cursor.from, cursor.to);
+        prompt = raw.slice(3, -3).trim();
+      }
+    } while (cursor.nextSibling());
+    cursor.parent();
+    return { kind: "agent", name, params, returnType, prompt, config };
+  };
+
   // ── top-level walk ─────────────────────────────────────────────────────────
 
   cursor.firstChild(); // enter Document
@@ -396,11 +441,12 @@ export function parseProgram(input: string): ProgramAST {
       else if (cn() === "FnDef") fns.push(collectFnDef(false));
       else if (cn() === "PredicateDef") fns.push(collectFnDef(true));
       else if (cn() === "DeriveDef") derives.push(collectDeriveDef());
+      else if (cn() === "AgentDef") agents.push(collectAgentDef());
       cursor.parent();
     }
   } while (cursor.nextSibling());
 
-  return { networks, records, fns, derives };
+  return { networks, records, fns, derives, agents };
 }
 
 export function parseNetwork(input: string): DataNetworkAST {

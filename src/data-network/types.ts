@@ -145,6 +145,17 @@ export type DeriveAST = {
   sup: string;
 };
 
+// ── Agent definitions ─────────────────────────────────────────────────────────
+
+export type AgentAST = {
+  kind: "agent";
+  name: string;
+  params: TypedParam[];
+  returnType: string;
+  prompt: string;
+  config: Record<string, string>;
+};
+
 // ── Program ───────────────────────────────────────────────────────────────────
 
 export type ProgramAST = {
@@ -152,4 +163,5 @@ export type ProgramAST = {
   records: RecordAST[];
   fns: FnAST[];
   derives: DeriveAST[];
+  agents: AgentAST[];
 };

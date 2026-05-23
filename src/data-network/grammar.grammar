@@ -3,7 +3,7 @@
 }
 
 Definition {
-  NetworkDef | RecordDef | FnDef | PredicateDef | DeriveDef
+  NetworkDef | RecordDef | FnDef | PredicateDef | DeriveDef | AgentDef
 }
 
 // ── defnetwork ────────────────────────────────────────────────────────────────
@@ -49,6 +49,14 @@ CellList {
 FunctionName {
   Name ("." Name)*
 }
+
+// ── defagent ──────────────────────────────────────────────────────────────────
+
+AgentDef {
+  Defagent Name FnSignature WithClause? PromptString ";" End
+}
+
+@external tokens promptString from "./prompt-tokenizer" { PromptString }
 
 // ── derive ────────────────────────────────────────────────────────────────────
 
@@ -174,6 +182,7 @@ MulOp { "*" | Divide }
   Switch      { "switch" }
   Cell        { "cell" }
   Constant    { "constant" }
+  Defagent    { "defagent" }
   Match       { "match" }
   When        { "when" }
   Arrow       { "->" }
@@ -187,7 +196,7 @@ MulOp { "*" | Divide }
   whitespace  { $[ \t\n\r]+ }
   LineComment { "//" ![\n]* }
 
-  @precedence { LineComment, Defnetwork, Defrecord, Defn, Defpredicate, Derive, End, Signature_, Expression_, From, To, Propagate, With, Switch, Cell, Constant, Let, Match, When, Boolean, Name, Divide }
+  @precedence { LineComment, Defnetwork, Defrecord, Defn, Defpredicate, Defagent, Derive, End, Signature_, Expression_, From, To, Propagate, With, Switch, Cell, Constant, Let, Match, When, Boolean, Name, Divide }
 }
 
 @precedence { field @left, not, mul @left, add @left, compare @left, and @left, or @left }
