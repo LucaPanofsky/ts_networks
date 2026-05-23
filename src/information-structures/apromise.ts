@@ -1,4 +1,4 @@
-import { Contradiction, type InfoStructure } from "../info-structure.js";
+import { Contradiction, Something, type InfoStructure } from "../info-structure.js";
 import { ABORTED, Deferred } from "./deferred.js";
 
 function walkAPromise<A>(ap: APromise<A>): APromise<A> {
@@ -50,7 +50,11 @@ export class APromise<A> implements InfoStructure<A> {
   unpack(f: (a: A) => unknown): InfoStructure<unknown> {
     const walked = walkAPromise(this);
     const q = new Deferred<unknown>();
-    walked.deferred.promise.then(v => q.resolve(f(v as A)));
+    walked.deferred.promise.then(v => {
+      if (v instanceof Contradiction) { q.resolve(v); return; }
+      const raw = (v instanceof Something) ? v.content() : v;
+      q.resolve(f(raw as A));
+    });
     return new APromise(q);
   }
 

@@ -2,3 +2,5 @@ node_modules/
 dist/
 src/data-network/parser.js
 src/data-network/parser.terms.js
+report/
+*.db
