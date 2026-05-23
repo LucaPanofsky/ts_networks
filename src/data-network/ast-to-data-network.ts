@@ -19,7 +19,9 @@ export function astToDataNetwork(ast: DataNetworkAST): DataNetwork {
       const v = coerce(term.value);
       net.addCell(term.name, { content: v, defaultContent: v, isConstant: true });
     } else if (term.kind === "propagate") {
-      net.addPropagator(term.fn, term.from, term.to, term.params);
+      const fn = term.fn === ast.name ? "__RECURSIVE" : term.fn;
+      const params = term.fn === ast.name ? { ...term.params, network: ast.name } : term.params;
+      net.addPropagator(fn, term.from, term.to, params);
     } else if (term.kind === "switch") {
       net.addPropagator("__SWITCH", term.from, term.to, { predicate: term.fn ?? "true?" });
     }
