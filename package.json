@@ -11,14 +11,17 @@
   "license": "ISC",
   "scripts": {
     "generate": "lezer-generator src/data-network/grammar.grammar --output src/data-network/parser.js",
-    "build": "npm run generate && tsc",
+    "bundle": "esbuild src/editor/main.ts --bundle --outfile=public/editor.bundle.js --format=iife",
+    "build": "npm run generate && npm run bundle && tsc",
     "test": "npm run generate && jest",
     "dev": "ts-node --watch src/index.ts"
   },
   "devDependencies": {
     "@lezer/generator": "^1.8.0",
+    "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
     "@types/node": "^25.9.0",
+    "esbuild": "^0.28.0",
     "jest": "^30.4.2",
     "ts-jest": "^29.4.9",
     "ts-node": "^10.9.2",
@@ -27,6 +30,8 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
     "@lezer/common": "^1.5.2",
-    "@lezer/lr": "^1.4.10"
+    "@lezer/lr": "^1.4.10",
+    "codemirror": "^6.0.2",
+    "express": "^5.2.1"
   }
 }

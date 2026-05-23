@@ -4,3 +4,4 @@ src/data-network/parser.js
 src/data-network/parser.terms.js
 report/
 *.db
+public/editor.bundle.js

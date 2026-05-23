@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ts-networks</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: monospace; background: #1e1e1e; color: #d4d4d4; height: 100vh; display: flex; flex-direction: column; }
+    #toolbar { padding: 8px 12px; background: #252526; border-bottom: 1px solid #3c3c3c; font-size: 12px; color: #858585; }
+    #main { display: flex; flex: 1; overflow: hidden; }
+    #editor-pane { flex: 1; overflow: hidden; border-right: 1px solid #3c3c3c; }
+    #diagram-pane { flex: 1; overflow: auto; padding: 24px; display: flex; align-items: flex-start; justify-content: center; }
+    #status { padding: 4px 12px; background: #007acc; font-size: 11px; }
+  </style>
+</head>
+<body>
+  <div id="toolbar">ts-networks · SSE dev view</div>
+  <div id="main">
+    <div id="editor-pane"></div>
+    <div id="diagram-pane"><div id="diagram"></div></div>
+  </div>
+  <div id="status">waiting for program…</div>
+
+  <script src="/editor.bundle.js"></script>
+  <script type="module">
+    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+    mermaid.initialize({ startOnLoad: false, theme: "dark" });
+
+    async function renderDiagram(def) {
+      const el = document.getElementById("diagram");
+      const { svg } = await mermaid.render("mermaid-graph", def);
+      el.innerHTML = svg;
+    }
+
+    const es = new EventSource("/events");
+    es.onmessage = async (e) => {
+      const msg = JSON.parse(e.data);
+      if (msg.type === "program") {
+        const { source, diagram } = msg.payload;
+        if (source) window.tsnetEditor.setValue(source);
+        if (diagram) await renderDiagram(diagram);
+        document.getElementById("status").textContent = "program received";
+      }
+    };
+    es.onerror = () => {
+      document.getElementById("status").textContent = "connection lost — reload to reconnect";
+    };
+  </script>
+</body>
+</html>
