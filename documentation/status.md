@@ -15,8 +15,8 @@
   - [x] Nothing
   - [x] Contradiction
   - [x] Something
-    - [x] APromise
     - [x] MergeObject
+  - [x] APromise  
   - [ ] Reasoning
     - [ ] Value and Support
     - [ ] TMS / AMBTMS
@@ -26,3 +26,17 @@
   - [ ] Async runner: full-featured
   - [ ] Reasoning runner: requires support for `noGoods` or SAT logic as a service
   - [ ] Tracing option: a full-featured async runner with propagators logging rational reasoning
+- [x] DSL
+  - [x] `defnetwork`, `defn`, `defpredicate`, `defrecord`, `derive`
+  - [x] `defagent` — LLM agent with prompt template, signature, and `with:` config clause
+  - [x] Expressions: literals, variables, binary/unary ops, field access, function calls, `let`, `if`, `decide`
+  - [x] `match` — structural pattern matching on records with guards and wildcard arms
+  - [x] Vector types — `[Type?]` in field declarations and return types
+- [x] JSON schema derivation
+  - [x] `buildSchemas` — derives JSON schema from `defrecord` definitions
+  - [x] `deriveProtocol` — maps any return type to `{ schema, extract }` for agent API calls
+  - [x] Nested record inlining, vector fields, user-defined predicate resolution
+- [x] Agent runtime
+  - [x] Anthropic SDK client: prompt interpolation, tool-forced structured JSON call
+  - [x] Agents registered in the network registry alongside `defn` and `defrecord`
+  - [ ] Async propagation in the network executor

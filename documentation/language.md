@@ -34,7 +34,7 @@ propagate classify from [agentResponse] to decision;
 
 ## Top-level definitions
 
-There are five kinds of top-level definition:
+There are six kinds of top-level definition:
 
 | Keyword | Purpose |
 |---|---|
@@ -42,6 +42,7 @@ There are five kinds of top-level definition:
 | `defrecord` | A record type |
 | `defn` | A pure function |
 | `defpredicate` | A predicate (returns `Boolean?`) |
+| `defagent` | An LLM agent that returns structured output |
 | `derive` | A subtype declaration |
 
 ---
@@ -146,7 +147,19 @@ defrecord Rect
 end
 ```
 
-Each field declaration is `fieldName: PredicateType;`. Defining a record automatically creates:
+Each field declaration is `fieldName: PredicateType;`. Field types can be scalar predicates or typed vectors:
+
+```
+defrecord Report
+  title: String?;
+  score: Number?;
+  measurements: [Measurement?];   // vector field
+end
+```
+
+`[Type?]` declares a field that holds a typed array of values.
+
+Defining a record automatically creates:
 - A constructor: `Circle(radius)` → `{ __type: "Circle", radius }`
 - A predicate: `Circle?(v)` → `true` if `v` is a `Circle`
 
@@ -169,7 +182,11 @@ end
 signature: from [Type?(paramName), ...] to ReturnType?;
 ```
 
-Each parameter is `Type?(name)` — a predicate annotation followed by a binding name. The return type is a predicate name.
+Each parameter is `Type?(name)` — a predicate annotation followed by a binding name. The return type is a predicate name or a typed vector:
+
+```
+signature: from [String?(query)] to [Result?];   // returns a vector
+```
 
 For functions with no parameters:
 
@@ -201,6 +218,80 @@ Identical to `defn` but marks the function as a predicate. By convention predica
 defpredicate positive?
   signature: from [Number?(n)] to Boolean?;
   expression n > 0;
+end
+```
+
+---
+
+## `defagent`
+
+Defines an LLM agent. An agent has a signature like a `defn`, but instead of a function body it has a prompt template. At runtime the agent calls the Claude API and returns a structured value matching the declared return type.
+
+```text
+defagent analyzeDocument
+  signature: from [String?(text)] to DocumentAnalysis?;
+  with: model = 'claude-opus-4-7', temperature = '0.2';
+  """
+  Analyze the following document and return a structured result.
+
+  Document:
+  
+  {{text}}
+  
+  """;
+end
+```
+
+### Signature
+
+Same syntax as `defn`. The return type can be a record, a primitive, or a typed vector:
+
+```
+signature: from [String?(query)] to [SearchResult?];
+```
+
+### `with:` clause
+
+Optional model configuration:
+
+```
+with: model = 'claude-opus-4-7', temperature = '0.2';
+```
+
+| Key | Default | Description |
+|---|---|---|
+| `model` | `claude-opus-4-7` | The Claude model to use |
+| `temperature` | `1` | Sampling temperature |
+
+### Prompt template
+
+The prompt is a triple-quoted string (`""" ... """`). Parameter names wrapped in `{{` and `}}` are substituted with their runtime values before the API call:
+
+```
+"""
+Classify this text: {{text}}
+"""
+```
+
+### Response protocol
+
+The return type determines how the agent communicates with the Claude API:
+
+- **Record return type** — the API is asked to return the record's fields directly. The runtime injects `__type` into the result.
+- **Primitive return type** (`String?`, `Number?`, etc.) — the API returns `{ value: ... }`; the runtime unwraps it.
+- **Vector return type** (`[Type?]`) — the API returns `{ items: [...] }`; the runtime unwraps the array.
+
+The JSON schema sent to the API is derived automatically from `defrecord` definitions and predicate declarations in the program — no manual schema authoring is needed.
+
+### Using an agent in a network
+
+An agent is used exactly like a `defn` — referenced by name in a `propagate` term:
+
+```
+defnetwork documentPipeline
+  signature: from [text] to label;
+  propagate analyzeDocument from [text] to analysis;
+  propagate classifyResult from [analysis] to label;
 end
 ```
 
