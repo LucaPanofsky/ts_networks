@@ -195,6 +195,21 @@
       terminalOutput.scrollTop = terminalOutput.scrollHeight;
     }
 
+    function formatCellValue(v) {
+      if (v === null) return "∅";
+      if (typeof v === "object" && v !== null) {
+        if (v.__type) {
+          const fields = Object.entries(v)
+            .filter(([k]) => k !== "__type")
+            .map(([k, val]) => `${k}: ${formatCellValue(val)}`)
+            .join(", ");
+          return `${v.__type}(${fields})`;
+        }
+        return JSON.stringify(v);
+      }
+      return String(v);
+    }
+
     terminalInput.addEventListener("keydown", async (e) => {
       if (e.key !== "Enter" || !e.shiftKey) return;
       e.preventDefault();
@@ -214,7 +229,10 @@
       });
       const json = await res.json();
       if (!json.ok) { termAppend("error: " + json.error, "line-err"); return; }
-      termAppend(JSON.stringify(json, null, 2), "line-ok");
+      termAppend(`─── ${json.network} ───`, "line-log");
+      for (const [name, value] of Object.entries(json.cells)) {
+        termAppend(`${name} = ${formatCellValue(value)}`, "line-ok");
+      }
     });
 
     // ── SSE log lines ─────────────────────────────────────────────────────────

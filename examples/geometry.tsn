@@ -4,7 +4,7 @@ defrecord Point
 end
 
 defrecord Rectangle
-  topLeft: Point?;
+  origin: Point?;
   width: Number?;
   height: Number?;
 end
