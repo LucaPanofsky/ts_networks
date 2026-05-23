@@ -1,5 +1,5 @@
 import { compileRecord, compileExpr, compileFn, compileProgram } from "../../../src/sandbox/jsgen/compiler.js";
-import type { RecordAST, FnAST, ProgramAST, Expr } from "../../../src/data-network/types.js";
+import type { RecordAST, FnAST, ProgramAST, Expr, MatchExpr } from "../../../src/data-network/types.js";
 
 // ── compileExpr ───────────────────────────────────────────────────────────────
 
@@ -336,5 +336,63 @@ describe("compileExpr: let", () => {
       body: { kind: "var", name: "sum" },
     };
     expect(compileExpr(expr)).toBe("(() => { const sum = (x + y); return sum; })()");
+  });
+});
+
+// ── compileExpr: match ────────────────────────────────────────────────────────
+
+describe("compileExpr: match", () => {
+  test("record pattern with guard and wildcard fallback", () => {
+    const expr: MatchExpr = {
+      kind: "match",
+      subject: { kind: "var", name: "s" },
+      arms: [
+        {
+          pattern: { kind: "record-pattern", recordName: "Circle", bindings: [{ field: "radius", as: "r" }] },
+          guard: { kind: "binary", op: ">", left: { kind: "var", name: "r" }, right: { kind: "literal", value: 10 } },
+          body: { kind: "literal", value: "large" },
+        },
+        {
+          pattern: { kind: "record-pattern", recordName: "Circle", bindings: [{ field: "radius", as: "r" }] },
+          guard: null,
+          body: { kind: "literal", value: "small" },
+        },
+        {
+          pattern: { kind: "wildcard" },
+          guard: null,
+          body: { kind: "literal", value: "other" },
+        },
+      ],
+    };
+    expect(compileExpr(expr)).toBe(
+      `(() => { const __v = s; if (__v.__type === "Circle") { const r = __v.radius; if ((r > 10)) return "large"; } if (__v.__type === "Circle") { const r = __v.radius; return "small"; } return "other"; })()`
+    );
+  });
+
+  test("multiple field bindings", () => {
+    const expr: MatchExpr = {
+      kind: "match",
+      subject: { kind: "var", name: "p" },
+      arms: [
+        {
+          pattern: { kind: "record-pattern", recordName: "Point", bindings: [{ field: "x", as: "x" }, { field: "y", as: "y" }] },
+          guard: null,
+          body: { kind: "binary", op: "+", left: { kind: "var", name: "x" }, right: { kind: "var", name: "y" } },
+        },
+        { pattern: { kind: "wildcard" }, guard: null, body: { kind: "literal", value: 0 } },
+      ],
+    };
+    expect(compileExpr(expr)).toBe(
+      `(() => { const __v = p; if (__v.__type === "Point") { const x = __v.x; const y = __v.y; return (x + y); } return 0; })()`
+    );
+  });
+
+  test("wildcard-only arm (catch-all fn)", () => {
+    const expr: MatchExpr = {
+      kind: "match",
+      subject: { kind: "var", name: "x" },
+      arms: [{ pattern: { kind: "wildcard" }, guard: null, body: { kind: "literal", value: 42 } }],
+    };
+    expect(compileExpr(expr)).toBe(`(() => { const __v = x; return 42; })()`);
   });
 });

@@ -1,4 +1,4 @@
-import type { RecordAST, FnAST, ProgramAST, Expr } from "../../data-network/types.js";
+import type { RecordAST, FnAST, ProgramAST, Expr, RecordPattern } from "../../data-network/types.js";
 
 function mangle(name: string): string {
   return name.replace(/\?/g, "$").replace(/!/g, "_");
@@ -37,6 +37,23 @@ export function compileExpr(expr: Expr): string {
       }
       const args = expr.args.map(compileExpr).join(", ");
       return `${mangle(expr.fn)}(${args})`;
+    }
+    case "match": {
+      const subject = compileExpr(expr.subject);
+      const lines: string[] = [`const __v = ${subject};`];
+      for (const arm of expr.arms) {
+        if (arm.pattern.kind === "wildcard") {
+          lines.push(`return ${compileExpr(arm.body)};`);
+        } else {
+          const pat = arm.pattern as RecordPattern;
+          const bindings = pat.bindings.map(b => `const ${b.as} = __v.${b.field};`).join(" ");
+          const guard = arm.guard ? `if (${compileExpr(arm.guard)}) ` : "";
+          const ret = `${guard}return ${compileExpr(arm.body)};`;
+          const inner = bindings ? `${bindings} ${ret}` : ret;
+          lines.push(`if (__v.__type === "${pat.recordName}") { ${inner} }`);
+        }
+      }
+      return `(() => { ${lines.join(" ")} })()`;
     }
     case "let": {
       const bindings = expr.bindings.map(b => `const ${b.name} = ${compileExpr(b.value)};`).join(" ");
