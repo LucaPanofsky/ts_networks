@@ -8,9 +8,10 @@ import { networkToDiagram } from "./mermaid.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.resolve(__dirname, "../../public");
 
-export type SseMessage = {
-  type: string;
-  payload: unknown;
+export type NetworkDiagram = {
+  name: string;
+  diagram: string;
+  details: Record<string, string>;
 };
 
 type SseClient = Response;
@@ -39,19 +40,18 @@ export function createServer(port = 3000) {
       return;
     }
 
-    let diagram: string | null = null;
-    let details: Record<string, string> = {};
+    const networks: NetworkDiagram[] = [];
     try {
       const program = parseProgram(body.source);
-      const firstNet = program.networks[0];
-      if (firstNet) {
-        ({ diagram, details } = networkToDiagram(astToDataNetwork(firstNet), program));
+      for (const net of program.networks) {
+        const { diagram, details } = networkToDiagram(astToDataNetwork(net), program);
+        networks.push({ name: net.name, diagram, details });
       }
     } catch {
       // parse errors are non-fatal; we still push the source
     }
 
-    const msg = { type: "program", payload: { source: body.source, diagram, details } };
+    const msg = { type: "program", payload: { source: body.source, networks } };
     const data = `data: ${JSON.stringify(msg)}\n\n`;
     for (const client of clients) client.write(data);
     res.json({ ok: true, clients: clients.size });

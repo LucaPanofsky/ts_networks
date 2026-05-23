@@ -190,17 +190,47 @@
       detailDialog.showModal();
     };
 
+    // ── network select ────────────────────────────────────────────────────────
+    const networkSelect = document.getElementById("network-select");
+    let currentNetworks = [];
+
+    async function renderNetwork(net) {
+      currentDetails = net.details ?? {};
+      diagram.innerHTML = "";
+      resetTransform();
+      if (net.diagram) await window.tsnetEditor.renderDiagram(net.diagram);
+    }
+
+    networkSelect.addEventListener("change", () => {
+      const net = currentNetworks[networkSelect.selectedIndex];
+      if (net) renderNetwork(net);
+    });
+
     // ── SSE ───────────────────────────────────────────────────────────────────
     const es = new EventSource("/events");
     es.onmessage = async (e) => {
       const msg = JSON.parse(e.data);
       if (msg.type === "program") {
-        const { source, diagram: chart, details } = msg.payload;
-        currentDetails = details ?? {};
-        diagram.innerHTML = "";
-        resetTransform();
+        const { source, networks } = msg.payload;
+        currentNetworks = networks ?? [];
+
+        // repopulate select
+        networkSelect.innerHTML = currentNetworks.length === 0
+          ? `<option value="">— no networks —</option>`
+          : currentNetworks.map((n, i) => `<option value="${i}">${n.name}</option>`).join("");
+
         if (source) window.tsnetEditor.setValue(source);
-        if (chart) await window.tsnetEditor.renderDiagram(chart);
+
+        // auto-select and render the last network
+        const last = currentNetworks[currentNetworks.length - 1];
+        if (last) {
+          networkSelect.selectedIndex = currentNetworks.length - 1;
+          await renderNetwork(last);
+        } else {
+          diagram.innerHTML = "";
+          resetTransform();
+        }
+
         document.getElementById("status").textContent = "program received";
       }
     };
