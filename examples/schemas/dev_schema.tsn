@@ -19,3 +19,9 @@ defrecord AnnotatedMeasurement
   source: Source?;
   notes: String?;
 end
+
+defrecord Report
+  title: String?;
+  items: [Measurement?];
+  tags: [String?];
+end

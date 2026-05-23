@@ -213,8 +213,8 @@ describe("compileRecord", () => {
     kind: "record",
     name: "Vec2",
     fields: [
-      { name: "x", predicate: "Number?" },
-      { name: "y", predicate: "Number?" },
+      { name: "x", type: { kind: "scalar", predicate: "Number?" } },
+      { name: "y", type: { kind: "scalar", predicate: "Number?" } },
     ],
   };
 
@@ -234,7 +234,7 @@ describe("compileRecord", () => {
     const rec: RecordAST = {
       kind: "record",
       name: "Wrapper",
-      fields: [{ name: "value", predicate: "Number?" }],
+      fields: [{ name: "value", type: { kind: "scalar", predicate: "Number?" } }],
     };
     expect(compileRecord(rec)).toContain(
       `const Wrapper = function(value) { return { __type: "Wrapper", value: value }; };`
@@ -248,7 +248,7 @@ describe("compileProgram", () => {
   const vec2: RecordAST = {
     kind: "record",
     name: "Vec2",
-    fields: [{ name: "x", predicate: "Number?" }, { name: "y", predicate: "Number?" }],
+    fields: [{ name: "x", type: { kind: "scalar", predicate: "Number?" } }, { name: "y", type: { kind: "scalar", predicate: "Number?" } }],
   };
 
   const lengthFn: FnAST = {

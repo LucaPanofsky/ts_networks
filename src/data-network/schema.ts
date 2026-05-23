@@ -1,12 +1,13 @@
-import type { ProgramAST, RecordAST, FnAST, Expr } from "./types.js";
+import type { ProgramAST, RecordAST, FnAST, Expr, TypeRef } from "./types.js";
 
-export type JsonSchemaType = "string" | "number" | "boolean" | "object";
+export type JsonSchemaType = "string" | "number" | "boolean" | "object" | "array";
 
 export type JsonSchemaProperty = {
   type: JsonSchemaType;
   description?: string;
   properties?: Record<string, JsonSchemaProperty>;
   required?: string[];
+  items?: JsonSchemaProperty;
 };
 
 export type JsonSchemaObject = {
@@ -56,6 +57,17 @@ function resolveProperty(
   return { type: "string", description: predicate };
 }
 
+function resolveTypeRef(
+  typeRef: TypeRef,
+  predicateIndex: Map<string, FnAST>,
+  recordIndex: Map<string, RecordAST>,
+): JsonSchemaProperty {
+  if (typeRef.kind === "vector") {
+    return { type: "array", items: resolveProperty(typeRef.element, predicateIndex, recordIndex) };
+  }
+  return resolveProperty(typeRef.predicate, predicateIndex, recordIndex);
+}
+
 export function deriveSchema(
   record: RecordAST,
   predicateIndex: Map<string, FnAST>,
@@ -63,7 +75,7 @@ export function deriveSchema(
 ): JsonSchemaObject {
   const properties: Record<string, JsonSchemaProperty> = {};
   for (const field of record.fields) {
-    properties[field.name] = resolveProperty(field.predicate, predicateIndex, recordIndex);
+    properties[field.name] = resolveTypeRef(field.type, predicateIndex, recordIndex);
   }
   return {
     type: "object",

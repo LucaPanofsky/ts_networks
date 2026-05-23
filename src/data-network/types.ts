@@ -36,11 +36,17 @@ export type DataNetworkAST = {
   terms: Term[];
 };
 
+// ── Type references ───────────────────────────────────────────────────────────
+
+export type ScalarType = { kind: "scalar"; predicate: string };
+export type VectorType = { kind: "vector"; element: string };
+export type TypeRef    = ScalarType | VectorType;
+
 // ── Record definitions ────────────────────────────────────────────────────────
 
 export type FieldDecl = {
   name: string;
-  predicate: string;
+  type: TypeRef;
 };
 
 export type RecordAST = {

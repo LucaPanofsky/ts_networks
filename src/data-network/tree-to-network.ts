@@ -316,10 +316,19 @@ export function parseProgram(input: string): ProgramAST {
         cursor.firstChild(); // Name (field)
         const fieldName = slice(cursor.from, cursor.to);
         cursor.nextSibling(); // ":"
-        cursor.nextSibling(); // Name (predicate)
-        const predicate = slice(cursor.from, cursor.to);
+        cursor.nextSibling(); // Name or VectorTypeRef
+        let type: import("./types.js").TypeRef;
+        if (cn() === "VectorTypeRef") {
+          cursor.firstChild(); // "["
+          cursor.nextSibling(); // Name (element)
+          const element = slice(cursor.from, cursor.to);
+          cursor.parent();
+          type = { kind: "vector", element };
+        } else {
+          type = { kind: "scalar", predicate: slice(cursor.from, cursor.to) };
+        }
         cursor.parent();
-        fields.push({ name: fieldName, predicate });
+        fields.push({ name: fieldName, type });
       }
     } while (cursor.nextSibling());
     cursor.parent();

@@ -71,7 +71,11 @@ RecordDef {
 }
 
 FieldDecl {
-  Name ":" Name ";"
+  Name ":" (Name | VectorTypeRef) ";"
+}
+
+VectorTypeRef {
+  "[" Name "]"
 }
 
 // ── def fn ────────────────────────────────────────────────────────────────────

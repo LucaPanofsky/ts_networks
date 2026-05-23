@@ -4,7 +4,7 @@ import type { Sandbox } from "../../../src/sandbox/jsgen/runtime.js";
 
 const vec2: RecordAST = {
   kind: "record", name: "Vec2",
-  fields: [{ name: "x", predicate: "Number?" }, { name: "y", predicate: "Number?" }],
+  fields: [{ name: "x", type: { kind: "scalar", predicate: "Number?" } }, { name: "y", type: { kind: "scalar", predicate: "Number?" } }],
 };
 
 const lengthFn: FnAST = {

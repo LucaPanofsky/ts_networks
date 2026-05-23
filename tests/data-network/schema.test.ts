@@ -94,3 +94,42 @@ end
     expect(outerSchema.required).toEqual(["inner", "name"]);
   });
 });
+
+describe("buildSchemas: vector field", () => {
+  const src3 = `
+defrecord Tag
+  label: String?;
+end
+
+defrecord Article
+  title: String?;
+  tags: [Tag?];
+  scores: [Number?];
+end
+`;
+  const schemas = buildSchemas(parseProgram(src3));
+  const schema = schemas["Article"]!;
+
+  test("vector of records maps to array type", () => {
+    expect(schema.properties["tags"]!.type).toBe("array");
+  });
+
+  test("vector of records has inlined items schema", () => {
+    const items = schema.properties["tags"]!.items!;
+    expect(items.type).toBe("object");
+    expect(items.properties!["label"]!.type).toBe("string");
+  });
+
+  test("vector of primitives maps to array type", () => {
+    expect(schema.properties["scores"]!.type).toBe("array");
+  });
+
+  test("vector of primitives has correct items type", () => {
+    expect(schema.properties["scores"]!.items!.type).toBe("number");
+  });
+
+  test("vector fields appear in required", () => {
+    expect(schema.required).toContain("tags");
+    expect(schema.required).toContain("scores");
+  });
+});
