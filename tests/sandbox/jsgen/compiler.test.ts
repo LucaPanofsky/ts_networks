@@ -79,6 +79,42 @@ describe("compileExpr: call", () => {
     })).toBe("max(a, b)");
   });
 
+  test("decide with default — two pairs + fallback", () => {
+    expect(compileExpr({
+      kind: "call", fn: "decide",
+      args: [
+        { kind: "call", fn: "p1?", args: [{ kind: "var", name: "x" }] },
+        { kind: "literal", value: 1 },
+        { kind: "call", fn: "p2?", args: [{ kind: "var", name: "x" }] },
+        { kind: "literal", value: 2 },
+        { kind: "literal", value: 0 },
+      ],
+    })).toBe("(p1$(x) ? 1 : (p2$(x) ? 2 : 0))");
+  });
+
+  test("decide without default — even arity falls back to null", () => {
+    expect(compileExpr({
+      kind: "call", fn: "decide",
+      args: [
+        { kind: "call", fn: "p1?", args: [{ kind: "var", name: "x" }] },
+        { kind: "literal", value: 1 },
+        { kind: "call", fn: "p2?", args: [{ kind: "var", name: "x" }] },
+        { kind: "literal", value: 2 },
+      ],
+    })).toBe("(p1$(x) ? 1 : (p2$(x) ? 2 : null))");
+  });
+
+  test("decide single pair with default", () => {
+    expect(compileExpr({
+      kind: "call", fn: "decide",
+      args: [
+        { kind: "call", fn: "ok?", args: [{ kind: "var", name: "x" }] },
+        { kind: "var", name: "x" },
+        { kind: "literal", value: 0 },
+      ],
+    })).toBe("(ok$(x) ? x : 0)");
+  });
+
   test("if becomes ternary", () => {
     expect(compileExpr({
       kind: "call", fn: "if",

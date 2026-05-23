@@ -25,6 +25,16 @@ export function compileExpr(expr: Expr): string {
         const [cond, then_, else_] = expr.args;
         return `(${compileExpr(cond!)} ? ${compileExpr(then_!)} : ${compileExpr(else_!)})`;
       }
+      if (expr.fn === "decide") {
+        const args = expr.args;
+        const hasDefault = args.length % 2 === 1;
+        const pairs = hasDefault ? args.slice(0, -1) : args;
+        let result = hasDefault ? compileExpr(args[args.length - 1]!) : "null";
+        for (let i = pairs.length - 2; i >= 0; i -= 2) {
+          result = `(${compileExpr(pairs[i]!)} ? ${compileExpr(pairs[i + 1]!)} : ${result})`;
+        }
+        return result;
+      }
       const args = expr.args.map(compileExpr).join(", ");
       return `${mangle(expr.fn)}(${args})`;
     }
