@@ -1,4 +1,4 @@
-import { Contradiction, Something, type InfoStructure } from "../info-structure.js";
+import { Contradiction, Nothing, Something, type InfoStructure } from "../info-structure.js";
 import { ABORTED, Deferred } from "./deferred.js";
 
 function walkAPromise<A>(ap: APromise<A>): APromise<A> {
@@ -72,6 +72,11 @@ export class APromise<A> implements InfoStructure<A> {
   }
 
   merge(other: InfoStructure<unknown>): InfoStructure<unknown> {
+    if (other === Nothing) {
+      const walked = walkAPromise(this);
+      if (walked.deferred.isRealized) return walked.deferred.resolvedValue as InfoStructure<unknown>;
+      return Nothing;
+    }
     if (other instanceof APromise) {
       const d1 = walkAPromise(this).deferred;
       const d2 = walkAPromise(other).deferred;
