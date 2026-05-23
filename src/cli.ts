@@ -1,2 +1,8 @@
 #!/usr/bin/env node
-// placeholder — entry point to be replaced by the SSE dev server
+import { createServer } from "./ui-server/server.js";
+
+const args = process.argv.slice(2);
+const portArg = args.find(a => a.startsWith("--port="));
+const port = portArg ? parseInt(portArg.split("=")[1]!, 10) : 3000;
+
+createServer(port);

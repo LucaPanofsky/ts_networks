@@ -1,0 +1,10 @@
+defnetwork add
+  signature: from [a, b] to sum;
+  propagate add from [a, b] to sum;
+end
+
+defnetwork pipeline
+  signature: from [x, y] to result;
+  propagate add from [x, y] to intermediate;
+  propagate multiply from [intermediate, x] to result;
+end
