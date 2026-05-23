@@ -26,6 +26,7 @@
     "typescript": "^6.0.3"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.98.0",
     "@hono/node-server": "^2.0.3",
     "@lezer/common": "^1.5.2",
     "@lezer/lr": "^1.4.10",

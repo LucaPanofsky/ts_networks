@@ -3,6 +3,8 @@ import type { Registry } from "../../registry.js";
 import type { ProgramAST } from "../../data-network/types.js";
 import { typeRefToString } from "../../data-network/types.js";
 import type { Sandbox } from "./runtime.js";
+import { callAgent } from "../agent-client.js";
+import { deriveProtocol } from "../../data-network/schema.js";
 
 const trueP = (v: unknown): boolean => v === true;
 
@@ -45,6 +47,26 @@ export function buildRegistry(program: ProgramAST, sandbox: Sandbox): Registry {
         morphism: { from: [`${rec.name}?`], to: typeRefToString(field.type) },
       });
     }
+  }
+
+  for (const agent of program.agents) {
+    const protocol = deriveProtocol(agent.returnType, program);
+    const config = {
+      model:       agent.config["model"],
+      temperature: agent.config["temperature"] !== undefined
+        ? parseFloat(agent.config["temperature"])
+        : undefined,
+    };
+    const paramNames = agent.params.map(p => p.name);
+    registry.register({
+      fnName: agent.name,
+      arity: agent.params.length,
+      impl: (...args: unknown[]) => {
+        const namedArgs = Object.fromEntries(paramNames.map((n, i) => [n, args[i]]));
+        return callAgent(agent.prompt, namedArgs, protocol, config);
+      },
+      morphism: { from: agent.params.map(p => p.predicate), to: typeRefToString(agent.returnType) },
+    });
   }
 
   return registry;
