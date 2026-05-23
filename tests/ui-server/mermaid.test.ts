@@ -12,7 +12,7 @@ const chart = networkToMermaid(net);
 test("documentPipeline: matches expected output", () => {
   expect(chart).toBe(
     [
-      "flowchart LR",
+      "flowchart-elk LR",
       `  text(["text"])`,
       `  analysis(["analysis"])`,
       `  label(["label"])`,

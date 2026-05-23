@@ -5,7 +5,7 @@ import mermaid from "mermaid";
 import elkLayouts from "@mermaid-js/layout-elk";
 
 mermaid.registerLayoutLoaders(elkLayouts);
-mermaid.initialize({ startOnLoad: false, theme: "dark" });
+mermaid.initialize({ startOnLoad: false, theme: "default" });
 
 const theme = EditorView.theme({
   "&": { height: "100%", fontSize: "13px" },

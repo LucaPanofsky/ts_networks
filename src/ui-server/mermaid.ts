@@ -3,7 +3,7 @@ import type { DataNetwork } from "../data-network/data-network.js";
 const nodeId = (id: string) => id.replace(/\./g, "_");
 
 export function networkToMermaid(net: DataNetwork): string {
-  const lines: string[] = ["flowchart LR"];
+  const lines: string[] = ["flowchart-elk LR"];
 
   for (const [id, cell] of net.cells) {
     const label = cell.content !== undefined ? `${id} = ${cell.content}` : id;
