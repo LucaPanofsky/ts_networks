@@ -1,10 +1,10 @@
-import { I, type InfoStructure } from "../info-structure.js";
+import { I, Something, type InfoStructure } from "../info-structure.js";
 import type { DataNetwork } from "../data-network/data-network.js";
 import type { Registry } from "../registry.js";
 import { naryUnpacking } from "../nary-unpacking.js";
 import { rankPropagators } from "../data-network/ranking.js";
 import { Cell } from "./cell.js";
-import { Propagator } from "./propagator.js";
+import { Propagator, type NetworkMessage } from "./propagator.js";
 import { run, type RunResult } from "./runner.js";
 
 export class NetworkRuntime {
@@ -16,19 +16,38 @@ export class NetworkRuntime {
     // Compile propagators: fn string → actual Propagator
     this._propagators = new Map();
     for (const [name, p] of network.propagators) {
-      let unpacked: (...args: InfoStructure<unknown>[]) => InfoStructure<unknown>;
-      if (p.fn === "__SWITCH") {
-        const predName = p.params["predicate"] ?? "true?";
-        const predEntry = registry.get(predName);
-        if (!predEntry) throw new Error(`NetworkRuntime: unknown predicate "${predName}" for switch`);
-        const switchImpl = (a: unknown, b: unknown) => predEntry.impl(a) ? b : null;
-        unpacked = naryUnpacking(switchImpl, 2);
+        if (p.fn === "__RECURSIVE") {
+        const fromNames = [...p.from];
+        const signatureFrom = [...network.signature.from];
+        const call = (cells: Map<string, Cell>): NetworkMessage => {
+          const mappedInputs: Record<string, InfoStructure<unknown>> = {};
+          for (let i = 0; i < signatureFrom.length; i++) {
+            const info = cells.get(fromNames[i]!)!.knows();
+            if (!(info instanceof Something)) return { type: "none" };
+            mappedInputs[signatureFrom[i]!] = info;
+          }
+          return { type: "recurse", mappedInputs };
+        };
+        this._propagators.set(name, new Propagator(name, call));
       } else {
-        const entry = registry.get(p.fn);
-        if (!entry) throw new Error(`NetworkRuntime: unknown function "${p.fn}" in registry`);
-        unpacked = naryUnpacking(entry.impl, entry.arity);
+        let unpacked: (...args: InfoStructure<unknown>[]) => InfoStructure<unknown>;
+        if (p.fn === "__SWITCH") {
+          const predName = p.params["predicate"] ?? "true?";
+          const predEntry = registry.get(predName);
+          if (!predEntry) throw new Error(`NetworkRuntime: unknown predicate "${predName}" for switch`);
+          if (p.from.length === 1) {
+            unpacked = naryUnpacking(predEntry.impl, 1);
+          } else {
+            const switchImpl = (a: unknown, b: unknown) => predEntry.impl(a) ? b : null;
+            unpacked = naryUnpacking(switchImpl, 2);
+          }
+        } else {
+          const entry = registry.get(p.fn);
+          if (!entry) throw new Error(`NetworkRuntime: unknown function "${p.fn}" in registry`);
+          unpacked = naryUnpacking(entry.impl, entry.arity);
+        }
+        this._propagators.set(name, new Propagator(name, p.from, p.to, unpacked));
       }
-      this._propagators.set(name, new Propagator(name, p.from, p.to, unpacked));
     }
 
     // Build template cells: initial values + neighbor wiring
@@ -53,6 +72,12 @@ export class NetworkRuntime {
     return this._propagators;
   }
 
+  restart(cells: Map<string, Cell>, mappedInputs: Record<string, InfoStructure<unknown>>): string[] {
+    for (const cell of cells.values()) cell.forget();
+    for (const [name, info] of Object.entries(mappedInputs)) cells.get(name)!.setContent(info);
+    return [...this._rankedPropagators];
+  }
+
   invoke(inputs: Record<string, unknown>, worklist?: string[]): RunResult {
     // Fresh cells: same initial values and neighbor wiring, never mutate templates
     const freshCells = new Map<string, Cell>();
@@ -72,7 +97,9 @@ export class NetworkRuntime {
     }
 
     const candidates = worklist ?? this._rankedPropagators;
+    const onRecurse = (mappedInputs: Record<string, InfoStructure<unknown>>) =>
+      this.restart(freshCells, mappedInputs);
 
-    return run(freshCells, this._propagators, candidates);
+    return run(freshCells, this._propagators, candidates, onRecurse);
   }
 }
