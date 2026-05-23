@@ -4,7 +4,7 @@ import type {
   Term, PropagateTerm, SwitchTerm, CellTerm, ConstantTerm,
   FieldDecl, TypedParam,
   Expr, LiteralExpr, VarExpr, CallExpr, BinaryExpr, UnaryExpr, FieldExpr,
-  LetBinding,
+  LetBinding, MatchExpr, MatchArm, MatchPattern,
 } from "./types.js";
 
 export function parseProgram(input: string): ProgramAST {
@@ -160,6 +160,10 @@ export function parseProgram(input: string): ProgramAST {
       return { kind: "call", fn, args } as CallExpr;
     }
 
+    if (nodeName === "MatchExpr") {
+      return collectMatchExpr();
+    }
+
     if (nodeName === "ParenExpr") {
       cursor.firstChild(); // "("
       cursor.nextSibling(); // Expr
@@ -184,6 +188,64 @@ export function parseProgram(input: string): ProgramAST {
 
     // Name — variable reference
     return { kind: "var", name: slice(cursor.from, cursor.to) } as VarExpr;
+  };
+
+  // ── match expression ──────────────────────────────────────────────────────
+
+  const parsePattern = (): MatchPattern => {
+    cursor.firstChild(); // RecordPattern or Name
+    let pattern: MatchPattern;
+    if (cursor.name === "RecordPattern") {
+      cursor.firstChild(); // Name (record name)
+      const recordName = slice(cursor.from, cursor.to);
+      const bindings: { field: string; as: string }[] = [];
+      while (cursor.nextSibling()) {
+        if (cn() === "FieldBinding") {
+          cursor.firstChild(); // Name (field)
+          const field = slice(cursor.from, cursor.to);
+          cursor.nextSibling(); // ":"
+          cursor.nextSibling(); // Name (binding)
+          const as_ = slice(cursor.from, cursor.to);
+          cursor.parent();
+          bindings.push({ field, as: as_ });
+        }
+      }
+      cursor.parent(); // exit RecordPattern
+      pattern = { kind: "record-pattern", recordName, bindings };
+    } else {
+      pattern = { kind: "wildcard" };
+    }
+    cursor.parent(); // exit Pattern
+    return pattern;
+  };
+
+  const collectMatchArm = (): MatchArm => {
+    cursor.firstChild(); // Pipe
+    cursor.nextSibling(); // Pattern
+    const pattern = parsePattern();
+    cursor.nextSibling(); // When or Arrow
+    let guard: Expr | null = null;
+    if (cursor.name === "When") {
+      cursor.nextSibling(); // Expr (guard)
+      guard = parseExpr();
+      cursor.nextSibling(); // Arrow
+    }
+    cursor.nextSibling(); // Expr (body)
+    const body = parseExpr();
+    cursor.parent();
+    return { pattern, guard, body };
+  };
+
+  const collectMatchExpr = (): MatchExpr => {
+    cursor.firstChild(); // Match keyword
+    cursor.nextSibling(); // Expr (subject)
+    const subject = parseExpr();
+    const arms: MatchArm[] = [];
+    while (cursor.nextSibling() && cursor.name === "MatchArm") {
+      arms.push(collectMatchArm());
+    }
+    cursor.parent();
+    return { kind: "match", subject, arms };
   };
 
   // ── DeriveDef ──────────────────────────────────────────────────────────────
