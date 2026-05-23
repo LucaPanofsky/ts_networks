@@ -600,3 +600,30 @@ describe("parseProgram: defagent", () => {
     expect(empty.agents).toHaveLength(0);
   });
 });
+
+// ── keyword-prefix identifiers ────────────────────────────────────────────────
+
+describe("keyword-prefix identifiers", () => {
+  const src = `
+defrecord Segment
+  fromPoint: Number?;
+  toPoint: Number?;
+  withColor: Number?;
+  endTime: Number?;
+end
+`.trim();
+
+  const prog = parseProgram(src);
+  const rec = prog.records[0]!;
+
+  test("no error nodes", () => {
+    const tree = parser.parse(src);
+    let hasError = false;
+    tree.iterate({ enter: n => { if (n.name === "⚠") hasError = true; } });
+    expect(hasError).toBe(false);
+  });
+
+  test("field names are parsed whole", () => {
+    expect(rec.fields.map(f => f.name)).toEqual(["fromPoint", "toPoint", "withColor", "endTime"]);
+  });
+});
