@@ -22,23 +22,14 @@
   <div id="status">waiting for program…</div>
 
   <script src="/editor.bundle.js"></script>
-  <script type="module">
-    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
-    mermaid.initialize({ startOnLoad: false, theme: "dark" });
-
-    async function renderDiagram(def) {
-      const el = document.getElementById("diagram");
-      const { svg } = await mermaid.render("mermaid-graph", def);
-      el.innerHTML = svg;
-    }
-
+  <script>
     const es = new EventSource("/events");
     es.onmessage = async (e) => {
       const msg = JSON.parse(e.data);
       if (msg.type === "program") {
         const { source, diagram } = msg.payload;
         if (source) window.tsnetEditor.setValue(source);
-        if (diagram) await renderDiagram(diagram);
+        if (diagram) await window.tsnetEditor.renderDiagram(diagram);
         document.getElementById("status").textContent = "program received";
       }
     };

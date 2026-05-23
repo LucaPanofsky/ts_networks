@@ -1,6 +1,9 @@
 import express, { type Request, type Response } from "express";
 import path from "path";
 import { fileURLToPath } from "url";
+import { parseProgram } from "../data-network/tree-to-network.js";
+import { astToDataNetwork } from "../data-network/ast-to-data-network.js";
+import { networkToMermaid } from "./mermaid.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.resolve(__dirname, "../../public");
@@ -30,11 +33,24 @@ export function createServer(port = 3000) {
   });
 
   app.post("/push", (req: Request, res: Response) => {
-    const msg = req.body as SseMessage;
-    if (!msg.type) {
-      res.status(400).json({ error: "message must have a type" });
+    const body = req.body as { source?: string };
+    if (!body.source) {
+      res.status(400).json({ error: "body must have a source field" });
       return;
     }
+
+    let diagram: string | null = null;
+    try {
+      const program = parseProgram(body.source);
+      const firstNet = program.networks[0];
+      if (firstNet) {
+        diagram = networkToMermaid(astToDataNetwork(firstNet));
+      }
+    } catch {
+      // parse errors are non-fatal; we still push the source
+    }
+
+    const msg = { type: "program", payload: { source: body.source, diagram } };
     const data = `data: ${JSON.stringify(msg)}\n\n`;
     for (const client of clients) client.write(data);
     res.json({ ok: true, clients: clients.size });

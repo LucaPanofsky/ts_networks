@@ -1,6 +1,11 @@
 import { EditorView, basicSetup } from "codemirror";
 import { EditorState } from "@codemirror/state";
 import { tsnet } from "./language.js";
+import mermaid from "mermaid";
+import elkLayouts from "@mermaid-js/layout-elk";
+
+mermaid.registerLayoutLoaders(elkLayouts);
+mermaid.initialize({ startOnLoad: false, theme: "dark" });
 
 const theme = EditorView.theme({
   "&": { height: "100%", fontSize: "13px" },
@@ -15,10 +20,19 @@ const view = new EditorView({
   parent: document.getElementById("editor-pane")!,
 });
 
+let diagramCounter = 0;
+
 (window as unknown as Record<string, unknown>)["tsnetEditor"] = {
   setValue(source: string) {
     view.dispatch({
       changes: { from: 0, to: view.state.doc.length, insert: source },
     });
+  },
+  async renderDiagram(chart: string) {
+    const el = document.getElementById("diagram");
+    if (!el) return;
+    const id = `mermaid-${diagramCounter++}`;
+    const { svg } = await mermaid.render(id, chart);
+    el.innerHTML = svg;
   },
 };
