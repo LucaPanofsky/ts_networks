@@ -1,4 +1,4 @@
-import { compile } from "../../../src/sandbox/scittle/index.js";
+import { compile } from "../../../src/sandbox/jsgen/index.js";
 import { Something } from "../../../src/info-structure.js";
 
 const dsl = `

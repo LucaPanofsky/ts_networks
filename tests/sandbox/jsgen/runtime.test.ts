@@ -1,4 +1,4 @@
-import { createSandbox } from "../../../src/sandbox/scittle/runtime.js";
+import { createSandbox } from "../../../src/sandbox/jsgen/runtime.js";
 import { parseProgram } from "../../../src/data-network/tree-to-network.js";
 
 const src = `

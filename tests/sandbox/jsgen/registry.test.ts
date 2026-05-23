@@ -1,6 +1,6 @@
-import { buildRegistry } from "../../../src/sandbox/scittle/registry.js";
+import { buildRegistry } from "../../../src/sandbox/jsgen/registry.js";
 import type { ProgramAST, RecordAST, FnAST } from "../../../src/data-network/types.js";
-import type { Sandbox } from "../../../src/sandbox/scittle/runtime.js";
+import type { Sandbox } from "../../../src/sandbox/jsgen/runtime.js";
 
 const vec2: RecordAST = {
   kind: "record", name: "Vec2",

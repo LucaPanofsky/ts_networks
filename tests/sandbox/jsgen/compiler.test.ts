@@ -1,4 +1,4 @@
-import { compileRecord, compileExpr, compileFn, compileProgram } from "../../../src/sandbox/scittle/compiler.js";
+import { compileRecord, compileExpr, compileFn, compileProgram } from "../../../src/sandbox/jsgen/compiler.js";
 import type { RecordAST, FnAST, ProgramAST, Expr } from "../../../src/data-network/types.js";
 
 // ── compileExpr ───────────────────────────────────────────────────────────────
