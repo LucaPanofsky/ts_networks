@@ -4,6 +4,7 @@ import { fileURLToPath } from "url";
 import { parseProgram } from "../data-network/tree-to-network.js";
 import { astToDataNetwork } from "../data-network/ast-to-data-network.js";
 import { networkToDiagram } from "./mermaid.js";
+import { handleRun, type RunRequest } from "./run-handler.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.resolve(__dirname, "../../public");
@@ -55,6 +56,13 @@ export function createServer(port = 3000) {
     const data = `data: ${JSON.stringify(msg)}\n\n`;
     for (const client of clients) client.write(data);
     res.json({ ok: true, clients: clients.size });
+  });
+
+  app.post("/run", (req: Request, res: Response) => {
+    const body = req.body as RunRequest;
+    const result = handleRun(body);
+    console.log("[/run]", JSON.stringify(result, null, 2));
+    res.json(result);
   });
 
   return app.listen(port, () => {

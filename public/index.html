@@ -202,8 +202,19 @@
       if (!cmd) return;
       termAppend(cmd.split("\n").map(l => "> " + l).join("\n"), "line-input");
       terminalInput.value = "";
-      // TODO: parse cmd and POST to /run
-      termAppend("(evaluation not yet wired)", "line-log");
+
+      const parsed = window.tsnetEditor.parseReplCommand(cmd);
+      if (!parsed.ok) { termAppend("parse error: " + parsed.error, "line-err"); return; }
+
+      const source = window.tsnetEditor.getValue();
+      const res = await fetch("/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source, ...parsed.command }),
+      });
+      const json = await res.json();
+      if (!json.ok) { termAppend("error: " + json.error, "line-err"); return; }
+      termAppend(JSON.stringify(json, null, 2), "line-ok");
     });
 
     // ── SSE log lines ─────────────────────────────────────────────────────────
