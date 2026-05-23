@@ -1,5 +1,5 @@
 import { parseProgram } from "../../src/data-network/tree-to-network.js";
-import { buildSchemas } from "../../src/data-network/schema.js";
+import { buildSchemas, deriveProtocol } from "../../src/data-network/schema.js";
 
 const src = `
 defpredicate PositiveNumber?
@@ -131,5 +131,81 @@ end
   test("vector fields appear in required", () => {
     expect(schema.required).toContain("tags");
     expect(schema.required).toContain("scores");
+  });
+});
+
+// ── deriveProtocol ────────────────────────────────────────────────────────────
+
+const protocolSrc = `
+defrecord DocumentAnalysis
+  type: String?;
+  sentiment: String?;
+  confidence: Number?;
+end
+`;
+
+describe("deriveProtocol: record return type", () => {
+  const program = parseProgram(protocolSrc);
+  const protocol = deriveProtocol("DocumentAnalysis?", program);
+
+  test("schema is the record schema directly", () => {
+    expect(protocol.schema.type).toBe("object");
+    expect(protocol.schema.properties["type"]!.type).toBe("string");
+    expect(protocol.schema.properties["confidence"]!.type).toBe("number");
+  });
+
+  test("schema required matches record fields", () => {
+    expect(protocol.schema.required).toEqual(["type", "sentiment", "confidence"]);
+  });
+
+  test("extract injects __type", () => {
+    const raw = { type: "report", sentiment: "positive", confidence: 0.9 };
+    const result = protocol.extract(raw) as Record<string, unknown>;
+    expect(result["__type"]).toBe("DocumentAnalysis");
+  });
+
+  test("extract preserves field values", () => {
+    const raw = { type: "report", sentiment: "positive", confidence: 0.9 };
+    const result = protocol.extract(raw) as Record<string, unknown>;
+    expect(result["sentiment"]).toBe("positive");
+  });
+});
+
+describe("deriveProtocol: primitive return type", () => {
+  const program = parseProgram(protocolSrc);
+  const protocol = deriveProtocol("String?", program);
+
+  test("schema wraps in value envelope", () => {
+    expect(protocol.schema.type).toBe("object");
+    expect(protocol.schema.properties["value"]!.type).toBe("string");
+    expect(protocol.schema.required).toEqual(["value"]);
+  });
+
+  test("extract unwraps value", () => {
+    expect(protocol.extract({ value: "hello" })).toBe("hello");
+  });
+});
+
+describe("deriveProtocol: user-defined predicate return type", () => {
+  const srcWithPredicate = `
+defpredicate PositiveNumber?
+  signature: from [Number?(n)] to Boolean?;
+  expression
+    n > 0;
+end
+`;
+  const program = parseProgram(srcWithPredicate);
+  const protocol = deriveProtocol("PositiveNumber?", program);
+
+  test("schema wraps in value envelope with base type", () => {
+    expect(protocol.schema.properties["value"]!.type).toBe("number");
+  });
+
+  test("schema value description carries predicate constraint", () => {
+    expect(protocol.schema.properties["value"]!.description).toContain("PositiveNumber?");
+  });
+
+  test("extract unwraps value", () => {
+    expect(protocol.extract({ value: 42 })).toBe(42);
   });
 });

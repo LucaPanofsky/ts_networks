@@ -16,6 +16,27 @@ export type JsonSchemaObject = {
   required: string[];
 };
 
+export type ResponseProtocol = {
+  schema: JsonSchemaObject;
+  extract: (raw: Record<string, unknown>) => unknown;
+};
+
+// ── Internal indexes ──────────────────────────────────────────────────────────
+
+type Indexes = {
+  predicateIndex: Map<string, FnAST>;
+  recordIndex: Map<string, RecordAST>;
+};
+
+function buildIndexes(program: ProgramAST): Indexes {
+  return {
+    predicateIndex: new Map(program.fns.filter(f => f.isPredicate).map(f => [f.name, f])),
+    recordIndex:    new Map(program.records.map(r => [r.name, r])),
+  };
+}
+
+// ── Schema resolution ─────────────────────────────────────────────────────────
+
 const PRIMITIVE_MAP: Record<string, JsonSchemaType> = {
   "String?":  "string",
   "Number?":  "number",
@@ -35,47 +56,38 @@ function renderExpr(expr: Expr): string {
 
 function resolveProperty(
   predicate: string,
-  predicateIndex: Map<string, FnAST>,
-  recordIndex: Map<string, RecordAST>,
+  { predicateIndex, recordIndex }: Indexes,
 ): JsonSchemaProperty {
   const primitive = PRIMITIVE_MAP[predicate];
   if (primitive) return { type: primitive };
 
   const fn = predicateIndex.get(predicate);
   if (fn && fn.params[0] !== undefined) {
-    const base = resolveProperty(fn.params[0].predicate, predicateIndex, recordIndex);
+    const base = resolveProperty(fn.params[0].predicate, { predicateIndex, recordIndex });
     return { type: base.type, description: `${predicate} — satisfies: ${renderExpr(fn.body)}` };
   }
 
   const baseName = predicate.endsWith("?") ? predicate.slice(0, -1) : predicate;
   const nestedRecord = recordIndex.get(baseName);
   if (nestedRecord) {
-    const nested = deriveSchema(nestedRecord, predicateIndex, recordIndex);
+    const nested = deriveSchema(nestedRecord, { predicateIndex, recordIndex });
     return { type: "object", properties: nested.properties, required: nested.required };
   }
 
   return { type: "string", description: predicate };
 }
 
-function resolveTypeRef(
-  typeRef: TypeRef,
-  predicateIndex: Map<string, FnAST>,
-  recordIndex: Map<string, RecordAST>,
-): JsonSchemaProperty {
+function resolveTypeRef(typeRef: TypeRef, indexes: Indexes): JsonSchemaProperty {
   if (typeRef.kind === "vector") {
-    return { type: "array", items: resolveProperty(typeRef.element, predicateIndex, recordIndex) };
+    return { type: "array", items: resolveProperty(typeRef.element, indexes) };
   }
-  return resolveProperty(typeRef.predicate, predicateIndex, recordIndex);
+  return resolveProperty(typeRef.predicate, indexes);
 }
 
-export function deriveSchema(
-  record: RecordAST,
-  predicateIndex: Map<string, FnAST>,
-  recordIndex: Map<string, RecordAST>,
-): JsonSchemaObject {
+export function deriveSchema(record: RecordAST, indexes: Indexes): JsonSchemaObject {
   const properties: Record<string, JsonSchemaProperty> = {};
   for (const field of record.fields) {
-    properties[field.name] = resolveTypeRef(field.type, predicateIndex, recordIndex);
+    properties[field.name] = resolveTypeRef(field.type, indexes);
   }
   return {
     type: "object",
@@ -84,15 +96,37 @@ export function deriveSchema(
   };
 }
 
-export function buildSchemas(program: ProgramAST): Record<string, JsonSchemaObject> {
-  const predicateIndex = new Map<string, FnAST>(
-    program.fns.filter(f => f.isPredicate).map(f => [f.name, f])
-  );
-  const recordIndex = new Map<string, RecordAST>(program.records.map(r => [r.name, r]));
+// ── Public API ────────────────────────────────────────────────────────────────
 
+export function buildSchemas(program: ProgramAST): Record<string, JsonSchemaObject> {
+  const indexes = buildIndexes(program);
   const schemas: Record<string, JsonSchemaObject> = {};
   for (const record of program.records) {
-    schemas[record.name] = deriveSchema(record, predicateIndex, recordIndex);
+    schemas[record.name] = deriveSchema(record, indexes);
   }
   return schemas;
+}
+
+export function deriveProtocol(agentReturnType: string, program: ProgramAST): ResponseProtocol {
+  const indexes = buildIndexes(program);
+  const baseName = agentReturnType.endsWith("?") ? agentReturnType.slice(0, -1) : agentReturnType;
+
+  const record = indexes.recordIndex.get(baseName);
+  if (record) {
+    return {
+      schema: deriveSchema(record, indexes),
+      extract: (raw) => ({ ...raw, __type: baseName }),
+    };
+  }
+
+  // Primitive or user-defined predicate — wrap in { value } envelope
+  const prop = resolveProperty(agentReturnType, indexes);
+  return {
+    schema: {
+      type: "object",
+      properties: { value: prop },
+      required: ["value"],
+    },
+    extract: (raw) => raw["value"],
+  };
 }
