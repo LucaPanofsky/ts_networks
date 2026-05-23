@@ -8,9 +8,10 @@
     body { font-family: monospace; background: #1e1e1e; color: #d4d4d4; height: 100vh; display: flex; flex-direction: column; }
     #toolbar { padding: 8px 12px; background: #252526; border-bottom: 1px solid #3c3c3c; font-size: 12px; color: #858585; }
     #main { display: flex; flex: 1; overflow: hidden; }
-    #editor-pane { flex: 1; overflow: hidden; border-right: 1px solid #3c3c3c; }
-    #diagram-pane { flex: 1; overflow: auto; padding: 24px; display: flex; align-items: flex-start; justify-content: center; background: #f8f8f8; background-image: radial-gradient(circle, #c0c0c0 1px, transparent 1px); background-size: 20px 20px; }
-    #diagram { height: -webkit-fill-available; width: 100%; align-items: center; justify-content: center; display: flex; }
+    #editor-pane { flex: 0 0 min(75ch, 50%); overflow: hidden; border-right: 1px solid #3c3c3c; }
+    #diagram-pane { flex: 1; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #f8f8f8; background-image: radial-gradient(circle, #c0c0c0 1px, transparent 1px); background-size: 20px 20px; cursor: grab; }
+    #diagram-pane.panning { cursor: grabbing; }
+    #diagram { height: -webkit-fill-available; width: 100%; align-items: center; justify-content: center; display: flex; transform-origin: center center; }
     #status { padding: 4px 12px; background: #007acc; font-size: 11px; }
   </style>
 </head>
@@ -24,13 +25,59 @@
 
   <script src="/editor.bundle.js"></script>
   <script>
+    // ── zoom + pan ────────────────────────────────────────────────────────────
+    const pane = document.getElementById("diagram-pane");
+    const diagram = document.getElementById("diagram");
+
+    let scale = 1, tx = 0, ty = 0;
+    let dragging = false, startX = 0, startY = 0;
+
+    function applyTransform() {
+      diagram.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+    }
+
+    function resetTransform() {
+      scale = 1; tx = 0; ty = 0;
+      applyTransform();
+    }
+
+    pane.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? 0.9 : 1.1;
+      scale = Math.min(Math.max(scale * delta, 0.1), 10);
+      applyTransform();
+    }, { passive: false });
+
+    pane.addEventListener("mousedown", (e) => {
+      dragging = true;
+      startX = e.clientX - tx;
+      startY = e.clientY - ty;
+      pane.classList.add("panning");
+    });
+
+    window.addEventListener("mousemove", (e) => {
+      if (!dragging) return;
+      tx = e.clientX - startX;
+      ty = e.clientY - startY;
+      applyTransform();
+    });
+
+    window.addEventListener("mouseup", () => {
+      dragging = false;
+      pane.classList.remove("panning");
+    });
+
+    // ── SSE ───────────────────────────────────────────────────────────────────
     const es = new EventSource("/events");
     es.onmessage = async (e) => {
       const msg = JSON.parse(e.data);
       if (msg.type === "program") {
-        const { source, diagram } = msg.payload;
+        const { source, diagram: chart } = msg.payload;
         if (source) window.tsnetEditor.setValue(source);
-        if (diagram) await window.tsnetEditor.renderDiagram(diagram);
+        if (chart) {
+          await window.tsnetEditor.renderDiagram(chart);
+          resetTransform();
+        }
         document.getElementById("status").textContent = "program received";
       }
     };
