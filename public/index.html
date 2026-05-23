@@ -8,7 +8,7 @@
     body { font-family: monospace; background: #1e1e1e; color: #d4d4d4; height: 100vh; display: flex; flex-direction: column; }
     #toolbar { padding: 8px 12px; background: #252526; border-bottom: 1px solid #3c3c3c; font-size: 12px; color: #858585; }
     #main { display: flex; flex: 1; overflow: hidden; }
-    #editor-pane { flex: 0 0 auto; width: min(75ch, 50%); overflow: hidden; min-width: 0; max-width: calc(100% - 48px); }
+    #editor-pane { flex: 0 0 auto; width: min(75ch, 50%); overflow: hidden; min-width: 0; max-width: calc(100% - 48px); position: relative; }
     #resize-handle { flex: 0 0 48px; background: #3c3c3c; cursor: col-resize; transition: background 0.15s; }
     #resize-handle:hover, #resize-handle.active { background: #007acc; }
     #diagram-pane { flex: 1; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center; background: #f8f8f8; background-image: radial-gradient(circle, #c0c0c0 1px, transparent 1px); background-size: 20px 20px; cursor: grab; }
@@ -53,6 +53,68 @@
 
     #status { padding: 4px 12px; background: #007acc; font-size: 11px; }
 
+    #terminal-pane {
+      display: none;
+      flex-direction: column;
+      position: absolute;
+      inset: 0;
+      background: #1e1e1e;
+      z-index: 5;
+    }
+    #terminal-pane.active { display: flex; }
+
+    #terminal-output {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      font-size: 12px;
+      line-height: 1.6;
+      color: #d4d4d4;
+    }
+    #terminal-output .line-input { color: #569cd6; }
+    #terminal-output .line-ok    { color: #4ec9b0; }
+    #terminal-output .line-err   { color: #f48771; }
+    #terminal-output .line-log   { color: #858585; }
+
+    #terminal-input-wrap {
+      border-top: 1px solid #3c3c3c;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    #terminal-input {
+      width: 100%;
+      background: #252526;
+      color: #d4d4d4;
+      border: 1px solid #3c3c3c;
+      border-radius: 4px;
+      padding: 8px;
+      font-family: monospace;
+      font-size: 12px;
+      resize: none;
+      outline: none;
+      min-height: 80px;
+    }
+    #terminal-input:focus { border-color: #007acc; }
+    #terminal-hint { font-size: 11px; color: #555; }
+
+    #pane-toggle {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      z-index: 20;
+      font-family: monospace;
+      font-size: 11px;
+      background: #252526;
+      color: #858585;
+      border: 1px solid #3c3c3c;
+      border-radius: 4px;
+      padding: 2px 8px;
+      cursor: pointer;
+    }
+    #pane-toggle:hover { color: #d4d4d4; border-color: #007acc; }
+
     #detail-dialog {
       position: fixed;
       top: 50%;
@@ -80,7 +142,16 @@
 <body>
   <div id="toolbar">ts-networks · SSE dev view</div>
   <div id="main">
-    <div id="editor-pane"></div>
+    <div id="editor-pane">
+      <div id="terminal-pane">
+        <div id="terminal-output"></div>
+        <div id="terminal-input-wrap">
+          <textarea id="terminal-input" placeholder="run networkName with&#10;  cell a = 42;&#10;end" spellcheck="false"></textarea>
+          <span id="terminal-hint">Shift+Enter to evaluate</span>
+        </div>
+      </div>
+      <button id="pane-toggle">repl</button>
+    </div>
     <div id="resize-handle"></div>
     <div id="diagram-pane">
       <div id="diagram-controls">
@@ -102,6 +173,42 @@
 
   <script src="/editor.bundle.js"></script>
   <script>
+    // ── pane toggle (editor ↔ terminal) ──────────────────────────────────────
+    const terminalPane = document.getElementById("terminal-pane");
+    const terminalOutput = document.getElementById("terminal-output");
+    const terminalInput = document.getElementById("terminal-input");
+    const paneToggle = document.getElementById("pane-toggle");
+    let replMode = false;
+
+    paneToggle.addEventListener("click", () => {
+      replMode = !replMode;
+      terminalPane.classList.toggle("active", replMode);
+      paneToggle.textContent = replMode ? "editor" : "repl";
+      if (replMode) terminalInput.focus();
+    });
+
+    function termAppend(text, cls) {
+      const line = document.createElement("div");
+      line.className = cls;
+      line.textContent = text;
+      terminalOutput.appendChild(line);
+      terminalOutput.scrollTop = terminalOutput.scrollHeight;
+    }
+
+    terminalInput.addEventListener("keydown", async (e) => {
+      if (e.key !== "Enter" || !e.shiftKey) return;
+      e.preventDefault();
+      const cmd = terminalInput.value.trim();
+      if (!cmd) return;
+      termAppend(cmd.split("\n").map(l => "> " + l).join("\n"), "line-input");
+      terminalInput.value = "";
+      // TODO: parse cmd and POST to /run
+      termAppend("(evaluation not yet wired)", "line-log");
+    });
+
+    // ── SSE log lines ─────────────────────────────────────────────────────────
+    // handled below in the SSE block — type "log" appends to terminal
+
     // ── resize handle ─────────────────────────────────────────────────────────
     const handle = document.getElementById("resize-handle");
     const editorPane = document.getElementById("editor-pane");
@@ -223,6 +330,10 @@
     const es = new EventSource("/events");
     es.onmessage = async (e) => {
       const msg = JSON.parse(e.data);
+      if (msg.type === "log") {
+        termAppend(msg.payload.line, msg.payload.error ? "line-err" : "line-log");
+        return;
+      }
       if (msg.type === "program") {
         const { source, networks } = msg.payload;
         currentNetworks = networks ?? [];
