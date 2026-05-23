@@ -1,29 +1,68 @@
 import { readFileSync } from "fs";
 import { parseProgram } from "../../src/data-network/tree-to-network.js";
 import { astToDataNetwork } from "../../src/data-network/ast-to-data-network.js";
-import { networkToMermaid } from "../../src/ui-server/mermaid.js";
+import { networkToDiagram } from "../../src/ui-server/mermaid.js";
 
 // ── documentPipeline ──────────────────────────────────────────────────────────
 
 const src = readFileSync("examples/agentic_network_document_analysis_example.tsn", "utf8");
 const net = astToDataNetwork(parseProgram(src).networks[0]!);
-const chart = networkToMermaid(net);
+const { diagram, details } = networkToDiagram(net);
 
-test("documentPipeline: matches expected output", () => {
-  expect(chart).toBe(
+test("documentPipeline: diagram matches expected output", () => {
+  expect(diagram).toBe(
     [
       "flowchart-elk LR",
-      `  text(["text"])`,
-      `  analysis(["analysis"])`,
-      `  label(["label"])`,
-      `  analyzeDocument__text__to__analysis["analyzeDocument"]`,
+      `  text@{ shape: rounded, label: "text" }`,
+      `  click text openDetail`,
+      `  analysis@{ shape: rounded, label: "analysis" }`,
+      `  click analysis openDetail`,
+      `  label@{ shape: rounded, label: "label" }`,
+      `  click label openDetail`,
+      `  analyzeDocument__text__to__analysis@{ shape: lean-r, label: "analyzeDocument" }`,
+      `  click analyzeDocument__text__to__analysis openDetail`,
       `  text --> analyzeDocument__text__to__analysis`,
       `  analyzeDocument__text__to__analysis --> analysis`,
-      `  classifyResult__analysis__to__label["classifyResult"]`,
+      `  classifyResult__analysis__to__label@{ shape: lean-r, label: "classifyResult" }`,
+      `  click classifyResult__analysis__to__label openDetail`,
       `  analysis --> classifyResult__analysis__to__label`,
       `  classifyResult__analysis__to__label --> label`,
     ].join("\n")
   );
+});
+
+test("documentPipeline: details has entry for each cell and propagator", () => {
+  expect(details["text"]).toContain("Cell");
+  expect(details["analysis"]).toContain("Cell");
+  expect(details["analyzeDocument__text__to__analysis"]).toContain("analyzeDocument");
+  expect(details["classifyResult__analysis__to__label"]).toContain("classifyResult");
+});
+
+// ── switch predicate label ────────────────────────────────────────────────────
+
+const switchSrc = `
+defnetwork search
+  signature: from [input] to done;
+  switch goodEnough from [input] to isGood;
+  switch from [input] to other;
+end
+`.trim();
+
+const { diagram: switchDiagram, details: switchDetails } = networkToDiagram(
+  astToDataNetwork(parseProgram(switchSrc).networks[0]!)
+);
+
+test("switch with predicate uses predicate as label", () => {
+  expect(switchDiagram).toContain('shape: delay, label: "goodEnough"');
+});
+
+test("switch without predicate uses ⇄ as label", () => {
+  expect(switchDiagram).toContain('shape: delay, label: "⇄"');
+});
+
+test("switch details includes predicate", () => {
+  const entry = Object.values(switchDetails).find(d => d.includes("goodEnough"));
+  expect(entry).toBeTruthy();
 });
 
 // ── dotted fn name ────────────────────────────────────────────────────────────
@@ -35,15 +74,17 @@ defnetwork dottedPipeline
 end
 `.trim();
 
-const dottedChart = networkToMermaid(astToDataNetwork(parseProgram(dottedSrc).networks[0]!));
+const { diagram: dottedDiagram } = networkToDiagram(
+  astToDataNetwork(parseProgram(dottedSrc).networks[0]!)
+);
 
 test("dotted fn name: node ids contain no dots", () => {
-  for (const line of dottedChart.split("\n").slice(1)) {
-    const id = line.trim().split(/[\s([]/)[0]!;
+  for (const line of dottedDiagram.split("\n").slice(1)) {
+    const id = line.trim().split(/[\s@]/)[0]!;
     expect(id).not.toContain(".");
   }
 });
 
 test("dotted fn name: label preserves dotted name", () => {
-  expect(dottedChart).toContain('"some.module.fn"');
+  expect(dottedDiagram).toContain('"some.module.fn"');
 });

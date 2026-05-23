@@ -5,7 +5,7 @@ import mermaid from "mermaid";
 import elkLayouts from "@mermaid-js/layout-elk";
 
 mermaid.registerLayoutLoaders(elkLayouts);
-mermaid.initialize({ startOnLoad: false, theme: "default" });
+mermaid.initialize({ startOnLoad: false, theme: "default", securityLevel: "loose" });
 
 const theme = EditorView.theme({
   "&": { height: "100%", fontSize: "13px" },
@@ -31,8 +31,11 @@ let diagramCounter = 0;
   async renderDiagram(chart: string) {
     const el = document.getElementById("diagram");
     if (!el) return;
-    const id = `mermaid-${diagramCounter++}`;
-    const { svg } = await mermaid.render(id, chart);
-    el.innerHTML = svg;
+    el.innerHTML = "";
+    const container = document.createElement("pre");
+    container.className = "mermaid";
+    container.textContent = chart;
+    el.appendChild(container);
+    await mermaid.run({ nodes: [container] });
   },
 };

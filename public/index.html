@@ -13,6 +13,29 @@
     #diagram-pane.panning { cursor: grabbing; }
     #diagram { height: -webkit-fill-available; width: 100%; align-items: center; justify-content: center; display: flex; transform-origin: center center; }
     #status { padding: 4px 12px; background: #007acc; font-size: 11px; }
+
+    #detail-dialog {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      border: 1px solid #3c3c3c;
+      border-radius: 6px;
+      padding: 20px 24px;
+      background: #252526;
+      color: #d4d4d4;
+      font-family: monospace;
+      font-size: 13px;
+      min-width: 260px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    #detail-dialog::backdrop { background: rgba(0,0,0,0.3); }
+    #detail-dialog header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    #detail-dialog header span { font-size: 11px; color: #858585; text-transform: uppercase; letter-spacing: 0.05em; }
+    #detail-dialog button { background: none; border: none; color: #858585; cursor: pointer; font-size: 16px; line-height: 1; }
+    #detail-dialog button:hover { color: #d4d4d4; }
+    #detail-body { line-height: 1.8; }
+    #detail-body strong { color: #9cdcfe; }
   </style>
 </head>
 <body>
@@ -22,6 +45,14 @@
     <div id="diagram-pane"><div id="diagram"></div></div>
   </div>
   <div id="status">waiting for program…</div>
+
+  <dialog id="detail-dialog">
+    <header>
+      <span>node detail</span>
+      <button id="detail-close">✕</button>
+    </header>
+    <div id="detail-body"></div>
+  </dialog>
 
   <script src="/editor.bundle.js"></script>
   <script>
@@ -67,17 +98,34 @@
       pane.classList.remove("panning");
     });
 
+    // ── detail dialog ─────────────────────────────────────────────────────────
+    const detailDialog = document.getElementById("detail-dialog");
+    const detailBody = document.getElementById("detail-body");
+    document.getElementById("detail-close").addEventListener("click", () => {
+      detailDialog.close();
+      detailBody.innerHTML = "";
+    });
+
+    let currentDetails = {};
+
+    window.openDetail = (nodeId) => {
+      const html = currentDetails[nodeId];
+      if (!html) return;
+      detailBody.innerHTML = html;
+      detailDialog.showModal();
+    };
+
     // ── SSE ───────────────────────────────────────────────────────────────────
     const es = new EventSource("/events");
     es.onmessage = async (e) => {
       const msg = JSON.parse(e.data);
       if (msg.type === "program") {
-        const { source, diagram: chart } = msg.payload;
+        const { source, diagram: chart, details } = msg.payload;
+        currentDetails = details ?? {};
+        diagram.innerHTML = "";
+        resetTransform();
         if (source) window.tsnetEditor.setValue(source);
-        if (chart) {
-          await window.tsnetEditor.renderDiagram(chart);
-          resetTransform();
-        }
+        if (chart) await window.tsnetEditor.renderDiagram(chart);
         document.getElementById("status").textContent = "program received";
       }
     };
