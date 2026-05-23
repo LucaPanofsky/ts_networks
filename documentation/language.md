@@ -309,6 +309,68 @@ This tells the type system that any value satisfying `Student?` also satisfies `
 
 ---
 
+## REPL execution command
+
+The dev UI includes a REPL terminal where you can execute a network interactively. The `run` command seeds named cells with initial values and runs the network to completion.
+
+```
+run networkName with
+  cell cellName = expr;
+  cell cellName = expr;
+end
+```
+
+- **`networkName`** — must match a `defnetwork` defined in the current program.
+- **`cell name = expr`** — seeds the named cell with a value before propagation starts. The expression is evaluated in the context of the program's sandbox, so constructors and functions defined in the program are available.
+- **Shift+Enter** — submits the command for evaluation.
+
+### Example
+
+Given the geometry example:
+
+```
+defrecord Point
+  x: Number?;
+  y: Number?;
+end
+
+defrecord Rectangle
+  origin: Point?;
+  width: Number?;
+  height: Number?;
+end
+
+defn rectangleArea
+  signature: from [Rectangle?(r)] to Number?;
+  expression r.width * r.height;
+end
+
+defnetwork rectangleMetrics
+  signature: from [rect] to area;
+  propagate rectangleArea from [rect] to area;
+end
+```
+
+The REPL command:
+
+```
+run rectangleMetrics with
+  cell rect = Rectangle(Point(0, 0), 5, 3);
+end
+```
+
+Produces:
+
+```
+─── rectangleMetrics ───
+rect = Rectangle(origin: Point(x: 0, y: 0), width: 5, height: 3)
+area = 15
+```
+
+Cell values that are still `Nothing` after propagation are displayed as `∅`.
+
+---
+
 ## Expressions
 
 Expressions appear in `defn` and `defpredicate` bodies.

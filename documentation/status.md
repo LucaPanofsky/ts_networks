@@ -51,6 +51,12 @@
   - [x] Expressions: literals, variables, binary/unary ops, field access, function calls, `let`, `if`, `decide`
   - [x] `match` — structural pattern matching on records with guards and wildcard arms
   - [x] Vector types — `[Type?]` in field declarations and return types
+- [x] JS code generator (`src/sandbox/jsgen/`)
+  - [x] `compileProgram` — compiles `defn`, `defrecord`, and `defpredicate` definitions to a self-contained JS module string
+  - [x] `createSandbox` — evaluates the compiled JS via `new Function` and returns a `Record<string, fn>` of all exported names
+  - [x] `buildRegistry` — populates a `Registry` from the sandbox: constructors, field accessors, predicates, functions, and agents
+  - [x] `buildNetworks` — builds a `NetworkRuntime` per `defnetwork` using the registry
+  - [x] `compile(dsl)` — single entry point returning `{ sandbox, registry, networks }`
 - [x] JSON schema derivation
   - [x] `buildSchemas` — derives JSON schema from `defrecord` definitions
   - [x] `deriveProtocol` — maps any return type to `{ schema, extract }` for agent API calls
@@ -58,4 +64,22 @@
 - [x] Agent runtime
   - [x] Anthropic SDK client: prompt interpolation, tool-forced structured JSON call
   - [x] Agents registered in the network registry alongside `defn` and `defrecord`
-  - [ ] Async propagation in the network executor
+  - [x] Async propagation via `invokeAsync` in the network executor
+- [x] Validation (`src/validation/`)
+  - [x] Types and references check — all names used in networks resolve to known definitions
+  - [x] Arities check — propagator call sites match the declared arity of the function
+  - [x] Topology check (warning) — detects networks with no path from any input to the output
+  - [x] `validateProgram` — runs all checks and returns a `ValidationReport` with errors and warnings
+  - [x] Wired into `PUT /programs/:name` on the server
+- [x] SSE dev UI (`src/ui-server/`)
+  - [x] Express server with SSE (`/events`), push (`POST /push`), and run (`POST /run`) endpoints
+  - [x] CodeMirror 6 editor with DSL syntax highlighting and read-only display
+  - [x] Mermaid + ELK diagram rendering: cells as rounded nodes, propagators as lean-r, switches as delay
+  - [x] Type-annotated edges: input edge labels from `TypedParam.predicate`, output labels from return type
+  - [x] Multi-network select: programs with multiple `defnetwork` blocks show a dropdown to switch between them
+  - [x] Rotate button: cycles diagram layout direction (`LR → TB → RL → BT`)
+  - [x] Zoom, pan, and resizable editor/diagram panes
+  - [x] Node detail dialog: click any cell or propagator to see its type information
+  - [x] REPL terminal pane: toggle between editor and terminal, `Shift+Enter` to evaluate
+  - [x] REPL `run` command: `run networkName with cell name = expr; end` — parses and executes a network with seeded cell values, displays results
+  - [ ] Trace output: stream propagator execution steps to the terminal over SSE
