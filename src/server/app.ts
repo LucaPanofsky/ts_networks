@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Nothing, Something, Contradiction, type InfoStructure } from "../info-structure.js";
 import { parseProgram } from "../data-network/tree-to-network.js";
+import { typeRefToString } from "../data-network/types.js";
 import { compileProgram } from "../sandbox/jsgen/compiler.js";
 import { compile } from "../sandbox/jsgen/index.js";
 import { openDb, upsertProgram, getProgram, listPrograms, deleteProgram } from "./db.js";
@@ -53,7 +54,7 @@ export function createApp(dbPath: string): Hono {
       dsl:            body.dsl,
       js_source,
       networks_json:  JSON.stringify(program.networks.map(n => ({ name: n.name, from: n.signature.from, to: n.signature.to }))),
-      functions_json: JSON.stringify(program.fns.map(f => ({ name: f.name, from: f.params.map(p => p.predicate), to: f.returnType }))),
+      functions_json: JSON.stringify(program.fns.map(f => ({ name: f.name, from: f.params.map(p => p.predicate), to: typeRefToString(f.returnType) }))),
       records_json:   JSON.stringify(program.records.map(r => ({ name: r.name, fields: r.fields }))),
     });
 

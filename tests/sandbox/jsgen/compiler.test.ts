@@ -148,7 +148,7 @@ describe("compileFn", () => {
       kind: "fn", isPredicate: false,
       name: "double",
       params: [{ predicate: "Number?", name: "x" }],
-      returnType: "Number?",
+      returnType: { kind: "scalar", predicate: "Number?" },
       body: { kind: "binary", op: "*", left: { kind: "var", name: "x" }, right: { kind: "literal", value: 2 } },
     };
     expect(compileFn(fn)).toBe("const double = function(x) { return (x * 2); };");
@@ -159,7 +159,7 @@ describe("compileFn", () => {
       kind: "fn", isPredicate: false,
       name: "add",
       params: [{ predicate: "Number?", name: "x" }, { predicate: "Number?", name: "y" }],
-      returnType: "Number?",
+      returnType: { kind: "scalar", predicate: "Number?" },
       body: { kind: "binary", op: "+", left: { kind: "var", name: "x" }, right: { kind: "var", name: "y" } },
     };
     expect(compileFn(fn)).toBe("const add = function(x, y) { return (x + y); };");
@@ -170,7 +170,7 @@ describe("compileFn", () => {
       kind: "fn", isPredicate: false,
       name: "pi",
       params: [],
-      returnType: "Number?",
+      returnType: { kind: "scalar", predicate: "Number?" },
       body: { kind: "literal", value: 3.14 },
     };
     expect(compileFn(fn)).toBe("const pi = function() { return 3.14; };");
@@ -181,7 +181,7 @@ describe("compileFn", () => {
       kind: "fn", isPredicate: false,
       name: "getX",
       params: [{ predicate: "Vec2?", name: "v" }],
-      returnType: "Number?",
+      returnType: { kind: "scalar", predicate: "Number?" },
       body: { kind: "field", object: { kind: "var", name: "v" }, field: "x" },
     };
     expect(compileFn(fn)).toBe("const getX = function(v) { return v.x; };");
@@ -192,7 +192,7 @@ describe("compileFn", () => {
       kind: "fn", isPredicate: false,
       name: "abs",
       params: [{ predicate: "Number?", name: "x" }],
-      returnType: "Number?",
+      returnType: { kind: "scalar", predicate: "Number?" },
       body: {
         kind: "call", fn: "if",
         args: [
@@ -255,7 +255,7 @@ describe("compileProgram", () => {
     kind: "fn", isPredicate: false,
     name: "length",
     params: [{ predicate: "Vec2?", name: "v" }],
-    returnType: "Number?",
+    returnType: { kind: "scalar", predicate: "Number?" },
     body: {
       kind: "binary", op: "+",
       left:  { kind: "binary", op: "*", left: { kind: "field", object: { kind: "var", name: "v" }, field: "x" }, right: { kind: "field", object: { kind: "var", name: "v" }, field: "x" } },

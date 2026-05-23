@@ -1,10 +1,8 @@
 import { createRegistry } from "../../registry.js";
 import type { Registry } from "../../registry.js";
-import type { ProgramAST, TypeRef } from "../../data-network/types.js";
+import type { ProgramAST } from "../../data-network/types.js";
+import { typeRefToString } from "../../data-network/types.js";
 import type { Sandbox } from "./runtime.js";
-
-const typeRefToString = (t: TypeRef): string =>
-  t.kind === "scalar" ? t.predicate : `[${t.element}]`;
 
 const trueP = (v: unknown): boolean => v === true;
 
@@ -26,7 +24,7 @@ export function buildRegistry(program: ProgramAST, sandbox: Sandbox): Registry {
       fnName: fn.name,
       arity: fn.params.length,
       impl: sandbox[fn.name]!,
-      morphism: { from: fn.params.map(p => p.predicate), to: fn.returnType },
+      morphism: { from: fn.params.map(p => p.predicate), to: typeRefToString(fn.returnType) },
     });
   }
 

@@ -2,7 +2,7 @@ import { parser } from "./parser.js";
 import type {
   ProgramAST, DataNetworkAST, RecordAST, FnAST, DeriveAST, AgentAST,
   Term, PropagateTerm, SwitchTerm, CellTerm, ConstantTerm,
-  FieldDecl, TypedParam,
+  FieldDecl, TypedParam, TypeRef,
   Expr, LiteralExpr, VarExpr, CallExpr, BinaryExpr, UnaryExpr, FieldExpr,
   LetBinding, MatchExpr, MatchArm, MatchPattern,
 } from "./types.js";
@@ -340,7 +340,7 @@ export function parseProgram(input: string): ProgramAST {
   const collectFnDef = (isPredicate: boolean): FnAST => {
     let name = "";
     let params: TypedParam[] = [];
-    let returnType = "";
+    let returnType: TypeRef = { kind: "scalar", predicate: "" };
     let body: Expr = { kind: "literal", value: 0 };
 
     if (!cursor.firstChild()) return { kind: "fn", isPredicate, name, params, returnType, body };
@@ -362,8 +362,13 @@ export function parseProgram(input: string): ProgramAST {
             if (names.length >= 2) params.push({ predicate: names[0]!, name: names[1]! });
           } else if (cn() === "To") {
             seenTo = true;
+          } else if (cn() === "VectorTypeRef" && seenTo) {
+            cursor.firstChild(); cursor.nextSibling();
+            const element = slice(cursor.from, cursor.to);
+            cursor.parent();
+            returnType = { kind: "vector", element };
           } else if (cn() === "Name" && seenTo) {
-            returnType = slice(cursor.from, cursor.to);
+            returnType = { kind: "scalar", predicate: slice(cursor.from, cursor.to) };
           }
         } while (cursor.nextSibling());
         cursor.parent();
@@ -400,7 +405,7 @@ export function parseProgram(input: string): ProgramAST {
   const collectAgentDef = (): AgentAST => {
     let name = "";
     let params: TypedParam[] = [];
-    let returnType = "";
+    let returnType: TypeRef = { kind: "scalar", predicate: "" };
     let config: Record<string, string> = {};
     let prompt = "";
 
@@ -423,8 +428,13 @@ export function parseProgram(input: string): ProgramAST {
             if (names.length >= 2) params.push({ predicate: names[0]!, name: names[1]! });
           } else if (cn() === "To") {
             seenTo = true;
+          } else if (cn() === "VectorTypeRef" && seenTo) {
+            cursor.firstChild(); cursor.nextSibling();
+            const element = slice(cursor.from, cursor.to);
+            cursor.parent();
+            returnType = { kind: "vector", element };
           } else if (cn() === "Name" && seenTo) {
-            returnType = slice(cursor.from, cursor.to);
+            returnType = { kind: "scalar", predicate: slice(cursor.from, cursor.to) };
           }
         } while (cursor.nextSibling());
         cursor.parent();

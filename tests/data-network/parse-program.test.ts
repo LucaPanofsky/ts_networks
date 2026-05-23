@@ -79,7 +79,7 @@ describe("parseProgram: defn basic", () => {
   });
 
   test("return type", () => {
-    expect(fn.returnType).toBe("Number?");
+    expect(fn.returnType).toEqual({ kind: "scalar", predicate: "Number?" });
   });
 
   test("body op", () => {
@@ -121,7 +121,7 @@ describe("parseProgram: defn no params", () => {
   });
 
   test("return type", () => {
-    expect(fn.returnType).toBe("Number?");
+    expect(fn.returnType).toEqual({ kind: "scalar", predicate: "Number?" });
   });
 
   test("body is literal 3", () => {
@@ -575,7 +575,7 @@ describe("parseProgram: defagent", () => {
   });
 
   test("returnType", () => {
-    expect(agent.returnType).toBe("String?");
+    expect(agent.returnType).toEqual({ kind: "scalar", predicate: "String?" });
   });
 
   test("config", () => {
