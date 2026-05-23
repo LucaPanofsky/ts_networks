@@ -4,7 +4,8 @@ import type { Cell } from "./cell.js";
 export type NetworkMessage =
   | { type: "none" }
   | { type: "next"; propagators: Set<unknown> }
-  | { type: "exit"; reason: unknown };
+  | { type: "exit"; reason: unknown }
+  | { type: "recurse"; mappedInputs: Record<string, InfoStructure<unknown>> };
 
 export const none: NetworkMessage = { type: "none" };
 
@@ -53,13 +54,19 @@ function compileCall(
 export class Propagator {
   private readonly _call: (cells: CellMap) => NetworkMessage;
 
+  constructor(name: string, call: (cells: CellMap) => NetworkMessage);
+  constructor(name: string, inputNames: string[], outputName: string, unpacked: (...args: InfoStructure<unknown>[]) => InfoStructure<unknown>);
   constructor(
     readonly name: string,
-    inputNames: string[],
-    outputName: string,
-    unpacked: (...args: InfoStructure<unknown>[]) => InfoStructure<unknown>,
+    inputNamesOrCall: string[] | ((cells: CellMap) => NetworkMessage),
+    outputName?: string,
+    unpacked?: (...args: InfoStructure<unknown>[]) => InfoStructure<unknown>,
   ) {
-    this._call = compileCall(inputNames, outputName, unpacked);
+    if (typeof inputNamesOrCall === "function") {
+      this._call = inputNamesOrCall;
+    } else {
+      this._call = compileCall(inputNamesOrCall, outputName!, unpacked!);
+    }
   }
 
   call(cells: CellMap): NetworkMessage {

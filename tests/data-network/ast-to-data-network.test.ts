@@ -126,4 +126,27 @@ describe("astToDataNetwork", () => {
     expect(net.cells.get("x")!.content).toBe(10);
     expect(net.cells.get("x")!.defaultContent).toBe(10);
   });
+
+  it("self-referencing propagator is marked __RECURSIVE with network name in params", () => {
+    const ast: DataNetworkAST = {
+      ...base,
+      name: "myNet",
+      terms: [{ kind: "propagate", fn: "myNet", from: ["x"], to: "y", params: {} }],
+    };
+    const net = astToDataNetwork(ast);
+    const [propagator] = net.propagators.values();
+    expect(propagator!.fn).toBe("__RECURSIVE");
+    expect(propagator!.params.network).toBe("myNet");
+  });
+
+  it("non-self propagator is not marked __RECURSIVE", () => {
+    const ast: DataNetworkAST = {
+      ...base,
+      name: "myNet",
+      terms: [{ kind: "propagate", fn: "otherFn", from: ["x"], to: "y", params: {} }],
+    };
+    const net = astToDataNetwork(ast);
+    const [propagator] = net.propagators.values();
+    expect(propagator!.fn).toBe("otherFn");
+  });
 });

@@ -1,0 +1,17 @@
+defnetwork exampleSearch
+  signature: from input to done;
+
+
+  switch goodEnough? from [input] to inputIsGood;
+  
+  propagate not from [inputIsGood] to inputIsNotGood;
+  
+  switch from [inputIsGood, input] to done; 
+  
+  switch from [inputIsNotGood, input] to inputIfNotGood;
+  
+  propagate improve from [inputIfNotGood] to betterInput;
+  
+  propagate exampleSearch from [betterInput] to done;
+
+end
