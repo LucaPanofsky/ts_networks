@@ -8,12 +8,49 @@
     body { font-family: monospace; background: #1e1e1e; color: #d4d4d4; height: 100vh; display: flex; flex-direction: column; }
     #toolbar { padding: 8px 12px; background: #252526; border-bottom: 1px solid #3c3c3c; font-size: 12px; color: #858585; }
     #main { display: flex; flex: 1; overflow: hidden; }
-    #editor-pane { flex: 0 0 auto; width: min(75ch, 50%); overflow: hidden; min-width: 60ch; max-width: calc(100% - 48px); }
+    #editor-pane { flex: 0 0 auto; width: min(75ch, 50%); overflow: hidden; min-width: 0; max-width: calc(100% - 48px); }
     #resize-handle { flex: 0 0 48px; background: #3c3c3c; cursor: col-resize; transition: background 0.15s; }
     #resize-handle:hover, #resize-handle.active { background: #007acc; }
-    #diagram-pane { flex: 1; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #f8f8f8; background-image: radial-gradient(circle, #c0c0c0 1px, transparent 1px); background-size: 20px 20px; cursor: grab; }
+    #diagram-pane { flex: 1; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center; background: #f8f8f8; background-image: radial-gradient(circle, #c0c0c0 1px, transparent 1px); background-size: 20px 20px; cursor: grab; }
     #diagram-pane.panning { cursor: grabbing; }
     #diagram { height: -webkit-fill-available; width: 100%; align-items: center; justify-content: center; display: flex; transform-origin: center center; }
+
+    #diagram-controls {
+      position: absolute;
+      top: 12px;
+      left: 24px;
+      right: 24px;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 16px;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(4px);
+      border: 1px solid #d0d0d0;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      font-size: 12px;
+      color: #333;
+      pointer-events: all;
+    }
+    #diagram-controls select { flex: 1; }
+    #diagram-controls select, #diagram-controls button {
+      font-family: monospace;
+      font-size: 12px;
+      background: transparent;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 2px 6px;
+      cursor: pointer;
+      color: #333;
+    }
+    #diagram-controls select:focus, #diagram-controls button:hover {
+      outline: none;
+      border-color: #007acc;
+    }
+
     #status { padding: 4px 12px; background: #007acc; font-size: 11px; }
 
     #detail-dialog {
@@ -45,7 +82,13 @@
   <div id="main">
     <div id="editor-pane"></div>
     <div id="resize-handle"></div>
-    <div id="diagram-pane"><div id="diagram"></div></div>
+    <div id="diagram-pane">
+      <div id="diagram-controls">
+        <select id="network-select"><option value="">— no program —</option></select>
+        <button id="rotate-btn">⟳ rotate</button>
+      </div>
+      <div id="diagram"></div>
+    </div>
   </div>
   <div id="status">waiting for program…</div>
 
@@ -64,7 +107,7 @@
     const editorPane = document.getElementById("editor-pane");
     let resizing = false;
 
-    handle.addEventListener("mousedown", (e) => {
+    handle.addEventListener("mousedown", () => {
       resizing = true;
       handle.classList.add("active");
       document.body.style.userSelect = "none";
@@ -74,8 +117,7 @@
     window.addEventListener("mousemove", (e) => {
       if (!resizing) return;
       const mainRect = document.getElementById("main").getBoundingClientRect();
-      const minWidth = parseFloat(getComputedStyle(editorPane).minWidth);
-      const newWidth = Math.min(Math.max(e.clientX - mainRect.left, minWidth), mainRect.width - 48);
+      const newWidth = Math.min(Math.max(e.clientX - mainRect.left, 0), mainRect.width - 48);
       editorPane.style.width = `${newWidth}px`;
     });
 
@@ -90,6 +132,7 @@
     // ── zoom + pan ────────────────────────────────────────────────────────────
     const pane = document.getElementById("diagram-pane");
     const diagram = document.getElementById("diagram");
+    const controls = document.getElementById("diagram-controls");
 
     let scale = 1, tx = 0, ty = 0;
     let dragging = false, startX = 0, startY = 0;
@@ -111,6 +154,7 @@
     }, { passive: false });
 
     pane.addEventListener("mousedown", (e) => {
+      if (controls.contains(e.target)) return;
       dragging = true;
       startX = e.clientX - tx;
       startY = e.clientY - ty;
