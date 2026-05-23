@@ -190,18 +190,31 @@
       detailDialog.showModal();
     };
 
-    // ── network select ────────────────────────────────────────────────────────
+    // ── network select + rotate ───────────────────────────────────────────────
     const networkSelect = document.getElementById("network-select");
+    const rotateBtn = document.getElementById("rotate-btn");
     let currentNetworks = [];
+    const DIRECTIONS = ["LR", "TB", "RL", "BT"];
+    let dirIndex = 0;
+
+    function applyDirection(diagram) {
+      return diagram.replace(/^flowchart-elk \w+/, `flowchart-elk ${DIRECTIONS[dirIndex]}`);
+    }
 
     async function renderNetwork(net) {
       currentDetails = net.details ?? {};
       diagram.innerHTML = "";
       resetTransform();
-      if (net.diagram) await window.tsnetEditor.renderDiagram(net.diagram);
+      if (net.diagram) await window.tsnetEditor.renderDiagram(applyDirection(net.diagram));
     }
 
     networkSelect.addEventListener("change", () => {
+      const net = currentNetworks[networkSelect.selectedIndex];
+      if (net) renderNetwork(net);
+    });
+
+    rotateBtn.addEventListener("click", () => {
+      dirIndex = (dirIndex + 1) % DIRECTIONS.length;
       const net = currentNetworks[networkSelect.selectedIndex];
       if (net) renderNetwork(net);
     });
@@ -213,6 +226,7 @@
       if (msg.type === "program") {
         const { source, networks } = msg.payload;
         currentNetworks = networks ?? [];
+        dirIndex = 0;
 
         // repopulate select
         networkSelect.innerHTML = currentNetworks.length === 0
