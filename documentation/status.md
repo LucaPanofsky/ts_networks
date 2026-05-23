@@ -42,7 +42,7 @@
     - [ ] Ordered set arithmetic (e.g. interval, preferences)
 - [x] Runner
   - [x] Default runner: handle constraints, sync recursion
-  - [ ] Async runner: full-featured
+  - [x] Async runner: `invokeAsync` — awaits `APromise` inputs at the recursion gate, enabling recursive networks with async (agent) steps
   - [ ] Reasoning runner: requires support for `noGoods` or SAT logic as a service
   - [ ] Tracing option: a full-featured async runner with propagators logging rational reasoning
 - [x] DSL
