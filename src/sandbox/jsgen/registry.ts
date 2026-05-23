@@ -5,6 +5,9 @@ import { typeRefToString } from "../../data-network/types.js";
 import type { Sandbox } from "./runtime.js";
 import { callAgent } from "../agent-client.js";
 import { deriveProtocol } from "../../data-network/schema.js";
+import { Something, Contradiction } from "../../info-structure.js";
+import { Deferred } from "../../information-structures/deferred.js";
+import { APromise } from "../../information-structures/apromise.js";
 
 const trueP = (v: unknown): boolean => v === true;
 
@@ -63,7 +66,11 @@ export function buildRegistry(program: ProgramAST, sandbox: Sandbox): Registry {
       arity: agent.params.length,
       impl: (...args: unknown[]) => {
         const namedArgs = Object.fromEntries(paramNames.map((n, i) => [n, args[i]]));
-        return callAgent(agent.prompt, namedArgs, protocol, config);
+        const d = new Deferred<unknown>();
+        callAgent(agent.prompt, namedArgs, protocol, config)
+          .then(v => d.resolve(new Something(v)))
+          .catch(e => d.resolve(new Contradiction("agent/error", new Set(), e)));
+        return new APromise(d);
       },
       morphism: { from: agent.params.map(p => p.predicate), to: typeRefToString(agent.returnType) },
     });
