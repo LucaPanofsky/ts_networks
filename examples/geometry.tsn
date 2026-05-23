@@ -1,0 +1,21 @@
+defrecord Point
+  x: Number?;
+  y: Number?;
+end
+
+defrecord Rectangle
+  topLeft: Point?;
+  width: Number?;
+  height: Number?;
+end
+
+defn rectangleArea
+  signature: from [Rectangle?(r)] to Number?;
+  expression
+    r.width * r.height;
+end
+
+defnetwork rectangleMetrics
+  signature: from [rect] to area;
+  propagate rectangleArea from [rect] to area;
+end
