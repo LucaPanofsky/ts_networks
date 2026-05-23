@@ -107,9 +107,24 @@ export function buildSchemas(program: ProgramAST): Record<string, JsonSchemaObje
   return schemas;
 }
 
-export function deriveProtocol(agentReturnType: string, program: ProgramAST): ResponseProtocol {
+export function deriveProtocol(returnType: TypeRef, program: ProgramAST): ResponseProtocol {
   const indexes = buildIndexes(program);
-  const baseName = agentReturnType.endsWith("?") ? agentReturnType.slice(0, -1) : agentReturnType;
+
+  if (returnType.kind === "vector") {
+    const items = resolveProperty(returnType.element, indexes);
+    return {
+      schema: {
+        type: "object",
+        properties: { items: { type: "array", items } },
+        required: ["items"],
+      },
+      extract: (raw) => raw["items"],
+    };
+  }
+
+  const baseName = returnType.predicate.endsWith("?")
+    ? returnType.predicate.slice(0, -1)
+    : returnType.predicate;
 
   const record = indexes.recordIndex.get(baseName);
   if (record) {
@@ -120,7 +135,7 @@ export function deriveProtocol(agentReturnType: string, program: ProgramAST): Re
   }
 
   // Primitive or user-defined predicate — wrap in { value } envelope
-  const prop = resolveProperty(agentReturnType, indexes);
+  const prop = resolveProperty(returnType.predicate, indexes);
   return {
     schema: {
       type: "object",

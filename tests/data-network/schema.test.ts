@@ -146,7 +146,7 @@ end
 
 describe("deriveProtocol: record return type", () => {
   const program = parseProgram(protocolSrc);
-  const protocol = deriveProtocol("DocumentAnalysis?", program);
+  const protocol = deriveProtocol({ kind: "scalar", predicate: "DocumentAnalysis?" }, program);
 
   test("schema is the record schema directly", () => {
     expect(protocol.schema.type).toBe("object");
@@ -173,7 +173,7 @@ describe("deriveProtocol: record return type", () => {
 
 describe("deriveProtocol: primitive return type", () => {
   const program = parseProgram(protocolSrc);
-  const protocol = deriveProtocol("String?", program);
+  const protocol = deriveProtocol({ kind: "scalar", predicate: "String?" }, program);
 
   test("schema wraps in value envelope", () => {
     expect(protocol.schema.type).toBe("object");
@@ -195,7 +195,7 @@ defpredicate PositiveNumber?
 end
 `;
   const program = parseProgram(srcWithPredicate);
-  const protocol = deriveProtocol("PositiveNumber?", program);
+  const protocol = deriveProtocol({ kind: "scalar", predicate: "PositiveNumber?" }, program);
 
   test("schema wraps in value envelope with base type", () => {
     expect(protocol.schema.properties["value"]!.type).toBe("number");
@@ -207,5 +207,30 @@ end
 
   test("extract unwraps value", () => {
     expect(protocol.extract({ value: 42 })).toBe(42);
+  });
+});
+
+describe("deriveProtocol: vector return type", () => {
+  const program = parseProgram(protocolSrc);
+  const protocol = deriveProtocol({ kind: "vector", element: "DocumentAnalysis?" }, program);
+
+  test("schema wraps in items envelope", () => {
+    expect(protocol.schema.type).toBe("object");
+    expect(protocol.schema.required).toEqual(["items"]);
+  });
+
+  test("items is array type", () => {
+    expect(protocol.schema.properties["items"]!.type).toBe("array");
+  });
+
+  test("items element schema is inlined record", () => {
+    const itemSchema = protocol.schema.properties["items"]!.items!;
+    expect(itemSchema.type).toBe("object");
+    expect(itemSchema.properties!["sentiment"]!.type).toBe("string");
+  });
+
+  test("extract unwraps items", () => {
+    const raw = { items: [{ type: "report", sentiment: "positive", confidence: 0.9 }] };
+    expect(protocol.extract(raw)).toEqual(raw.items);
   });
 });
