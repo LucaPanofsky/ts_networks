@@ -6,8 +6,8 @@ import { networkToDiagram } from "../../src/ui-server/mermaid.js";
 // ── documentPipeline ──────────────────────────────────────────────────────────
 
 const src = readFileSync("examples/agentic_network_document_analysis_example.tsn", "utf8");
-const net = astToDataNetwork(parseProgram(src).networks[0]!);
-const { diagram, details } = networkToDiagram(net);
+const prog = parseProgram(src);
+const { diagram, details } = networkToDiagram(astToDataNetwork(prog.networks[0]!), prog);
 
 test("documentPipeline: diagram matches expected output", () => {
   expect(diagram).toBe(
@@ -21,12 +21,12 @@ test("documentPipeline: diagram matches expected output", () => {
       `  click label openDetail`,
       `  analyzeDocument__text__to__analysis@{ shape: lean-r, label: "analyzeDocument" }`,
       `  click analyzeDocument__text__to__analysis openDetail`,
-      `  text --> analyzeDocument__text__to__analysis`,
-      `  analyzeDocument__text__to__analysis --> analysis`,
+      `  text -->|String?| analyzeDocument__text__to__analysis`,
+      `  analyzeDocument__text__to__analysis -->|DocumentAnalysis?| analysis`,
       `  classifyResult__analysis__to__label@{ shape: lean-r, label: "classifyResult" }`,
       `  click classifyResult__analysis__to__label openDetail`,
-      `  analysis --> classifyResult__analysis__to__label`,
-      `  classifyResult__analysis__to__label --> label`,
+      `  analysis -->|DocumentAnalysis?| classifyResult__analysis__to__label`,
+      `  classifyResult__analysis__to__label -->|String?| label`,
     ].join("\n")
   );
 });
@@ -36,6 +36,11 @@ test("documentPipeline: details has entry for each cell and propagator", () => {
   expect(details["analysis"]).toContain("Cell");
   expect(details["analyzeDocument__text__to__analysis"]).toContain("analyzeDocument");
   expect(details["classifyResult__analysis__to__label"]).toContain("classifyResult");
+});
+
+test("documentPipeline: propagator details include types", () => {
+  expect(details["analyzeDocument__text__to__analysis"]).toContain("String?");
+  expect(details["classifyResult__analysis__to__label"]).toContain("DocumentAnalysis?");
 });
 
 // ── switch predicate label ────────────────────────────────────────────────────
@@ -48,8 +53,9 @@ defnetwork search
 end
 `.trim();
 
+const switchProg = parseProgram(switchSrc);
 const { diagram: switchDiagram, details: switchDetails } = networkToDiagram(
-  astToDataNetwork(parseProgram(switchSrc).networks[0]!)
+  astToDataNetwork(switchProg.networks[0]!), switchProg
 );
 
 test("switch with predicate uses predicate as label", () => {
@@ -74,8 +80,9 @@ defnetwork dottedPipeline
 end
 `.trim();
 
+const dottedProg = parseProgram(dottedSrc);
 const { diagram: dottedDiagram } = networkToDiagram(
-  astToDataNetwork(parseProgram(dottedSrc).networks[0]!)
+  astToDataNetwork(dottedProg.networks[0]!), dottedProg
 );
 
 test("dotted fn name: node ids contain no dots", () => {

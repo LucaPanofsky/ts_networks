@@ -45,7 +45,7 @@ export function createServer(port = 3000) {
       const program = parseProgram(body.source);
       const firstNet = program.networks[0];
       if (firstNet) {
-        ({ diagram, details } = networkToDiagram(astToDataNetwork(firstNet)));
+        ({ diagram, details } = networkToDiagram(astToDataNetwork(firstNet), program));
       }
     } catch {
       // parse errors are non-fatal; we still push the source
