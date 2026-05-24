@@ -48,7 +48,7 @@
 - [x] DSL
   - [x] `defnetwork`, `defn`, `defpredicate`, `defrecord`, `derive`
   - [x] `defagent` — LLM agent with prompt template, signature, and `with:` config clause
-  - [x] Expressions: literals, variables, binary/unary ops, field access, function calls, `let`, `if`, `decide`
+  - [x] Expressions: literals, variables, binary/unary ops, field access, function calls, `let`, `if`
   - [x] `match` — structural pattern matching on records with guards and wildcard arms
   - [x] Vector types — `[Type?]` in field declarations and return types
 - [x] JS code generator (`src/sandbox/jsgen/`)
