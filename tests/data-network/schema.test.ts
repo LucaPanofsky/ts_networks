@@ -134,6 +134,55 @@ end
   });
 });
 
+// ── defenum schema ────────────────────────────────────────────────────────────
+
+const enumSrc = `
+defenum DocumentType
+  'report', 'email', 'legal', 'technical';
+end
+
+defrecord Payload
+  docType: DocumentType?;
+  label: String?;
+end
+`;
+
+describe("buildSchemas: enum field in record", () => {
+  const schemas = buildSchemas(parseProgram(enumSrc));
+  const schema = schemas["Payload"]!;
+  const prop = schema.properties["docType"]!;
+
+  test("enum field resolves to string type", () => {
+    console.log("enum field schema:", JSON.stringify(prop));
+    expect(prop.type).toBe("string");
+  });
+
+  test("enum field has enum constraint", () => {
+    expect(prop.enum).toEqual(["report", "email", "legal", "technical"]);
+  });
+
+  test("enum field has no description", () => {
+    expect(prop.description).toBeUndefined();
+  });
+});
+
+describe("deriveProtocol: enum return type", () => {
+  const program = parseProgram(enumSrc);
+  const protocol = deriveProtocol({ kind: "scalar", predicate: "DocumentType?" }, program);
+
+  test("schema wraps enum in value envelope", () => {
+    console.log("enum protocol schema:", JSON.stringify(protocol.schema));
+    expect(protocol.schema.type).toBe("object");
+    expect(protocol.schema.properties["value"]!.type).toBe("string");
+    expect(protocol.schema.properties["value"]!.enum).toEqual(["report", "email", "legal", "technical"]);
+    expect(protocol.schema.required).toEqual(["value"]);
+  });
+
+  test("extract unwraps value", () => {
+    expect(protocol.extract({ value: "legal" })).toBe("legal");
+  });
+});
+
 // ── deriveProtocol ────────────────────────────────────────────────────────────
 
 const protocolSrc = `

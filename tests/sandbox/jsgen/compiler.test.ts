@@ -1,5 +1,5 @@
-import { compileRecord, compileExpr, compileFn, compileProgram } from "../../../src/sandbox/jsgen/compiler.js";
-import type { RecordAST, FnAST, ProgramAST, Expr, MatchExpr } from "../../../src/data-network/types.js";
+import { compileRecord, compileExpr, compileFn, compileEnum, compileProgram } from "../../../src/sandbox/jsgen/compiler.js";
+import type { RecordAST, FnAST, EnumAST, ProgramAST, Expr, MatchExpr } from "../../../src/data-network/types.js";
 
 // ── compileExpr ───────────────────────────────────────────────────────────────
 
@@ -228,7 +228,7 @@ describe("compileProgram", () => {
     },
   };
 
-  const program: ProgramAST = { records: [vec2], fns: [lengthFn], networks: [], derives: [], agents: [] };
+  const program: ProgramAST = { records: [vec2], fns: [lengthFn], networks: [], derives: [], agents: [], enums: [] };
 
   test("record constructor appears before fn", () => {
     const out = compileProgram(program);
@@ -263,7 +263,54 @@ describe("compileProgram", () => {
   });
 
   test("empty program emits bare return", () => {
-    expect(compileProgram({ records: [], fns: [], networks: [], derives: [], agents: [] })).toBe("return {};");
+    expect(compileProgram({ records: [], fns: [], networks: [], derives: [], agents: [], enums: [] })).toBe("return {};");
+  });
+});
+
+// ── compileEnum ───────────────────────────────────────────────────────────────
+
+describe("compileEnum", () => {
+  const docType: EnumAST = {
+    kind: "enum",
+    name: "DocumentType",
+    values: ["report", "email", "legal", "technical"],
+  };
+
+  test("emits predicate with includes check", () => {
+    const out = compileEnum(docType);
+    console.log("compileEnum output:", out);
+    expect(out).toBe(
+      `const DocumentType$ = function(v) { return ["report","email","legal","technical"].includes(v); };`
+    );
+  });
+
+  test("predicate accepts valid value", () => {
+    const out = compileEnum(docType);
+    const fn = new Function(out + "\nreturn DocumentType$;")();
+    expect(fn("legal")).toBe(true);
+    expect(fn("report")).toBe(true);
+  });
+
+  test("predicate rejects invalid value", () => {
+    const out = compileEnum(docType);
+    const fn = new Function(out + "\nreturn DocumentType$;")();
+    expect(fn("unknown")).toBe(false);
+    expect(fn("")).toBe(false);
+  });
+});
+
+describe("compileProgram: enum", () => {
+  const docType: EnumAST = { kind: "enum", name: "DocumentType", values: ["report", "email", "legal"] };
+  const program: ProgramAST = { records: [], fns: [], networks: [], derives: [], agents: [], enums: [docType] };
+
+  test("enum predicate appears in output", () => {
+    const out = compileProgram(program);
+    console.log("compileProgram with enum:", out);
+    expect(out).toContain(`const DocumentType$ = function(v)`);
+  });
+
+  test("export map includes enum predicate", () => {
+    expect(compileProgram(program)).toContain(`"DocumentType?": DocumentType$`);
   });
 });
 
