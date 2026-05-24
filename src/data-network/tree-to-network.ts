@@ -1,6 +1,6 @@
 import { parser } from "./parser.js";
 import type {
-  ProgramAST, DataNetworkAST, RecordAST, FnAST, DeriveAST, AgentAST,
+  ProgramAST, DataNetworkAST, RecordAST, FnAST, DeriveAST, AgentAST, EnumAST,
   Term, PropagateTerm, SwitchTerm, CellTerm, ConstantTerm,
   FieldDecl, TypedParam, TypeRef,
   Expr, LiteralExpr, VarExpr, CallExpr, BinaryExpr, UnaryExpr, FieldExpr,
@@ -18,6 +18,7 @@ export function parseProgram(input: string): ProgramAST {
   const fns: FnAST[] = [];
   const derives: DeriveAST[] = [];
   const agents: AgentAST[] = [];
+  const enums: EnumAST[] = [];
 
   // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -249,6 +250,22 @@ export function parseProgram(input: string): ProgramAST {
     return { kind: "match", subject, arms };
   };
 
+  // ── EnumDef ────────────────────────────────────────────────────────────────
+
+  const collectEnumDef = (): EnumAST => {
+    cursor.firstChild(); // Defenum keyword
+    cursor.nextSibling(); // Name
+    const name = slice(cursor.from, cursor.to);
+    const values: string[] = [];
+    while (cursor.nextSibling()) {
+      if (cursor.name === "String") {
+        values.push(slice(cursor.from, cursor.to).slice(1, -1));
+      }
+    }
+    cursor.parent();
+    return { kind: "enum", name, values };
+  };
+
   // ── DeriveDef ──────────────────────────────────────────────────────────────
 
   const collectDeriveDef = (): DeriveAST => {
@@ -461,11 +478,12 @@ export function parseProgram(input: string): ProgramAST {
       else if (cn() === "PredicateDef") fns.push(collectFnDef(true));
       else if (cn() === "DeriveDef") derives.push(collectDeriveDef());
       else if (cn() === "AgentDef") agents.push(collectAgentDef());
+      else if (cn() === "EnumDef") enums.push(collectEnumDef());
       cursor.parent();
     }
   } while (cursor.nextSibling());
 
-  return { networks, records, fns, derives, agents };
+  return { networks, records, fns, derives, agents, enums };
 }
 
 export function parseNetwork(input: string): DataNetworkAST {
