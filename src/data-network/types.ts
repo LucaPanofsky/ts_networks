@@ -146,6 +146,14 @@ export type FnAST = {
   body: Expr;
 };
 
+// ── Enum definitions ──────────────────────────────────────────────────────────
+
+export type EnumAST = {
+  kind: "enum";
+  name: string;
+  values: string[];
+};
+
 // ── Derive declarations ───────────────────────────────────────────────────────
 
 export type DeriveAST = {
@@ -173,4 +181,5 @@ export type ProgramAST = {
   fns: FnAST[];
   derives: DeriveAST[];
   agents: AgentAST[];
+  enums: EnumAST[];
 };
