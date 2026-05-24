@@ -1,4 +1,4 @@
-import type { ProgramAST, RecordAST, FnAST, Expr, TypeRef } from "./types.js";
+import type { ProgramAST, RecordAST, FnAST, EnumAST, Expr, TypeRef } from "./types.js";
 
 export type JsonSchemaType = "string" | "number" | "boolean" | "object" | "array";
 
@@ -8,6 +8,7 @@ export type JsonSchemaProperty = {
   properties?: Record<string, JsonSchemaProperty>;
   required?: string[];
   items?: JsonSchemaProperty;
+  enum?: string[];
 };
 
 export type JsonSchemaObject = {
@@ -26,12 +27,14 @@ export type ResponseProtocol = {
 type Indexes = {
   predicateIndex: Map<string, FnAST>;
   recordIndex: Map<string, RecordAST>;
+  enumIndex: Map<string, EnumAST>;
 };
 
 function buildIndexes(program: ProgramAST): Indexes {
   return {
     predicateIndex: new Map(program.fns.filter(f => f.isPredicate).map(f => [f.name, f])),
     recordIndex:    new Map(program.records.map(r => [r.name, r])),
+    enumIndex:      new Map(program.enums.map(e => [e.name, e])),
   };
 }
 
@@ -56,21 +59,27 @@ function renderExpr(expr: Expr): string {
 
 function resolveProperty(
   predicate: string,
-  { predicateIndex, recordIndex }: Indexes,
+  indexes: Indexes,
 ): JsonSchemaProperty {
+  const { predicateIndex, recordIndex, enumIndex } = indexes;
+
   const primitive = PRIMITIVE_MAP[predicate];
   if (primitive) return { type: primitive };
 
   const fn = predicateIndex.get(predicate);
   if (fn && fn.params[0] !== undefined) {
-    const base = resolveProperty(fn.params[0].predicate, { predicateIndex, recordIndex });
+    const base = resolveProperty(fn.params[0].predicate, indexes);
     return { type: base.type, description: `${predicate} — satisfies: ${renderExpr(fn.body)}` };
   }
 
   const baseName = predicate.endsWith("?") ? predicate.slice(0, -1) : predicate;
+
+  const enumDef = enumIndex.get(baseName);
+  if (enumDef) return { type: "string", enum: enumDef.values };
+
   const nestedRecord = recordIndex.get(baseName);
   if (nestedRecord) {
-    const nested = deriveSchema(nestedRecord, { predicateIndex, recordIndex });
+    const nested = deriveSchema(nestedRecord, indexes);
     return { type: "object", properties: nested.properties, required: nested.required };
   }
 

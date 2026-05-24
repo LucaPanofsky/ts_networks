@@ -1,6 +1,19 @@
+defenum DocumentType
+  'report', 'email', 'legal', 'technical', 'unknown';
+end
+
+defenum Sentiment
+  'positive', 'negative', 'neutral';
+end
+
+defenum ClassificationLabel
+  'legal-review-required', 'high-confidence-negative',
+  'high-confidence-positive', 'low-confidence', 'standard';
+end
+
 defrecord DocumentAnalysis
-  type: String?;
-  sentiment: String?;
+  type: DocumentType?;
+  sentiment: Sentiment?;
   summary: String?;
   confidence: Number?;
 end
@@ -42,7 +55,7 @@ defagent analyzeDocument
 end
 
 defn classifyResult
-  signature: from [DocumentAnalysis?(analysis)] to String?;
+  signature: from [DocumentAnalysis?(analysis)] to ClassificationLabel?;
   expression
     match analysis
       | DocumentAnalysis { type: t } when t == 'legal' -> 'legal-review-required'

@@ -601,6 +601,70 @@ describe("parseProgram: defagent", () => {
   });
 });
 
+// ── defenum ───────────────────────────────────────────────────────────────────
+
+const enumInput = `
+defenum DocumentType
+  'report', 'email', 'legal', 'technical';
+end
+`;
+
+describe("parseProgram: defenum basic", () => {
+  const prog = parseProgram(enumInput);
+  const en = prog.enums[0]!;
+
+  test("no parse errors", () => {
+    const tree = parser.parse(enumInput.trim());
+    const cursor = tree.cursor();
+    do { expect(cursor.name).not.toBe("⚠"); } while (cursor.next());
+  });
+
+  test("enums array has one entry", () => {
+    console.log("enums:", JSON.stringify(prog.enums));
+    expect(prog.enums).toHaveLength(1);
+  });
+
+  test("kind is enum", () => {
+    expect(en.kind).toBe("enum");
+  });
+
+  test("name", () => {
+    expect(en.name).toBe("DocumentType");
+  });
+
+  test("values array", () => {
+    expect(en.values).toEqual(["report", "email", "legal", "technical"]);
+  });
+
+  test("enums empty when absent", () => {
+    const empty = parseProgram("defrecord Foo\n  x: Number?;\nend");
+    expect(empty.enums).toHaveLength(0);
+  });
+});
+
+describe("parseProgram: defenum alongside other definitions", () => {
+  const mixed = `
+defrecord Payload
+  label: String?;
+end
+
+defenum Status
+  'active', 'inactive';
+end
+`;
+  const prog = parseProgram(mixed);
+
+  test("record still parsed", () => {
+    expect(prog.records[0]!.name).toBe("Payload");
+  });
+
+  test("enum still parsed", () => {
+    console.log("mixed enums:", JSON.stringify(prog.enums));
+    expect(prog.enums[0]!.name).toBe("Status");
+    expect(prog.enums[0]!.values).toEqual(["active", "inactive"]);
+  });
+});
+
 // ── keyword-prefix identifiers ────────────────────────────────────────────────
 
 describe("keyword-prefix identifiers", () => {

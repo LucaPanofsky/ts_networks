@@ -26,7 +26,7 @@ test("documentPipeline: diagram matches expected output", () => {
       `  classifyResult__analysis__to__label@{ shape: lean-r, label: "classifyResult" }`,
       `  click classifyResult__analysis__to__label openDetail`,
       `  analysis -->|DocumentAnalysis?| classifyResult__analysis__to__label`,
-      `  classifyResult__analysis__to__label -->|String?| label`,
+      `  classifyResult__analysis__to__label -->|ClassificationLabel?| label`,
     ].join("\n")
   );
 });

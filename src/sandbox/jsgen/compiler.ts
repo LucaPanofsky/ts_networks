@@ -1,4 +1,4 @@
-import type { RecordAST, FnAST, ProgramAST, Expr, RecordPattern } from "../../data-network/types.js";
+import type { RecordAST, FnAST, EnumAST, ProgramAST, Expr, RecordPattern } from "../../data-network/types.js";
 
 function mangle(name: string): string {
   return name.replace(/\?/g, "$").replace(/!/g, "_");
@@ -66,12 +66,19 @@ export function compileRecord(rec: RecordAST): string {
   return `${constructor}\n${predicate}`;
 }
 
+export function compileEnum(en: EnumAST): string {
+  const predVar = mangle(`${en.name}?`);
+  const set = JSON.stringify(en.values);
+  return `const ${predVar} = function(v) { return ${set}.includes(v); };`;
+}
+
 function compileExportMap(program: ProgramAST): string {
   const entries: string[] = [
     ...program.records.flatMap(r => [
       `"${r.name}": ${r.name}`,
       `"${r.name}?": ${mangle(r.name + "?")}`,
     ]),
+    ...program.enums.map(e => `"${e.name}?": ${mangle(e.name + "?")}`),
     ...program.fns.map(f => `"${f.name}": ${mangle(f.name)}`),
   ];
   return entries.length === 0 ? "return {};" : `return { ${entries.join(", ")} };`;
@@ -80,6 +87,7 @@ function compileExportMap(program: ProgramAST): string {
 export function compileProgram(program: ProgramAST): string {
   const lines: string[] = [
     ...program.records.map(compileRecord),
+    ...program.enums.map(compileEnum),
     ...program.fns.map(compileFn),
     compileExportMap(program),
   ];
