@@ -34,12 +34,13 @@ propagate classify from [agentResponse] to decision;
 
 ## Top-level definitions
 
-There are six kinds of top-level definition:
+There are seven kinds of top-level definition:
 
 | Keyword | Purpose |
 |---|---|
 | `defnetwork` | A propagator network |
 | `defrecord` | A record type |
+| `defenum` | A named finite set of string values |
 | `defn` | A pure function |
 | `defpredicate` | A predicate (returns `Boolean?`) |
 | `defagent` | An LLM agent that returns structured output |
@@ -162,6 +163,43 @@ end
 Defining a record automatically creates:
 - A constructor: `Circle(radius)` → `{ __type: "Circle", radius }`
 - A predicate: `Circle?(v)` → `true` if `v` is a `Circle`
+
+---
+
+## `defenum`
+
+Defines a named, finite set of string values.
+
+```
+defenum DocumentType
+  'report', 'email', 'legal', 'technical';
+end
+```
+
+Defining an enum automatically creates:
+- A predicate: `DocumentType?(v)` → `true` if `v` is one of the declared values
+
+The predicate can be used anywhere a type annotation is accepted — function signatures, agent return types, record fields:
+
+```
+defrecord DocumentAnalysis
+  type: DocumentType?;
+  summary: String?;
+end
+
+defagent classify
+  signature: from [String?(text)] to DocumentType?;
+  ...
+end
+```
+
+When an enum is used as an agent's return type or as a record field type, the JSON schema constraint is derived automatically:
+
+```json
+{ "type": "string", "enum": ["report", "email", "legal", "technical"] }
+```
+
+This constrains the LLM's structured output to valid values at the protocol level.
 
 ---
 
