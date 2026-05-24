@@ -1,6 +1,5 @@
 import { readFileSync } from "fs";
-import { parseProgram } from "../src/data-network/tree-to-network.js";
-import { typeCheckProgram } from "../src/data-network/type-checker.js";
+import { typecheck } from "../src/operations/typecheck.js";
 
 const file = process.argv[2];
 if (!file) {
@@ -8,30 +7,29 @@ if (!file) {
   process.exit(1);
 }
 
-const dsl = readFileSync(file, "utf-8");
-const program = parseProgram(dsl);
-const results = typeCheckProgram(program);
+const source = readFileSync(file, "utf-8");
+const result = typecheck.handle({ source });
+if (!result.ok) {
+  console.error(result.error);
+  process.exit(1);
+}
 
 let hasErrors = false;
-
-for (const [networkName, enriched] of results) {
-  for (const cell of enriched.cells.values()) {
-    for (const err of cell._errors) {
-      console.error(`[${networkName}] cell '${cell.name}': [${err.kind}] ${err.message}`);
+for (const net of result.networks) {
+  for (const [cellName, cell] of Object.entries(net.cells)) {
+    for (const err of cell.errors) {
+      console.error(`[${net.name}] cell '${cellName}': [${err.kind}] ${err.message}`);
       hasErrors = true;
     }
   }
-  for (const prop of enriched.propagators) {
-    for (const err of prop._errors) {
+  for (const prop of net.propagators) {
+    for (const err of prop.errors) {
       const label = prop.fn ?? "switch";
-      console.error(`[${networkName}] propagator '${label}': [${err.kind}] ${err.message}`);
+      console.error(`[${net.name}] propagator '${label}': [${err.kind}] ${err.message}`);
       hasErrors = true;
     }
   }
 }
 
-if (hasErrors) {
-  process.exit(1);
-} else {
-  console.log("ok");
-}
+if (hasErrors) process.exit(1);
+else console.log("ok");

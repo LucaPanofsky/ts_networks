@@ -1,0 +1,49 @@
+import { parseProgram } from "../data-network/tree-to-network.js";
+import { typeCheckProgram } from "../data-network/type-checker.js";
+import type { Operation, SerializedEnrichedNetwork, SerializedError } from "./types.js";
+import type { EnrichedNetwork } from "../data-network/type-checker.js";
+
+type TypecheckInput = { source: string };
+type TypecheckOutput =
+  | { ok: true; networks: SerializedEnrichedNetwork[] }
+  | { ok: false; error: string };
+
+function serializeNetwork(enriched: EnrichedNetwork): SerializedEnrichedNetwork {
+  const cells: SerializedEnrichedNetwork["cells"] = {};
+  for (const [name, cell] of enriched.cells) {
+    cells[name] = {
+      writtenBy: [...cell.writtenBy],
+      readBy: [...cell.readBy],
+      errors: cell._errors.map((e): SerializedError => ({ kind: e.kind, message: e.message })),
+    };
+  }
+  const propagators = enriched.propagators.map(p => ({
+    fn: p.fn,
+    from: p.from,
+    to: p.to,
+    errors: p._errors.map((e): SerializedError => ({ kind: e.kind, message: e.message })),
+  }));
+  return { name: enriched.name, cells, propagators };
+}
+
+export const typecheck: Operation<TypecheckInput, TypecheckOutput> = {
+  name: "typecheck",
+  description: "Parse and type-check a ts-networks program; return enriched network data.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      source: { type: "string", description: "The ts-networks source code to type-check." },
+    },
+    required: ["source"],
+  },
+  handle(input) {
+    try {
+      const program = parseProgram(input.source);
+      const enrichedMap = typeCheckProgram(program);
+      const networks = [...enrichedMap.values()].map(serializeNetwork);
+      return { ok: true, networks };
+    } catch (e) {
+      return { ok: false, error: (e as Error).message };
+    }
+  },
+};

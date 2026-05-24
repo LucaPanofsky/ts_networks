@@ -5,7 +5,7 @@ import { parseProgram } from "../data-network/tree-to-network.js";
 import { astToDataNetwork } from "../data-network/ast-to-data-network.js";
 import { networkToDiagram } from "./mermaid.js";
 import { typeCheckProgram } from "../data-network/type-checker.js";
-import { handleRun, type RunRequest } from "./run-handler.js";
+import { run } from "../operations/run.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.resolve(__dirname, "../../public");
@@ -83,8 +83,8 @@ export function createServer(port = 3000) {
   });
 
   app.post("/run", (req: Request, res: Response) => {
-    const body = req.body as RunRequest;
-    const result = handleRun(body);
+    const body = req.body as Parameters<typeof run.handle>[0];
+    const result = run.handle(body);
     console.log("[/run]", JSON.stringify(result, null, 2));
     res.json(result);
   });

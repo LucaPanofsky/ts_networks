@@ -34,12 +34,13 @@ propagate classify from [agentResponse] to decision;
 
 ## Top-level definitions
 
-There are six kinds of top-level definition:
+There are seven kinds of top-level definition:
 
 | Keyword | Purpose |
 |---|---|
 | `defnetwork` | A propagator network |
 | `defrecord` | A record type |
+| `defenum` | A named finite set of string values |
 | `defn` | A pure function |
 | `defpredicate` | A predicate (returns `Boolean?`) |
 | `defagent` | An LLM agent that returns structured output |
@@ -162,6 +163,43 @@ end
 Defining a record automatically creates:
 - A constructor: `Circle(radius)` → `{ __type: "Circle", radius }`
 - A predicate: `Circle?(v)` → `true` if `v` is a `Circle`
+
+---
+
+## `defenum`
+
+Defines a named, finite set of string values.
+
+```
+defenum DocumentType
+  'report', 'email', 'legal', 'technical';
+end
+```
+
+Defining an enum automatically creates:
+- A predicate: `DocumentType?(v)` → `true` if `v` is one of the declared values
+
+The predicate can be used anywhere a type annotation is accepted — function signatures, agent return types, record fields:
+
+```
+defrecord DocumentAnalysis
+  type: DocumentType?;
+  summary: String?;
+end
+
+defagent classify
+  signature: from [String?(text)] to DocumentType?;
+  ...
+end
+```
+
+When an enum is used as an agent's return type or as a record field type, the JSON schema constraint is derived automatically:
+
+```json
+{ "type": "string", "enum": ["report", "email", "legal", "technical"] }
+```
+
+This constrains the LLM's structured output to valid values at the protocol level.
 
 ---
 
@@ -306,6 +344,67 @@ derive Student? from Person?;
 ```
 
 This tells the type system that any value satisfying `Student?` also satisfies `Person?`.
+
+---
+
+## JSON Schema generation
+
+Every `defrecord` and `defenum` in a program has a corresponding JSON Schema representation that is derived automatically. This is used in two ways:
+
+- **Agent API calls** — when an agent's return type is a record or enum, the schema is sent to the Claude API as a structured-output constraint, so the model's response is guaranteed to match the declared type.
+- **External tooling** — the `compile-schemas` script emits the full schema map for all records, so it can be used with any JSON Schema validator or passed to external LLM APIs.
+
+### Schema rules
+
+| ts-networks type | JSON Schema |
+|---|---|
+| `String?` | `{ "type": "string" }` |
+| `Number?` | `{ "type": "number" }` |
+| `Boolean?` | `{ "type": "boolean" }` |
+| `MyEnum?` (defenum) | `{ "type": "string", "enum": [...] }` |
+| `MyRecord?` (defrecord) | `{ "type": "object", "properties": {...}, "required": [...] }` |
+| `[Type?]` (vector) | `{ "type": "array", "items": <schema for Type?> }` |
+| user-defined predicate | base type with `description` annotation |
+
+Nested records are inlined — the schema for a record whose field references another record includes the full nested object schema, not a `$ref`.
+
+### Example
+
+Given:
+
+```
+defenum Sentiment
+  'positive', 'negative', 'neutral';
+end
+
+defrecord DocumentAnalysis
+  sentiment: Sentiment?;
+  summary: String?;
+  confidence: Number?;
+end
+```
+
+Running:
+
+```bash
+npx tsx scripts/compile-schemas.ts my-program.tsn
+```
+
+Produces:
+
+```json
+{
+  "DocumentAnalysis": {
+    "type": "object",
+    "properties": {
+      "sentiment": { "type": "string", "enum": ["positive", "negative", "neutral"] },
+      "summary":   { "type": "string" },
+      "confidence": { "type": "number" }
+    },
+    "required": ["sentiment", "summary", "confidence"]
+  }
+}
+```
 
 ---
 
