@@ -341,7 +341,13 @@
       currentDetails = net.details ?? {};
       diagram.innerHTML = "";
       resetTransform();
-      if (net.diagram) await window.tsnetEditor.renderDiagram(applyDirection(net.diagram));
+      if (net.diagram) {
+        try {
+          await window.tsnetEditor.renderDiagram(applyDirection(net.diagram));
+        } catch {
+          diagram.innerHTML = `<div style="color:#e74c3c;font-family:monospace;font-size:12px;padding:16px">mermaid render failed — see console</div>`;
+        }
+      }
     }
 
     networkSelect.addEventListener("change", () => {
@@ -356,26 +362,21 @@
     });
 
     // ── SSE ───────────────────────────────────────────────────────────────────
-    const es = new EventSource("/events");
-    es.onmessage = async (e) => {
-      const msg = JSON.parse(e.data);
-      if (msg.type === "log") {
+    const sseHandlers = {
+      log: (msg) => {
         termAppend(msg.payload.line, msg.payload.error ? "line-err" : "line-log");
-        return;
-      }
-      if (msg.type === "program") {
+      },
+      program: async (msg) => {
         const { source, networks } = msg.payload;
         currentNetworks = networks ?? [];
         dirIndex = 0;
 
-        // repopulate select
         networkSelect.innerHTML = currentNetworks.length === 0
           ? `<option value="">— no networks —</option>`
           : currentNetworks.map((n, i) => `<option value="${i}">${n.name}</option>`).join("");
 
         if (source) window.tsnetEditor.setValue(source);
 
-        // auto-select and render the last network
         const last = currentNetworks[currentNetworks.length - 1];
         if (last) {
           networkSelect.selectedIndex = currentNetworks.length - 1;
@@ -386,7 +387,13 @@
         }
 
         document.getElementById("status").textContent = "program received";
-      }
+      },
+    };
+
+    const es = new EventSource("/events");
+    es.onmessage = async (e) => {
+      const msg = JSON.parse(e.data);
+      await sseHandlers[msg.type]?.(msg);
     };
     es.onerror = () => {
       document.getElementById("status").textContent = "connection lost — reload to reconnect";

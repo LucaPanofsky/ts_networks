@@ -4,15 +4,19 @@ import { fileURLToPath } from "url";
 import { parseProgram } from "../data-network/tree-to-network.js";
 import { astToDataNetwork } from "../data-network/ast-to-data-network.js";
 import { networkToDiagram } from "./mermaid.js";
+import { typeCheckProgram } from "../data-network/type-checker.js";
 import { handleRun, type RunRequest } from "./run-handler.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.resolve(__dirname, "../../public");
 
+export type NetworkError = { node: string; kind: string; message: string };
+
 export type NetworkDiagram = {
   name: string;
   diagram: string;
   details: Record<string, string>;
+  errors: NetworkError[];
 };
 
 type SseClient = Response;
@@ -44,17 +48,37 @@ export function createServer(port = 3000) {
     const networks: NetworkDiagram[] = [];
     try {
       const program = parseProgram(body.source);
+      const enrichedMap = typeCheckProgram(program);
       for (const net of program.networks) {
-        const { diagram, details } = networkToDiagram(astToDataNetwork(net), program);
-        networks.push({ name: net.name, diagram, details });
+        const enriched = enrichedMap.get(net.name);
+        const { diagram, details } = networkToDiagram(astToDataNetwork(net), program, enriched);
+        const errors: NetworkError[] = [];
+        if (enriched) {
+          for (const cell of enriched.cells.values())
+            for (const e of cell._errors)
+              errors.push({ node: cell.name, kind: e.kind, message: e.message });
+          for (const prop of enriched.propagators)
+            for (const e of prop._errors)
+              errors.push({ node: prop.fn ?? "switch", kind: e.kind, message: e.message });
+        }
+        networks.push({ name: net.name, diagram, details, errors });
       }
     } catch {
       // parse errors are non-fatal; we still push the source
     }
 
-    const msg = { type: "program", payload: { source: body.source, networks } };
-    const data = `data: ${JSON.stringify(msg)}\n\n`;
-    for (const client of clients) client.write(data);
+    const programMsg = { type: "program", payload: { source: body.source, networks } };
+    const programData = `data: ${JSON.stringify(programMsg)}\n\n`;
+    for (const client of clients) client.write(programData);
+
+    for (const net of networks) {
+      for (const err of net.errors) {
+        const logMsg = { type: "log", payload: { line: `[typecheck] ${net.name}/${err.node}: ${err.message}`, error: true } };
+        const logData = `data: ${JSON.stringify(logMsg)}\n\n`;
+        for (const client of clients) client.write(logData);
+      }
+    }
+
     res.json({ ok: true, clients: clients.size });
   });
 

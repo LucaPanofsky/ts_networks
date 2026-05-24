@@ -1,6 +1,7 @@
 import type { DataNetwork, Propagator } from "../data-network/data-network.js";
 import type { ProgramAST, TypedParam } from "../data-network/types.js";
 import { typeRefToString } from "../data-network/types.js";
+import type { EnrichedNetwork } from "../data-network/type-checker.js";
 
 export type DiagramResult = {
   diagram: string;
@@ -56,7 +57,41 @@ function propagatorDetail(prop: Propagator, types: FnTypes): string {
   return s;
 }
 
-export function networkToDiagram(net: DataNetwork, program: ProgramAST): DiagramResult {
+function buildErrorMaps(enriched: EnrichedNetwork): {
+  errorCells: Map<string, string[]>;
+  errorProps: Map<string, string[]>;
+} {
+  const errorCells = new Map<string, string[]>();
+  const errorProps = new Map<string, string[]>();
+  for (const [name, cell] of enriched.cells) {
+    if (cell._errors.length > 0)
+      errorCells.set(name, cell._errors.map(e => `[${e.kind}] ${e.message}`));
+  }
+  for (const ep of enriched.propagators) {
+    if (ep._errors.length > 0) {
+      const fnKey = ep.kind === "switch" ? "__SWITCH" : (ep.fn ?? "");
+      const key = [fnKey, ...ep.from, "to", ep.to].join("__");
+      errorProps.set(key, ep._errors.map(e => `[${e.kind}] ${e.message}`));
+    }
+  }
+  return { errorCells, errorProps };
+}
+
+function appendErrors(base: string, msgs: string[] | undefined): string {
+  if (!msgs || msgs.length === 0) return base;
+  const html = msgs.map(m => `<br><span style="color:#e74c3c">${m}</span>`).join("");
+  return base + html;
+}
+
+export function networkToDiagram(
+  net: DataNetwork,
+  program: ProgramAST,
+  enriched?: EnrichedNetwork
+): DiagramResult {
+  const { errorCells, errorProps } = enriched
+    ? buildErrorMaps(enriched)
+    : { errorCells: new Map<string, string[]>(), errorProps: new Map<string, string[]>() };
+
   const lines: string[] = ["flowchart-elk LR"];
   const details: Record<string, string> = {};
   const typeMap = buildTypeMap(program);
@@ -67,7 +102,7 @@ export function networkToDiagram(net: DataNetwork, program: ProgramAST): Diagram
     const label = cell.content !== undefined ? `${id} = ${cell.content}` : id;
     lines.push(`  ${nid}@{ shape: rounded, label: "${label}" }`);
     lines.push(`  click ${nid} openDetail`);
-    details[nid] = cellDetail(id, cell.content, cell.isConstant);
+    details[nid] = appendErrors(cellDetail(id, cell.content, cell.isConstant), errorCells.get(id));
   }
 
   for (const [id, prop] of net.propagators) {
@@ -85,8 +120,13 @@ export function networkToDiagram(net: DataNetwork, program: ProgramAST): Diagram
       ? `  ${nid} -->|${types.returnType}| ${nodeId(prop.to)}`
       : `  ${nid} --> ${nodeId(prop.to)}`;
     lines.push(outEdge);
-    details[nid] = propagatorDetail(prop, types);
+    details[nid] = appendErrors(propagatorDetail(prop, types), errorProps.get(id));
   }
+
+  for (const [id] of errorCells)
+    lines.push(`  style ${nodeId(id)} fill:#c0392b,color:#fff,stroke:#922b21`);
+  for (const [id] of errorProps)
+    lines.push(`  style ${nodeId(id)} fill:#c0392b,color:#fff,stroke:#922b21`);
 
   return { diagram: lines.join("\n"), details };
 }
