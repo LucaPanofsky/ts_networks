@@ -195,14 +195,14 @@ describe("field access — end-to-end", () => {
 
 const letDsl = `
 defn singleLet
-  signature: from to Number?;
+  signature: from [] to Number?;
   expression
     let a = 3;
     a * 2;
 end
 
 defn twoLets
-  signature: from to Number?;
+  signature: from [] to Number?;
   expression
     let a = 3;
     let b = 4;
@@ -250,12 +250,12 @@ describe("if conditionals — end-to-end", () => {
 
 const precedenceDsl = `
 defn addThenMul
-  signature: from to Number?;
+  signature: from [] to Number?;
   expression 2 + 3 * 4;
 end
 
 defn parenFirst
-  signature: from to Number?;
+  signature: from [] to Number?;
   expression (2 + 3) * 4;
 end
 

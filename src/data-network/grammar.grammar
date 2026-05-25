@@ -95,7 +95,7 @@ PredicateDef {
 }
 
 FnSignature {
-  Signature_ ":" From ("[" TypedParam ("," TypedParam)* "]")? To (Name | VectorTypeRef) ";"
+  Signature_ ":" From ("[" (TypedParam ("," TypedParam)*)? "]")? To (Name | VectorTypeRef) ";"
 }
 
 TypedParam {
