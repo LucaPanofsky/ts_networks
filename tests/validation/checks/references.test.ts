@@ -30,7 +30,7 @@ describe("checkReferences: no errors", () => {
         y: Number?;
       end
 
-      defnetwork make-point
+      defnetwork make_point
         signature: from [x, y] to p;
         propagate Point from [x, y] to p;
       end

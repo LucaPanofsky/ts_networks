@@ -7,8 +7,24 @@ import type {
   LetBinding, MatchExpr, MatchArm, MatchPattern,
 } from "./types.js";
 
+function posToLineCol(input: string, pos: number): { line: number; col: number } {
+  const lines = input.slice(0, pos).split("\n");
+  return { line: lines.length, col: (lines.at(-1)?.length ?? 0) + 1 };
+}
+
 export function parseProgram(input: string): ProgramAST {
   const tree = parser.parse(input);
+
+  // Lezer is error-tolerant and never throws — detect syntax errors via error nodes.
+  let firstErrorPos: number | null = null;
+  tree.iterate({ enter: n => {
+    if (n.type.isError && firstErrorPos === null) firstErrorPos = n.from;
+  }});
+  if (firstErrorPos !== null) {
+    const { line, col } = posToLineCol(input, firstErrorPos);
+    throw new Error(`Syntax error at line ${line}, col ${col}`);
+  }
+
   const cursor = tree.cursor();
   const slice = (from: number, to: number) => input.slice(from, to);
   const cn = (): string => cursor.name;
