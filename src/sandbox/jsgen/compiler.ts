@@ -17,7 +17,7 @@ export function compileExpr(expr: Expr): string {
       return `(${compileExpr(expr.left)} ${op} ${compileExpr(expr.right)})`;
     }
     case "unary":
-      return `(!${compileExpr(expr.expr)})`;
+      return `(${expr.op}${compileExpr(expr.expr)})`;
     case "field":
       return `${compileExpr(expr.object)}.${expr.field}`;
     case "call": {

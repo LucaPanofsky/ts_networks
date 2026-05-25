@@ -146,7 +146,7 @@ export function parseProgram(input: string): ProgramAST {
     }
 
     if (nodeName === "UnaryExpr") {
-      const op = "!"; // "!" token is anonymous — not in tree
+      const op = input[cursor.from] === "-" ? "-" : "!";
       cursor.firstChild(); // Expr (operand)
       const expr = parseExpr();
       cursor.parent();
