@@ -17,7 +17,13 @@ for (const arg of cellArgs) {
   cells[arg.slice(0, eq)] = arg.slice(eq + 1);
 }
 
-const source = readFileSync(file, "utf-8");
+let source: string;
+try {
+  source = readFileSync(file, "utf-8");
+} catch {
+  console.error(`Cannot read file: ${file}`);
+  process.exit(1);
+}
 const result = run.handle({ source, network, cells });
 
 if (!result.ok) {

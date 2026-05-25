@@ -7,7 +7,13 @@ if (!file) {
   process.exit(1);
 }
 
-const source = readFileSync(file, "utf-8");
+let source: string;
+try {
+  source = readFileSync(file, "utf-8");
+} catch {
+  console.error(`Cannot read file: ${file}`);
+  process.exit(1);
+}
 const result = typecheck.handle({ source });
 if (!result.ok) {
   console.error(result.error);
