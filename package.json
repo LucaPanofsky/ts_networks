@@ -14,6 +14,7 @@
     "bundle": "esbuild src/editor/main.ts --bundle --outfile=public/editor.bundle.js --format=iife",
     "build": "npm run generate && npm run bundle && tsc && sed 's|from \"./prompt-tokenizer\"|from \"./prompt-tokenizer.js\"|' src/data-network/parser.js > dist/data-network/parser.js && cp src/data-network/parser.terms.js dist/data-network/parser.terms.js",
     "test": "npm run generate && jest",
+    "test:all": "npm run generate && TEST_ALL=1 jest",
     "dev": "concurrently -n server,bundle -c blue,yellow \"npx tsx --watch src/cli.ts\" \"npm run bundle -- --watch\""
   },
   "devDependencies": {
