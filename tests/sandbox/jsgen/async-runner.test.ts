@@ -37,7 +37,7 @@ defn not
 end
 
 defnetwork asyncSearch
-  signature: from input to done;
+  signature: from [input] to done;
 
   switch goodEnough? from [input] to inputIsGood;
   propagate not from [inputIsGood] to inputIsNotGood;

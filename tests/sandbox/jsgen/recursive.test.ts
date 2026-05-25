@@ -3,7 +3,7 @@ import { Something } from "../../../src/info-structure.js";
 
 const dsl = `
 defnetwork exampleSearch
-  signature: from input to done;
+  signature: from [input] to done;
 
   switch goodEnough? from [input] to inputIsGood;
   propagate not from [inputIsGood] to inputIsNotGood;
