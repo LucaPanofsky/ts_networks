@@ -18,40 +18,28 @@ function makeRegistry() {
   return reg;
 }
 
+// ── Capabilities ──────────────────────────────────────────────────────────────
+
 describe("equations: a + b = c", () => {
   const runtime = new NetworkRuntime(makeEquationNetwork(), makeRegistry());
 
-  test("given a and b, derives c", () => {
-    const result = runtime.invoke({ a: 2, b: 3 });
-    expect(result.type).toBe("done");
-    expect(result.cells.get("c")!.knows()).toEqual(new Something(5));
+  test("derives any unknown from the other two", () => {
+    expect(runtime.invoke({ a: 2, b: 3 }).cells.get("c")!.knows()).toEqual(new Something(5));
+    expect(runtime.invoke({ a: 2, c: 5 }).cells.get("b")!.knows()).toEqual(new Something(3));
+    expect(runtime.invoke({ b: 3, c: 5 }).cells.get("a")!.knows()).toEqual(new Something(2));
   });
 
-  test("given a and c, derives b", () => {
-    const result = runtime.invoke({ a: 2, c: 5 });
-    expect(result.type).toBe("done");
-    expect(result.cells.get("b")!.knows()).toEqual(new Something(3));
+  test("inconsistent assignment produces contradiction (exit)", () => {
+    expect(runtime.invoke({ a: 2, b: 3, c: 99 }).type).toBe("exit");
   });
 
-  test("given b and c, derives a", () => {
-    const result = runtime.invoke({ b: 3, c: 5 });
-    expect(result.type).toBe("done");
-    expect(result.cells.get("a")!.knows()).toEqual(new Something(2));
-  });
-
+  // ── Invariants ──────────────────────────────────────────────────────────────
   test("consistent full assignment does not produce contradiction", () => {
-    const result = runtime.invoke({ a: 2, b: 3, c: 5 });
-    expect(result.type).toBe("done");
+    expect(runtime.invoke({ a: 2, b: 3, c: 5 }).type).toBe("done");
   });
 
-  test("inconsistent assignment produces contradiction", () => {
-    const result = runtime.invoke({ a: 2, b: 3, c: 99 });
-    expect(result.type).toBe("exit");
-  });
-
-  test("each invocation is independent", () => {
+  test("each invocation is independent — no state leaks between calls", () => {
     runtime.invoke({ a: 2, b: 3 });
-    const result = runtime.invoke({ a: 10, b: 20 });
-    expect(result.cells.get("c")!.knows()).toEqual(new Something(30));
+    expect(runtime.invoke({ a: 10, b: 20 }).cells.get("c")!.knows()).toEqual(new Something(30));
   });
 });

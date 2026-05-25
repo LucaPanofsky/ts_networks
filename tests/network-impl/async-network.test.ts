@@ -14,40 +14,24 @@ function delayedValue(v: unknown, ms: number): APromise<unknown> {
 
 const asyncDouble = naryUnpacking((x: unknown) => delayedValue((x as number) * 2, 50), 1);
 
+// ── Capabilities ──────────────────────────────────────────────────────────────
+
 describe("async network: propagator returning APromise", () => {
-  test("output is APromise and not realized immediately after run", () => {
+  test("output is an unrealized APromise immediately, resolved value available after promise settles", async () => {
     const cells = new Map([
       ["input", new Cell("input")],
       ["output", new Cell("output")],
     ]);
     const p = new Propagator("asyncDouble", ["input"], "output", asyncDouble);
     cells.get("input")!.addNeighbor(p);
-
-    cells.get("input")!.setContent(new Something(21));
-    run(cells, new Map([["asyncDouble", p]]), ["asyncDouble"]);
-
-    const out = cells.get("output")!.knows();
-    expect(out instanceof APromise).toBe(true);
-    expect((out as APromise<unknown>).deferred.isRealized).toBe(false);
-  });
-
-  test("output is realized after the promise resolves", async () => {
-    const cells = new Map([
-      ["input", new Cell("input")],
-      ["output", new Cell("output")],
-    ]);
-    const p = new Propagator("asyncDouble", ["input"], "output", asyncDouble);
-    cells.get("input")!.addNeighbor(p);
-
     cells.get("input")!.setContent(new Something(21));
     run(cells, new Map([["asyncDouble", p]]), ["asyncDouble"]);
 
     const out = cells.get("output")!.knows() as APromise<unknown>;
-    
+    expect(out instanceof APromise).toBe(true);
     expect(out.deferred.isRealized).toBe(false);
-    
-    await out.deferred.promise;
 
+    await out.deferred.promise;
     expect(out.deferred.isRealized).toBe(true);
     expect(out.content()).toEqual(new Something(42));
   });

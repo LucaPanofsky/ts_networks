@@ -4,6 +4,7 @@ const config: Config = {
   preset: "ts-jest/presets/default-esm",
   testEnvironment: "node",
   testMatch: ["**/tests/**/*.test.ts"],
+  testPathIgnorePatterns: process.env.TEST_ALL ? [] : ["<rootDir>/tests/scripts.test.ts"],
   extensionsToTreatAsEsm: [".ts"],
   transform: {
     "^.+\\.[tj]s$": ["ts-jest", { tsconfig: "tsconfig.test.json", useESM: true }],

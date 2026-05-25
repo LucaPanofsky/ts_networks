@@ -5,55 +5,33 @@ function parse(dsl: string) {
   return parseProgram(dsl);
 }
 
-// ── happy paths ───────────────────────────────────────────────────────────────
+// ── Capabilities ──────────────────────────────────────────────────────────────
 
 describe("checkReferences: no errors", () => {
-  test("propagate referencing a defn in the same program", () => {
+  test("all three callable kinds — defn, record constructor, field accessor — are recognized as valid", () => {
     const prog = parse(`
       defn add
         signature: from [Number?(a), Number?(b)] to Number?;
         expression a + b;
       end
 
-      defnetwork sum
-        signature: from [x, y] to z;
-        propagate add from [x, y] to z;
-      end
-    `);
-    expect(checkReferences(prog)).toEqual([]);
-  });
-
-  test("propagate referencing a record constructor", () => {
-    const prog = parse(`
       defrecord Point
         x: Number?;
         y: Number?;
       end
 
-      defnetwork make_point
-        signature: from [x, y] to p;
-        propagate Point from [x, y] to p;
+      defnetwork demo
+        signature: from [a, b, p] to z;
+        propagate add from [a, b] to z;
+        propagate Point from [a, b] to p;
+        propagate Point.x from [p] to z;
       end
     `);
     expect(checkReferences(prog)).toEqual([]);
   });
 
-  test("propagate referencing a record field accessor", () => {
-    const prog = parse(`
-      defrecord Point
-        x: Number?;
-        y: Number?;
-      end
-
-      defnetwork get-x
-        signature: from [p] to x;
-        propagate Point.x from [p] to x;
-      end
-    `);
-    expect(checkReferences(prog)).toEqual([]);
-  });
-
-  test("network with no propagate terms produces no errors", () => {
+  // ── Invariants ──────────────────────────────────────────────────────────────
+  test("non-propagate terms (cell) are not subject to the references check", () => {
     const prog = parse(`
       defnetwork empty
         signature: from [a] to b;
@@ -74,19 +52,17 @@ describe("checkReferences: no errors", () => {
   });
 });
 
-// ── error cases ───────────────────────────────────────────────────────────────
+// ── Negative tests ────────────────────────────────────────────────────────────
 
 describe("checkReferences: errors", () => {
-  test("propagate referencing an undefined function", () => {
+  test("propagate referencing an undefined function produces a descriptive error", () => {
     const prog = parse(`
       defnetwork broken
         signature: from [x, y] to z;
         propagate ghost from [x, y] to z;
       end
     `);
-    const errors = checkReferences(prog);
-    expect(errors).toHaveLength(1);
-    expect(errors[0]).toMatchObject({
+    expect(checkReferences(prog)[0]).toMatchObject({
       severity: "error",
       check:    "references",
       network:  "broken",
@@ -102,8 +78,21 @@ describe("checkReferences: errors", () => {
         propagate bar from [b] to c;
       end
     `);
-    const errors = checkReferences(prog);
-    expect(errors).toHaveLength(2);
+    expect(checkReferences(prog)).toHaveLength(2);
+  });
+
+  test("record field accessor from a non-existent field is flagged", () => {
+    const prog = parse(`
+      defrecord Point
+        x: Number?;
+        y: Number?;
+      end
+      defnetwork get-z
+        signature: from [p] to z;
+        propagate Point.z from [p] to z;
+      end
+    `);
+    expect(checkReferences(prog)[0]!.message).toBe('unknown function "Point.z"');
   });
 
   test("errors are attributed to the correct network", () => {
@@ -112,12 +101,10 @@ describe("checkReferences: errors", () => {
         signature: from [Number?(a), Number?(b)] to Number?;
         expression a + b;
       end
-
       defnetwork ok
         signature: from [x, y] to z;
         propagate add from [x, y] to z;
       end
-
       defnetwork broken
         signature: from [x] to y;
         propagate missing from [x] to y;
@@ -126,22 +113,5 @@ describe("checkReferences: errors", () => {
     const errors = checkReferences(prog);
     expect(errors).toHaveLength(1);
     expect(errors[0]!.network).toBe("broken");
-  });
-
-  test("record field accessor from a different record is flagged", () => {
-    const prog = parse(`
-      defrecord Point
-        x: Number?;
-        y: Number?;
-      end
-
-      defnetwork get-z
-        signature: from [p] to z;
-        propagate Point.z from [p] to z;
-      end
-    `);
-    const errors = checkReferences(prog);
-    expect(errors).toHaveLength(1);
-    expect(errors[0]!.message).toBe('unknown function "Point.z"');
   });
 });

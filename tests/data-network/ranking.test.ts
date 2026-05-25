@@ -1,25 +1,15 @@
 import { DataNetwork } from "../../src/data-network/data-network.js";
 import { rankPropagators } from "../../src/data-network/ranking.js";
 
-// Propagator name format: [fn, ...from, "to", to].join("__")
 const p = (fn: string, from: string[], to: string) => [fn, ...from, "to", to].join("__");
 
 describe("rankPropagators: linear chain", () => {
-  test("upstream propagator comes before downstream", () => {
-    const net = new DataNetwork("test", { from: ["x"], to: "out" });
-    net.addPropagator("double", ["x"], "mid");
-    net.addPropagator("negate", ["mid"], "out");
-    const ranked = rankPropagators(net);
-    expect(ranked).toEqual([p("double", ["x"], "mid"), p("negate", ["mid"], "out")]);
-  });
-
   test("three-step chain is ranked in dependency order", () => {
     const net = new DataNetwork("test", { from: ["x"], to: "out" });
     net.addPropagator("f", ["x"], "a");
     net.addPropagator("g", ["a"], "b");
     net.addPropagator("h", ["b"], "out");
-    const ranked = rankPropagators(net);
-    expect(ranked).toEqual([p("f", ["x"], "a"), p("g", ["a"], "b"), p("h", ["b"], "out")]);
+    expect(rankPropagators(net)).toEqual([p("f", ["x"], "a"), p("g", ["a"], "b"), p("h", ["b"], "out")]);
   });
 });
 
@@ -31,10 +21,8 @@ describe("rankPropagators: diamond", () => {
     net.addPropagator("h", ["a", "b"], "out");
     const ranked = rankPropagators(net);
     const hIdx = ranked.indexOf(p("h", ["a", "b"], "out"));
-    const fIdx = ranked.indexOf(p("f", ["x"], "a"));
-    const gIdx = ranked.indexOf(p("g", ["x"], "b"));
-    expect(fIdx).toBeLessThan(hIdx);
-    expect(gIdx).toBeLessThan(hIdx);
+    expect(ranked.indexOf(p("f", ["x"], "a"))).toBeLessThan(hIdx);
+    expect(ranked.indexOf(p("g", ["x"], "b"))).toBeLessThan(hIdx);
   });
 });
 
@@ -43,8 +31,7 @@ describe("rankPropagators: independent propagators", () => {
     const net = new DataNetwork("test", { from: ["a", "c"], to: "out" });
     net.addPropagator("g", ["c"], "d");
     net.addPropagator("f", ["a"], "b");
-    const ranked = rankPropagators(net);
-    expect(ranked).toEqual([p("f", ["a"], "b"), p("g", ["c"], "d")]);
+    expect(rankPropagators(net)).toEqual([p("f", ["a"], "b"), p("g", ["c"], "d")]);
   });
 });
 

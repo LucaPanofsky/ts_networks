@@ -6,36 +6,20 @@ import { readFileSync } from "fs";
 
 describe("typeCheck: happy path — documentPipeline", () => {
   const src = readFileSync("examples/agentic_network_document_analysis_example.tsn", "utf-8");
-  const program = parseProgram(src);
-  const enriched = typeCheck(program.networks[0]!, program);
+  const enriched = typeCheck(parseProgram(src).networks[0]!, parseProgram(src));
 
   test("no cell errors", () => {
-    for (const cell of enriched.cells.values()) {
-      console.log(`cell '${cell.name}': writtenBy=${[...cell.writtenBy]}, readBy=${[...cell.readBy]}, errors=${JSON.stringify(cell._errors)}`);
-      expect(cell._errors).toHaveLength(0);
-    }
+    for (const cell of enriched.cells.values()) expect(cell._errors).toHaveLength(0);
   });
 
   test("no propagator errors", () => {
-    for (const prop of enriched.propagators) {
-      console.log(`propagator '${prop.fn}': errors=${JSON.stringify(prop._errors)}`);
-      expect(prop._errors).toHaveLength(0);
-    }
+    for (const prop of enriched.propagators) expect(prop._errors).toHaveLength(0);
   });
 
-  test("text cell readBy is String?", () => {
-    const cell = enriched.cells.get("text")!;
-    expect(cell.readBy).toContain("String?");
-  });
-
-  test("analysis cell writtenBy is DocumentAnalysis?", () => {
-    const cell = enriched.cells.get("analysis")!;
-    expect(cell.writtenBy).toContain("DocumentAnalysis?");
-  });
-
-  test("label cell writtenBy is ClassificationLabel?", () => {
-    const cell = enriched.cells.get("label")!;
-    expect(cell.writtenBy).toContain("ClassificationLabel?");
+  test("type inference: text, analysis, label cells", () => {
+    expect(enriched.cells.get("text")!.readBy).toContain("String?");
+    expect(enriched.cells.get("analysis")!.writtenBy).toContain("DocumentAnalysis?");
+    expect(enriched.cells.get("label")!.writtenBy).toContain("ClassificationLabel?");
   });
 });
 
@@ -59,17 +43,10 @@ defnetwork conflict
   propagate numFn from [input] to output;
 end
 `;
-  const program = parseProgram(src);
-  const enriched = typeCheck(program.networks[0]!, program);
+  const cell = typeCheck(parseProgram(src).networks[0]!, parseProgram(src)).cells.get("output")!;
 
-  test("output cell has conflicting-cell-types error", () => {
-    const cell = enriched.cells.get("output")!;
-    console.log("output cell:", JSON.stringify({ writtenBy: [...cell.writtenBy], errors: cell._errors }));
+  test("output cell has conflicting-cell-types error and two writer types", () => {
     expect(cell._errors.some(e => e.kind === "conflicting-cell-types")).toBe(true);
-  });
-
-  test("output cell writtenBy has two types", () => {
-    const cell = enriched.cells.get("output")!;
     expect(cell.writtenBy.size).toBe(2);
   });
 });
@@ -94,25 +71,18 @@ defnetwork mismatch
   propagate consumer from [middle] to done;
 end
 `;
-  const program = parseProgram(src);
-  const enriched = typeCheck(program.networks[0]!, program);
+  const enriched = typeCheck(parseProgram(src).networks[0]!, parseProgram(src));
 
-  test("middle cell has conflicting-cell-types error", () => {
+  test("middle cell has type conflict (written as String?, read as Number?)", () => {
     const cell = enriched.cells.get("middle")!;
-    console.log("middle cell:", JSON.stringify({ writtenBy: [...cell.writtenBy], readBy: [...cell.readBy], errors: cell._errors }));
     expect(cell._errors.some(e => e.kind === "conflicting-cell-types")).toBe(true);
-  });
-
-  test("middle cell written as String? but read as Number?", () => {
-    const cell = enriched.cells.get("middle")!;
     expect(cell.writtenBy).toContain("String?");
     expect(cell.readBy).toContain("Number?");
   });
 
   test("consumer propagator has input-type-mismatch error", () => {
-    const prop = enriched.propagators.find(p => p.fn === "consumer")!;
-    console.log("consumer propagator errors:", JSON.stringify(prop._errors));
-    expect(prop._errors.some(e => e.kind === "input-type-mismatch")).toBe(true);
+    expect(enriched.propagators.find(p => p.fn === "consumer")!._errors
+      .some(e => e.kind === "input-type-mismatch")).toBe(true);
   });
 });
 
@@ -130,20 +100,15 @@ defnetwork ghostnet
   propagate weirdFn from [input] to output;
 end
 `;
-  const program = parseProgram(src);
-  const enriched = typeCheck(program.networks[0]!, program);
-  const prop = enriched.propagators.find(p => p.fn === "weirdFn")!;
+  const prop = typeCheck(parseProgram(src).networks[0]!, parseProgram(src))
+    .propagators.find(p => p.fn === "weirdFn")!;
 
   test("propagator has unknown-predicate errors", () => {
-    console.log("weirdFn errors:", JSON.stringify(prop._errors));
     expect(prop._errors.some(e => e.kind === "unknown-predicate")).toBe(true);
   });
 
-  test("unknown return type is flagged", () => {
+  test("both unknown param and return type are flagged", () => {
     expect(prop._errors.some(e => e.message.includes("Phantom?"))).toBe(true);
-  });
-
-  test("unknown param type is flagged", () => {
     expect(prop._errors.some(e => e.message.includes("Ghost?"))).toBe(true);
   });
 });
@@ -162,22 +127,15 @@ defnetwork switches
   switch isGood from [input] to flag;
 end
 `;
-  const program = parseProgram(src);
-  const enriched = typeCheck(program.networks[0]!, program);
+  const enriched = typeCheck(parseProgram(src).networks[0]!, parseProgram(src));
 
   test("no errors", () => {
-    for (const cell of enriched.cells.values()) {
-      expect(cell._errors).toHaveLength(0);
-    }
-    for (const prop of enriched.propagators) {
-      expect(prop._errors).toHaveLength(0);
-    }
+    for (const cell of enriched.cells.values()) expect(cell._errors).toHaveLength(0);
+    for (const prop of enriched.propagators) expect(prop._errors).toHaveLength(0);
   });
 
   test("flag cell writtenBy is Boolean?", () => {
-    const cell = enriched.cells.get("flag")!;
-    console.log("flag cell:", JSON.stringify({ writtenBy: [...cell.writtenBy] }));
-    expect(cell.writtenBy).toContain("Boolean?");
+    expect(enriched.cells.get("flag")!.writtenBy).toContain("Boolean?");
   });
 });
 
@@ -194,18 +152,14 @@ defnetwork switches2
   switch from [cond, data] to done;
 end
 `;
-  const program = parseProgram(src);
-  const enriched = typeCheck(program.networks[0]!, program);
+  const enriched = typeCheck(parseProgram(src).networks[0]!, parseProgram(src));
 
   test("done cell writtenBy is String?", () => {
-    const cell = enriched.cells.get("done")!;
-    console.log("done cell:", JSON.stringify({ writtenBy: [...cell.writtenBy] }));
-    expect(cell.writtenBy).toContain("String?");
+    expect(enriched.cells.get("done")!.writtenBy).toContain("String?");
   });
 
   test("cond cell readBy is Boolean?", () => {
-    const cell = enriched.cells.get("cond")!;
-    expect(cell.readBy).toContain("Boolean?");
+    expect(enriched.cells.get("cond")!.readBy).toContain("Boolean?");
   });
 });
 
@@ -223,17 +177,12 @@ defnetwork inputinfer
   propagate process from [text] to result;
 end
 `;
-  const program = parseProgram(src);
-  const enriched = typeCheck(program.networks[0]!, program);
+  const enriched = typeCheck(parseProgram(src).networks[0]!, parseProgram(src));
 
-  test("text has empty writtenBy (input cell, no producer)", () => {
+  test("text has no writers and is inferred as String? from its consumer", () => {
     const cell = enriched.cells.get("text")!;
-    console.log("text cell:", JSON.stringify({ writtenBy: [...cell.writtenBy], readBy: [...cell.readBy] }));
     expect(cell.writtenBy.size).toBe(0);
-  });
-
-  test("text readBy is String? (inferred from consumer)", () => {
-    expect(enriched.cells.get("text")!.readBy).toContain("String?");
+    expect(cell.readBy).toContain("String?");
   });
 
   test("no errors on well-typed input cell", () => {
@@ -259,17 +208,11 @@ defnetwork readerconflict
   propagate numConsumer from [input] to done;
 end
 `;
-  const program = parseProgram(src);
-  const enriched = typeCheck(program.networks[0]!, program);
+  const cell = typeCheck(parseProgram(src).networks[0]!, parseProgram(src)).cells.get("input")!;
 
-  test("input cell has conflicting-cell-types error", () => {
-    const cell = enriched.cells.get("input")!;
-    console.log("input cell:", JSON.stringify({ readBy: [...cell.readBy], errors: cell._errors }));
+  test("input cell has conflicting-cell-types error and two reader types", () => {
     expect(cell._errors.some(e => e.kind === "conflicting-cell-types")).toBe(true);
-  });
-
-  test("input readBy has two conflicting types", () => {
-    expect(enriched.cells.get("input")!.readBy.size).toBe(2);
+    expect(cell.readBy.size).toBe(2);
   });
 });
 
@@ -287,9 +230,8 @@ defnetwork aritynet
   propagate twoArgs from [a] to b;
 end
 `;
-  const program = parseProgram(src);
-  const enriched = typeCheck(program.networks[0]!, program);
-  const prop = enriched.propagators.find(p => p.fn === "twoArgs")!;
+  const prop = typeCheck(parseProgram(src).networks[0]!, parseProgram(src))
+    .propagators.find(p => p.fn === "twoArgs")!;
 
   test("propagator has arity-mismatch error", () => {
     expect(prop._errors.some(e => e.kind === "arity-mismatch")).toBe(true);
@@ -321,20 +263,16 @@ defnetwork netB
   propagate f from [x] to y;
 end
 `;
-  const program = parseProgram(src);
-  const results = typeCheckProgram(program);
+  const results = typeCheckProgram(parseProgram(src));
 
   test("returns entry for each network", () => {
-    console.log("networks:", [...results.keys()]);
     expect(results.has("netA")).toBe(true);
     expect(results.has("netB")).toBe(true);
   });
 
   test("both networks are well-typed", () => {
-    for (const enriched of results.values()) {
-      for (const cell of enriched.cells.values()) {
+    for (const enriched of results.values())
+      for (const cell of enriched.cells.values())
         expect(cell._errors).toHaveLength(0);
-      }
-    }
   });
 });

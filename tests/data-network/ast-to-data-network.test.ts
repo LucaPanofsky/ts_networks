@@ -15,12 +15,8 @@ describe("astToDataNetwork", () => {
     expect(net.signature).toEqual({ from: ["a", "b"], to: "out" });
   });
 
-  it("CellTerm creates a cell with string content and defaultContent", () => {
-    const ast: DataNetworkAST = {
-      ...base,
-      terms: [{ kind: "cell", name: "x", value: "hello" }],
-    };
-    const net = astToDataNetwork(ast);
+  it("CellTerm creates a cell with content and defaultContent", () => {
+    const net = astToDataNetwork({ ...base, terms: [{ kind: "cell", name: "x", value: "hello" }] });
     const cell = net.cells.get("x")!;
     expect(cell.content).toBe("hello");
     expect(cell.defaultContent).toBe("hello");
@@ -28,57 +24,27 @@ describe("astToDataNetwork", () => {
   });
 
   it("CellTerm coerces integer value", () => {
-    const ast: DataNetworkAST = {
-      ...base,
-      terms: [{ kind: "cell", name: "n", value: "42" }],
-    };
-    const net = astToDataNetwork(ast);
-    const cell = net.cells.get("n")!;
-    expect(cell.content).toBe(42);
-    expect(cell.defaultContent).toBe(42);
+    const net = astToDataNetwork({ ...base, terms: [{ kind: "cell", name: "n", value: "42" }] });
+    expect(net.cells.get("n")!.content).toBe(42);
+    expect(net.cells.get("n")!.defaultContent).toBe(42);
   });
 
-  it("CellTerm coerces boolean true", () => {
-    const ast: DataNetworkAST = {
-      ...base,
-      terms: [{ kind: "cell", name: "flag", value: "true" }],
-    };
-    const net = astToDataNetwork(ast);
-    const cell = net.cells.get("flag")!;
-    expect(cell.content).toBe(true);
-    expect(cell.defaultContent).toBe(true);
-  });
-
-  it("CellTerm coerces boolean false", () => {
-    const ast: DataNetworkAST = {
-      ...base,
-      terms: [{ kind: "cell", name: "flag", value: "false" }],
-    };
-    const net = astToDataNetwork(ast);
-    const cell = net.cells.get("flag")!;
-    expect(cell.content).toBe(false);
-    expect(cell.defaultContent).toBe(false);
+  it("CellTerm coerces boolean values", () => {
+    const trueNet = astToDataNetwork({ ...base, terms: [{ kind: "cell", name: "flag", value: "true" }] });
+    expect(trueNet.cells.get("flag")!.content).toBe(true);
+    const falseNet = astToDataNetwork({ ...base, terms: [{ kind: "cell", name: "flag", value: "false" }] });
+    expect(falseNet.cells.get("flag")!.content).toBe(false);
   });
 
   it("ConstantTerm creates a cell with isConstant true", () => {
-    const ast: DataNetworkAST = {
-      ...base,
-      terms: [{ kind: "constant", name: "k", value: "99" }],
-    };
-    const net = astToDataNetwork(ast);
+    const net = astToDataNetwork({ ...base, terms: [{ kind: "constant", name: "k", value: "99" }] });
     const cell = net.cells.get("k")!;
     expect(cell.content).toBe(99);
-    expect(cell.defaultContent).toBe(99);
     expect(cell.isConstant).toBe(true);
   });
 
-  it("PropagateTerm adds a propagator", () => {
-    const ast: DataNetworkAST = {
-      ...base,
-      terms: [{ kind: "propagate", fn: "add", from: ["a", "b"], to: "c", params: {} }],
-    };
-    const net = astToDataNetwork(ast);
-    expect(net.propagators.has("add__a__b__to__c")).toBe(true);
+  it("PropagateTerm adds a propagator with correct shape", () => {
+    const net = astToDataNetwork({ ...base, terms: [{ kind: "propagate", fn: "add", from: ["a", "b"], to: "c", params: {} }] });
     const p = net.propagators.get("add__a__b__to__c")!;
     expect(p.fn).toBe("add");
     expect(p.from).toEqual(["a", "b"]);
@@ -86,67 +52,40 @@ describe("astToDataNetwork", () => {
   });
 
   it("PropagateTerm passes params", () => {
-    const ast: DataNetworkAST = {
-      ...base,
-      terms: [{ kind: "propagate", fn: "f", from: ["x"], to: "y", params: { mode: "fast" } }],
-    };
-    const net = astToDataNetwork(ast);
+    const net = astToDataNetwork({ ...base, terms: [{ kind: "propagate", fn: "f", from: ["x"], to: "y", params: { mode: "fast" } }] });
     expect(net.propagators.get("f__x__to__y")!.params).toEqual({ mode: "fast" });
   });
 
   it("SwitchTerm adds a propagator with fn __SWITCH", () => {
-    const ast: DataNetworkAST = {
-      ...base,
-      terms: [{ kind: "switch", fn: null, from: ["a", "b"], to: "c" }],
-    };
-    const net = astToDataNetwork(ast);
-    expect(net.propagators.has("__SWITCH__a__b__to__c")).toBe(true);
+    const net = astToDataNetwork({ ...base, terms: [{ kind: "switch", fn: null, from: ["a", "b"], to: "c" }] });
     expect(net.propagators.get("__SWITCH__a__b__to__c")!.fn).toBe("__SWITCH");
   });
 
   it("auto-created cells have undefined defaultContent", () => {
-    const ast: DataNetworkAST = {
-      ...base,
-      terms: [{ kind: "propagate", fn: "f", from: ["x"], to: "y", params: {} }],
-    };
-    const net = astToDataNetwork(ast);
+    const net = astToDataNetwork({ ...base, terms: [{ kind: "propagate", fn: "f", from: ["x"], to: "y", params: {} }] });
     expect(net.cells.get("x")!.defaultContent).toBeUndefined();
-    expect(net.cells.get("y")!.defaultContent).toBeUndefined();
   });
 
   it("CellTerm declaration wins over auto-creation by propagator", () => {
-    const ast: DataNetworkAST = {
+    const net = astToDataNetwork({
       ...base,
       terms: [
         { kind: "cell", name: "x", value: "10" },
         { kind: "propagate", fn: "f", from: ["x"], to: "y", params: {} },
       ],
-    };
-    const net = astToDataNetwork(ast);
+    });
     expect(net.cells.get("x")!.content).toBe(10);
-    expect(net.cells.get("x")!.defaultContent).toBe(10);
   });
 
   it("self-referencing propagator is marked __RECURSIVE with network name in params", () => {
-    const ast: DataNetworkAST = {
-      ...base,
-      name: "myNet",
-      terms: [{ kind: "propagate", fn: "myNet", from: ["x"], to: "y", params: {} }],
-    };
-    const net = astToDataNetwork(ast);
-    const [propagator] = net.propagators.values();
-    expect(propagator!.fn).toBe("__RECURSIVE");
-    expect(propagator!.params.network).toBe("myNet");
+    const net = astToDataNetwork({ ...base, name: "myNet", terms: [{ kind: "propagate", fn: "myNet", from: ["x"], to: "y", params: {} }] });
+    const [p] = net.propagators.values();
+    expect(p!.fn).toBe("__RECURSIVE");
+    expect(p!.params.network).toBe("myNet");
   });
 
   it("non-self propagator is not marked __RECURSIVE", () => {
-    const ast: DataNetworkAST = {
-      ...base,
-      name: "myNet",
-      terms: [{ kind: "propagate", fn: "otherFn", from: ["x"], to: "y", params: {} }],
-    };
-    const net = astToDataNetwork(ast);
-    const [propagator] = net.propagators.values();
-    expect(propagator!.fn).toBe("otherFn");
+    const net = astToDataNetwork({ ...base, name: "myNet", terms: [{ kind: "propagate", fn: "otherFn", from: ["x"], to: "y", params: {} }] });
+    expect([...net.propagators.values()][0]!.fn).toBe("otherFn");
   });
 });

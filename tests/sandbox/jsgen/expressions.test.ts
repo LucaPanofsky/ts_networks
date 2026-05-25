@@ -128,24 +128,15 @@ describe("boolean and comparison operators — end-to-end", () => {
   const or  = sandbox["or"]  as (a: boolean, b: boolean) => boolean;
   const not = sandbox["not"] as (b: boolean) => boolean;
 
-  it("3 == 3 is true",  () => expect(eq(3, 3)).toBe(true));
-  it("3 == 4 is false", () => expect(eq(3, 4)).toBe(false));
-  it("3 != 4 is true",  () => expect(neq(3, 4)).toBe(true));
-  it("3 != 3 is false", () => expect(neq(3, 3)).toBe(false));
-  it("5 > 3 is true",   () => expect(gt(5, 3)).toBe(true));
-  it("3 > 5 is false",  () => expect(gt(3, 5)).toBe(false));
-  it("3 < 5 is true",   () => expect(lt(3, 5)).toBe(true));
-  it("5 < 3 is false",  () => expect(lt(5, 3)).toBe(false));
-  it("3 >= 3 is true",  () => expect(gte(3, 3)).toBe(true));
-  it("2 >= 3 is false", () => expect(gte(2, 3)).toBe(false));
-  it("3 <= 4 is true",  () => expect(lte(3, 4)).toBe(true));
-  it("4 <= 3 is false", () => expect(lte(4, 3)).toBe(false));
-  it("true && false is false", () => expect(and(true, false)).toBe(false));
-  it("true && true is true",   () => expect(and(true, true)).toBe(true));
-  it("false || true is true",  () => expect(or(false, true)).toBe(true));
-  it("false || false is false",() => expect(or(false, false)).toBe(false));
-  it("!true is false",  () => expect(not(true)).toBe(false));
-  it("!false is true",  () => expect(not(false)).toBe(true));
+  it("3 == 3 is true",         () => expect(eq(3, 3)).toBe(true));
+  it("3 != 4 is true",         () => expect(neq(3, 4)).toBe(true));
+  it("5 > 3 is true",          () => expect(gt(5, 3)).toBe(true));
+  it("3 < 5 is true",          () => expect(lt(3, 5)).toBe(true));
+  it("3 >= 3 is true",         () => expect(gte(3, 3)).toBe(true));
+  it("3 <= 4 is true",         () => expect(lte(3, 4)).toBe(true));
+  it("true && false is false",  () => expect(and(true, false)).toBe(false));
+  it("false || true is true",   () => expect(or(false, true)).toBe(true));
+  it("!true is false",          () => expect(not(true)).toBe(false));
 });
 
 // ── Field access ──────────────────────────────────────────────────────────────

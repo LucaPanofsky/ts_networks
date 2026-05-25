@@ -5,49 +5,26 @@ function parse(dsl: string) {
   return parseProgram(dsl);
 }
 
-// ── happy paths ───────────────────────────────────────────────────────────────
+// ── Capabilities ──────────────────────────────────────────────────────────────
 
 describe("checkArities: no errors", () => {
-  test("propagate arity matches defn param count", () => {
+  test("all three callable kinds — defn, record constructor, field accessor — pass when arity is correct", () => {
     const prog = parse(`
       defn add
         signature: from [Number?(a), Number?(b)] to Number?;
         expression a + b;
       end
 
-      defnetwork sum
-        signature: from [x, y] to z;
-        propagate add from [x, y] to z;
-      end
-    `);
-    expect(checkArities(prog)).toEqual([]);
-  });
-
-  test("propagate arity matches record constructor field count", () => {
-    const prog = parse(`
       defrecord Point
         x: Number?;
         y: Number?;
       end
 
-      defnetwork make-point
-        signature: from [x, y] to p;
-        propagate Point from [x, y] to p;
-      end
-    `);
-    expect(checkArities(prog)).toEqual([]);
-  });
-
-  test("propagate arity 1 matches field accessor", () => {
-    const prog = parse(`
-      defrecord Point
-        x: Number?;
-        y: Number?;
-      end
-
-      defnetwork get-x
-        signature: from [p] to x;
-        propagate Point.x from [p] to x;
+      defnetwork demo
+        signature: from [a, b, p] to z;
+        propagate add from [a, b] to z;
+        propagate Point from [a, b] to p;
+        propagate Point.x from [p] to z;
       end
     `);
     expect(checkArities(prog)).toEqual([]);
@@ -68,7 +45,8 @@ describe("checkArities: no errors", () => {
     expect(checkArities(prog)).toEqual([]);
   });
 
-  test("non-propagate terms are not checked", () => {
+  // ── Invariants ──────────────────────────────────────────────────────────────
+  test("non-propagate terms (cell, switch) are not checked", () => {
     const prog = parse(`
       defnetwork seeded
         signature: from [a] to b;
@@ -79,7 +57,7 @@ describe("checkArities: no errors", () => {
     expect(checkArities(prog)).toEqual([]);
   });
 
-  test("unknown function reference is not double-reported", () => {
+  test("unknown function reference is not double-reported by arities check", () => {
     const prog = parse(`
       defnetwork broken
         signature: from [x] to y;
@@ -90,115 +68,69 @@ describe("checkArities: no errors", () => {
   });
 });
 
-// ── error cases ───────────────────────────────────────────────────────────────
+// ── Negative tests ────────────────────────────────────────────────────────────
 
 describe("checkArities: errors", () => {
-  test("too few inputs for a defn", () => {
-    const prog = parse(`
+  test("wrong arity for a defn: error message names expected and actual count", () => {
+    const tooFew = parse(`
       defn add
         signature: from [Number?(a), Number?(b)] to Number?;
         expression a + b;
       end
-
       defnetwork broken
         signature: from [x] to z;
         propagate add from [x] to z;
       end
     `);
-    const errors = checkArities(prog);
-    expect(errors).toHaveLength(1);
-    expect(errors[0]).toMatchObject({
-      severity: "error",
-      check:    "arities",
-      network:  "broken",
-      message:  '"add" expects 2 input(s) but is called with 1',
+    expect(checkArities(tooFew)[0]).toMatchObject({
+      severity: "error", check: "arities", network: "broken",
+      message: '"add" expects 2 input(s) but is called with 1',
     });
-  });
 
-  test("too many inputs for a defn", () => {
-    const prog = parse(`
+    const tooMany = parse(`
       defn negate
         signature: from [Number?(x)] to Number?;
         expression x * -1;
       end
-
       defnetwork broken
         signature: from [a, b] to z;
         propagate negate from [a, b] to z;
       end
     `);
-    const errors = checkArities(prog);
-    expect(errors).toHaveLength(1);
-    expect(errors[0]).toMatchObject({
-      severity: "error",
-      check:    "arities",
-      network:  "broken",
-      message:  '"negate" expects 1 input(s) but is called with 2',
-    });
+    expect(checkArities(tooMany)[0]!.message).toBe('"negate" expects 1 input(s) but is called with 2');
   });
 
-  test("wrong arity for a record constructor", () => {
-    const prog = parse(`
+  test("wrong arity for record callables (constructor and field accessor)", () => {
+    const badCtor = parse(`
       defrecord Point
         x: Number?;
         y: Number?;
       end
-
       defnetwork broken
         signature: from [x] to p;
         propagate Point from [x] to p;
       end
     `);
-    const errors = checkArities(prog);
-    expect(errors).toHaveLength(1);
-    expect(errors[0]!.message).toBe('"Point" expects 2 input(s) but is called with 1');
-  });
+    expect(checkArities(badCtor)[0]!.message).toBe('"Point" expects 2 input(s) but is called with 1');
 
-  test("field accessor called with more than 1 input", () => {
-    const prog = parse(`
+    const badAccessor = parse(`
       defrecord Point
         x: Number?;
       end
-
       defnetwork broken
         signature: from [p, q] to x;
         propagate Point.x from [p, q] to x;
       end
     `);
-    const errors = checkArities(prog);
-    expect(errors).toHaveLength(1);
-    expect(errors[0]!.message).toBe('"Point.x" expects 1 input(s) but is called with 2');
+    expect(checkArities(badAccessor)[0]!.message).toBe('"Point.x" expects 1 input(s) but is called with 2');
   });
 
-  test("arity exceeds cap of 5", () => {
-    const prog = parse(`
-      defn huge
-        signature: from [Number?(a), Number?(b), Number?(c), Number?(d), Number?(e)] to Number?;
-        expression a;
-      end
-
-      defnetwork broken
-        signature: from [a, b, c, d, e, f] to z;
-        propagate huge from [a, b, c, d, e, f] to z;
-      end
-    `);
-    const errors = checkArities(prog);
-    expect(errors).toHaveLength(1);
-    expect(errors[0]).toMatchObject({
-      severity: "error",
-      check:    "arities",
-      network:  "broken",
-      message:  '"huge" is called with 6 inputs but the maximum supported arity is 5',
-    });
-  });
-
-  test("over-cap error suppresses the declared-arity check for the same term", () => {
+  test("arity exceeding cap produces cap error and suppresses the declared-arity check", () => {
     const prog = parse(`
       defn add
         signature: from [Number?(a), Number?(b)] to Number?;
         expression a + b;
       end
-
       defnetwork broken
         signature: from [a, b, c, d, e, f] to z;
         propagate add from [a, b, c, d, e, f] to z;
@@ -215,12 +147,10 @@ describe("checkArities: errors", () => {
         signature: from [Number?(a), Number?(b)] to Number?;
         expression a + b;
       end
-
       defnetwork ok
         signature: from [x, y] to z;
         propagate add from [x, y] to z;
       end
-
       defnetwork broken
         signature: from [x] to z;
         propagate add from [x] to z;

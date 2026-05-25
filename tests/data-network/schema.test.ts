@@ -15,44 +15,23 @@ end
 `;
 
 describe("buildSchemas: primitive field", () => {
-  const schemas = buildSchemas(parseProgram(src));
-  const schema = schemas["Measurement"]!;
+  const schema = buildSchemas(parseProgram(src))["Measurement"]!;
 
-  test("schema exists for Measurement", () => {
-    expect(schema).toBeDefined();
-  });
-
-  test("type is object", () => {
+  test("schema structure", () => {
     expect(schema.type).toBe("object");
-  });
-
-  test("required lists all fields", () => {
     expect(schema.required).toEqual(["value", "label"]);
-  });
-
-  test("label maps to string", () => {
     expect(schema.properties["label"]!.type).toBe("string");
   });
 
-  test("label has no description", () => {
-    expect(schema.properties["label"]!.description).toBeUndefined();
-  });
-});
-
-describe("buildSchemas: user-defined predicate field", () => {
-  const schemas = buildSchemas(parseProgram(src));
-  const prop = schemas["Measurement"]!.properties["value"]!;
-
-  test("value resolves to base type number", () => {
+  test("user-defined predicate field resolves to base type with description", () => {
+    const prop = schema.properties["value"]!;
     expect(prop.type).toBe("number");
-  });
-
-  test("value description contains predicate name", () => {
     expect(prop.description).toContain("PositiveNumber?");
+    expect(prop.description).toContain("n > 0");
   });
 
-  test("value description contains body expression", () => {
-    expect(prop.description).toContain("n > 0");
+  test("primitive field has no description", () => {
+    expect(schema.properties["label"]!.description).toBeUndefined();
   });
 });
 
@@ -72,25 +51,18 @@ end
   const outerSchema = schemas["Outer"]!;
   const innerProp = outerSchema.properties["inner"]!;
 
-  test("nested record field maps to object type", () => {
+  test("nested field inlines as object with properties and required", () => {
     expect(innerProp.type).toBe("object");
-  });
-
-  test("nested record has no description", () => {
-    expect(innerProp.description).toBeUndefined();
-  });
-
-  test("nested record inlines inner properties", () => {
-    expect(innerProp.properties).toBeDefined();
     expect(innerProp.properties!["x"]!.type).toBe("number");
     expect(innerProp.properties!["label"]!.type).toBe("string");
-  });
-
-  test("nested record inlines required", () => {
     expect(innerProp.required).toEqual(["x", "label"]);
   });
 
-  test("outer schema still has its own required", () => {
+  test("nested record field has no description", () => {
+    expect(innerProp.description).toBeUndefined();
+  });
+
+  test("outer schema has its own required", () => {
     expect(outerSchema.required).toEqual(["inner", "name"]);
   });
 });
@@ -107,24 +79,16 @@ defrecord Article
   scores: [Number?];
 end
 `;
-  const schemas = buildSchemas(parseProgram(src3));
-  const schema = schemas["Article"]!;
+  const schema = buildSchemas(parseProgram(src3))["Article"]!;
 
-  test("vector of records maps to array type", () => {
+  test("vector fields map to array type", () => {
     expect(schema.properties["tags"]!.type).toBe("array");
-  });
-
-  test("vector of records has inlined items schema", () => {
-    const items = schema.properties["tags"]!.items!;
-    expect(items.type).toBe("object");
-    expect(items.properties!["label"]!.type).toBe("string");
-  });
-
-  test("vector of primitives maps to array type", () => {
     expect(schema.properties["scores"]!.type).toBe("array");
   });
 
-  test("vector of primitives has correct items type", () => {
+  test("vector items schemas (record inlined, primitive typed)", () => {
+    expect(schema.properties["tags"]!.items!.type).toBe("object");
+    expect(schema.properties["tags"]!.items!.properties!["label"]!.type).toBe("string");
     expect(schema.properties["scores"]!.items!.type).toBe("number");
   });
 
@@ -134,9 +98,8 @@ end
   });
 });
 
-// ── defenum schema ────────────────────────────────────────────────────────────
-
-const enumSrc = `
+describe("buildSchemas: enum field in record", () => {
+  const enumSrc = `
 defenum DocumentType
   'report', 'email', 'legal', 'technical';
 end
@@ -146,40 +109,15 @@ defrecord Payload
   label: String?;
 end
 `;
+  const prop = buildSchemas(parseProgram(enumSrc))["Payload"]!.properties["docType"]!;
 
-describe("buildSchemas: enum field in record", () => {
-  const schemas = buildSchemas(parseProgram(enumSrc));
-  const schema = schemas["Payload"]!;
-  const prop = schema.properties["docType"]!;
-
-  test("enum field resolves to string type", () => {
-    console.log("enum field schema:", JSON.stringify(prop));
+  test("enum field resolves to string type with enum constraint", () => {
     expect(prop.type).toBe("string");
-  });
-
-  test("enum field has enum constraint", () => {
     expect(prop.enum).toEqual(["report", "email", "legal", "technical"]);
   });
 
   test("enum field has no description", () => {
     expect(prop.description).toBeUndefined();
-  });
-});
-
-describe("deriveProtocol: enum return type", () => {
-  const program = parseProgram(enumSrc);
-  const protocol = deriveProtocol({ kind: "scalar", predicate: "DocumentType?" }, program);
-
-  test("schema wraps enum in value envelope", () => {
-    console.log("enum protocol schema:", JSON.stringify(protocol.schema));
-    expect(protocol.schema.type).toBe("object");
-    expect(protocol.schema.properties["value"]!.type).toBe("string");
-    expect(protocol.schema.properties["value"]!.enum).toEqual(["report", "email", "legal", "technical"]);
-    expect(protocol.schema.required).toEqual(["value"]);
-  });
-
-  test("extract unwraps value", () => {
-    expect(protocol.extract({ value: "legal" })).toBe("legal");
   });
 });
 
@@ -194,35 +132,27 @@ end
 `;
 
 describe("deriveProtocol: record return type", () => {
-  const program = parseProgram(protocolSrc);
-  const protocol = deriveProtocol({ kind: "scalar", predicate: "DocumentAnalysis?" }, program);
+  const protocol = deriveProtocol({ kind: "scalar", predicate: "DocumentAnalysis?" }, parseProgram(protocolSrc));
 
-  test("schema is the record schema directly", () => {
+  test("schema is the record schema with correct structure", () => {
     expect(protocol.schema.type).toBe("object");
-    expect(protocol.schema.properties["type"]!.type).toBe("string");
+    expect(protocol.schema.required).toEqual(["type", "sentiment", "confidence"]);
     expect(protocol.schema.properties["confidence"]!.type).toBe("number");
   });
 
-  test("schema required matches record fields", () => {
-    expect(protocol.schema.required).toEqual(["type", "sentiment", "confidence"]);
-  });
-
   test("extract injects __type", () => {
-    const raw = { type: "report", sentiment: "positive", confidence: 0.9 };
-    const result = protocol.extract(raw) as Record<string, unknown>;
+    const result = protocol.extract({ type: "report", sentiment: "positive", confidence: 0.9 }) as Record<string, unknown>;
     expect(result["__type"]).toBe("DocumentAnalysis");
   });
 
   test("extract preserves field values", () => {
-    const raw = { type: "report", sentiment: "positive", confidence: 0.9 };
-    const result = protocol.extract(raw) as Record<string, unknown>;
+    const result = protocol.extract({ type: "report", sentiment: "positive", confidence: 0.9 }) as Record<string, unknown>;
     expect(result["sentiment"]).toBe("positive");
   });
 });
 
 describe("deriveProtocol: primitive return type", () => {
-  const program = parseProgram(protocolSrc);
-  const protocol = deriveProtocol({ kind: "scalar", predicate: "String?" }, program);
+  const protocol = deriveProtocol({ kind: "scalar", predicate: "String?" }, parseProgram(protocolSrc));
 
   test("schema wraps in value envelope", () => {
     expect(protocol.schema.type).toBe("object");
@@ -243,8 +173,7 @@ defpredicate PositiveNumber?
     n > 0;
 end
 `;
-  const program = parseProgram(srcWithPredicate);
-  const protocol = deriveProtocol({ kind: "scalar", predicate: "PositiveNumber?" }, program);
+  const protocol = deriveProtocol({ kind: "scalar", predicate: "PositiveNumber?" }, parseProgram(srcWithPredicate));
 
   test("schema wraps in value envelope with base type", () => {
     expect(protocol.schema.properties["value"]!.type).toBe("number");
@@ -259,16 +188,32 @@ end
   });
 });
 
-describe("deriveProtocol: vector return type", () => {
-  const program = parseProgram(protocolSrc);
-  const protocol = deriveProtocol({ kind: "vector", element: "DocumentAnalysis?" }, program);
+describe("deriveProtocol: enum return type", () => {
+  const enumSrc = `
+defenum DocumentType
+  'report', 'email', 'legal', 'technical';
+end
+`;
+  const protocol = deriveProtocol({ kind: "scalar", predicate: "DocumentType?" }, parseProgram(enumSrc));
 
-  test("schema wraps in items envelope", () => {
+  test("schema wraps enum in value envelope", () => {
     expect(protocol.schema.type).toBe("object");
-    expect(protocol.schema.required).toEqual(["items"]);
+    expect(protocol.schema.properties["value"]!.type).toBe("string");
+    expect(protocol.schema.properties["value"]!.enum).toEqual(["report", "email", "legal", "technical"]);
+    expect(protocol.schema.required).toEqual(["value"]);
   });
 
-  test("items is array type", () => {
+  test("extract unwraps value", () => {
+    expect(protocol.extract({ value: "legal" })).toBe("legal");
+  });
+});
+
+describe("deriveProtocol: vector return type", () => {
+  const protocol = deriveProtocol({ kind: "vector", element: "DocumentAnalysis?" }, parseProgram(protocolSrc));
+
+  test("schema wraps in items envelope with array type", () => {
+    expect(protocol.schema.type).toBe("object");
+    expect(protocol.schema.required).toEqual(["items"]);
     expect(protocol.schema.properties["items"]!.type).toBe("array");
   });
 

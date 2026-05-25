@@ -1,5 +1,7 @@
 import { Deferred } from "../../src/information-structures/deferred.js";
 
+// ── Capabilities ──────────────────────────────────────────────────────────────
+
 describe("Deferred: initial state", () => {
   test("is not realized and resolvedValue is undefined", () => {
     const d = new Deferred();
@@ -9,15 +11,10 @@ describe("Deferred: initial state", () => {
 });
 
 describe("Deferred: resolve", () => {
-  test("becomes realized after resolve", () => {
+  test("sets isRealized and resolvedValue", () => {
     const d = new Deferred<number>();
     d.resolve(42);
     expect(d.isRealized).toBe(true);
-  });
-
-  test("resolvedValue reflects the resolved value", () => {
-    const d = new Deferred<number>();
-    d.resolve(42);
     expect(d.resolvedValue).toBe(42);
   });
 
@@ -27,6 +24,7 @@ describe("Deferred: resolve", () => {
     expect(await d.promise).toBe(42);
   });
 
+  // ── Invariants ──────────────────────────────────────────────────────────────
   test("second resolve is a no-op", async () => {
     const d = new Deferred<number>();
     d.resolve(1);

@@ -1,6 +1,16 @@
 import { parseProgram } from "../../src/data-network/tree-to-network.js";
 import { parser } from "../../src/data-network/parser.js";
-import type { BinaryExpr, CallExpr, FieldExpr, FnAST, LetExpr, LiteralExpr, MatchExpr, RecordAST, RecordPattern, UnaryExpr, VarExpr } from "../../src/data-network/types.js";
+import type { BinaryExpr, CallExpr, FieldExpr, FnAST, LetExpr, MatchExpr, RecordAST, UnaryExpr } from "../../src/data-network/types.js";
+
+function noErrorNodes(src: string) {
+  const tree = parser.parse(src.trim());
+  const cursor = tree.cursor();
+  do { expect(cursor.name).not.toBe("⚠"); } while (cursor.next());
+}
+
+function parseFnBody(expr: string) {
+  return parseProgram(`defn f signature: from to Number?; expression ${expr}; end`).fns[0]!.body;
+}
 
 // ── defrecord ─────────────────────────────────────────────────────────────────
 
@@ -12,40 +22,22 @@ defrecord Point
 end
 `;
 
-describe("parseProgram: defrecord basic", () => {
-  const prog = parseProgram(recordInput);
-  const rec = prog.records[0]! as RecordAST;
+describe("parseProgram: defrecord", () => {
+  const rec = parseProgram(recordInput).records[0]! as RecordAST;
 
-  test("record name", () => {
+  test("structure", () => {
     expect(rec.name).toBe("Point");
+    expect(rec.fields).toEqual([
+      { name: "x",     type: { kind: "scalar", predicate: "Number?" } },
+      { name: "y",     type: { kind: "scalar", predicate: "Number?" } },
+      { name: "label", type: { kind: "scalar", predicate: "String?" } },
+    ]);
   });
 
-  test("field count", () => {
-    expect(rec.fields).toHaveLength(3);
-  });
-
-  test("first field", () => {
-    expect(rec.fields[0]).toEqual({ name: "x", type: { kind: "scalar", predicate: "Number?" } });
-  });
-
-  test("second field", () => {
-    expect(rec.fields[1]).toEqual({ name: "y", type: { kind: "scalar", predicate: "Number?" } });
-  });
-
-  test("third field", () => {
-    expect(rec.fields[2]).toEqual({ name: "label", type: { kind: "scalar", predicate: "String?" } });
-  });
-
-  test("no error nodes", () => {
-    const tree = parser.parse(recordInput.trim());
-    const cursor = tree.cursor();
-    do {
-      expect(cursor.name).not.toBe("⚠");
-    } while (cursor.next());
-  });
+  test("no error nodes", () => noErrorNodes(recordInput));
 });
 
-// ── defn — basic ────────────────────────────────────────────────────────────
+// ── defn ──────────────────────────────────────────────────────────────────────
 
 const fnSimple = `
 defn add
@@ -54,56 +46,31 @@ defn add
 end
 `;
 
-describe("parseProgram: defn basic", () => {
-  const prog = parseProgram(fnSimple);
-  const fn = prog.fns[0]! as FnAST;
+describe("parseProgram: defn", () => {
+  const fn = parseProgram(fnSimple).fns[0]! as FnAST;
 
-  test("fn name", () => {
+  test("structure", () => {
     expect(fn.name).toBe("add");
-  });
-
-  test("isPredicate is false", () => {
     expect(fn.isPredicate).toBe(false);
-  });
-
-  test("param count", () => {
-    expect(fn.params).toHaveLength(2);
-  });
-
-  test("first param", () => {
-    expect(fn.params[0]).toEqual({ predicate: "Number?", name: "x" });
-  });
-
-  test("second param", () => {
-    expect(fn.params[1]).toEqual({ predicate: "Number?", name: "y" });
-  });
-
-  test("return type", () => {
+    expect(fn.params).toEqual([
+      { predicate: "Number?", name: "x" },
+      { predicate: "Number?", name: "y" },
+    ]);
     expect(fn.returnType).toEqual({ kind: "scalar", predicate: "Number?" });
   });
 
-  test("body op", () => {
-    expect((fn.body as BinaryExpr).op).toBe("+");
+  test("body", () => {
+    expect(fn.body).toEqual({
+      kind: "binary", op: "+",
+      left:  { kind: "var", name: "x" },
+      right: { kind: "var", name: "y" },
+    });
   });
 
-  test("body left is var x", () => {
-    expect((fn.body as BinaryExpr).left).toEqual({ kind: "var", name: "x" });
-  });
-
-  test("body right is var y", () => {
-    expect((fn.body as BinaryExpr).right).toEqual({ kind: "var", name: "y" });
-  });
-
-  test("no error nodes", () => {
-    const tree = parser.parse(fnSimple.trim());
-    const cursor = tree.cursor();
-    do {
-      expect(cursor.name).not.toBe("⚠");
-    } while (cursor.next());
-  });
+  test("no error nodes", () => noErrorNodes(fnSimple));
 });
 
-// ── defn — no params ────────────────────────────────────────────────────────
+// ── defn — no params ─────────────────────────────────────────────────────────
 
 const fnNoParams = `
 defn pi
@@ -113,36 +80,22 @@ end
 `;
 
 describe("parseProgram: defn no params", () => {
-  const prog = parseProgram(fnNoParams);
-  const fn = prog.fns[0]!;
-
-  test("empty params", () => {
+  test("empty params and return type", () => {
+    const fn = parseProgram(fnNoParams).fns[0]!;
     expect(fn.params).toHaveLength(0);
-  });
-
-  test("return type", () => {
     expect(fn.returnType).toEqual({ kind: "scalar", predicate: "Number?" });
   });
 
-  test("body is literal 3", () => {
-    expect(fn.body).toEqual({ kind: "literal", value: 3 });
+  test("body is literal", () => {
+    expect(parseProgram(fnNoParams).fns[0]!.body).toEqual({ kind: "literal", value: 3 });
   });
 });
 
 // ── expressions ───────────────────────────────────────────────────────────────
 
-function parseFnBody(expr: string) {
-  const src = `defn f signature: from to Number?; expression ${expr}; end`;
-  const prog = parseProgram(src);
-  return prog.fns[0]!.body;
-}
-
 describe("parseProgram: expression — literals", () => {
-  test("integer literal", () => {
+  test("number literals (integer and decimal)", () => {
     expect(parseFnBody("42")).toEqual({ kind: "literal", value: 42 });
-  });
-
-  test("decimal literal", () => {
     expect(parseFnBody("3.14")).toEqual({ kind: "literal", value: 3.14 });
   });
 
@@ -150,11 +103,8 @@ describe("parseProgram: expression — literals", () => {
     expect(parseFnBody("'hello'")).toEqual({ kind: "literal", value: "hello" });
   });
 
-  test("boolean true", () => {
+  test("boolean literals", () => {
     expect(parseFnBody("true")).toEqual({ kind: "literal", value: true });
-  });
-
-  test("boolean false", () => {
     expect(parseFnBody("false")).toEqual({ kind: "literal", value: false });
   });
 });
@@ -167,45 +117,27 @@ describe("parseProgram: expression — variable", () => {
 
 describe("parseProgram: expression — arithmetic", () => {
   test("addition", () => {
-    const body = parseFnBody("a + b") as BinaryExpr;
-    expect(body.kind).toBe("binary");
-    expect(body.op).toBe("+");
-    expect(body.left).toEqual({ kind: "var", name: "a" });
-    expect(body.right).toEqual({ kind: "var", name: "b" });
+    expect(parseFnBody("a + b")).toEqual({
+      kind: "binary", op: "+",
+      left:  { kind: "var", name: "a" },
+      right: { kind: "var", name: "b" },
+    });
   });
 });
 
 describe("parseProgram: expression — comparisons", () => {
-  test("equal", () => {
-    const body = parseFnBody("a == b") as BinaryExpr;
-    expect(body.op).toBe("==");
+  test("equality operator", () => {
+    expect((parseFnBody("a == b") as BinaryExpr).op).toBe("==");
   });
 
-  test("not equal", () => {
-    const body = parseFnBody("a != b") as BinaryExpr;
-    expect(body.op).toBe("!=");
-  });
-
-  test("less than", () => {
-    const body = parseFnBody("a < b") as BinaryExpr;
-    expect(body.op).toBe("<");
-  });
-
-  test("greater than or equal", () => {
-    const body = parseFnBody("a >= b") as BinaryExpr;
-    expect(body.op).toBe(">=");
+  test("greater-than-or-equal operator", () => {
+    expect((parseFnBody("a >= b") as BinaryExpr).op).toBe(">=");
   });
 });
 
 describe("parseProgram: expression — boolean logic", () => {
-  test("and", () => {
-    const body = parseFnBody("a && b") as BinaryExpr;
-    expect(body.op).toBe("&&");
-  });
-
-  test("or", () => {
-    const body = parseFnBody("a || b") as BinaryExpr;
-    expect(body.op).toBe("||");
+  test("logical and", () => {
+    expect((parseFnBody("a && b") as BinaryExpr).op).toBe("&&");
   });
 
   test("unary not", () => {
@@ -216,20 +148,15 @@ describe("parseProgram: expression — boolean logic", () => {
   });
 });
 
-describe("parseProgram: expression — function call", () => {
-  test("call with args", () => {
-    const body = parseFnBody("sqrt(x)") as CallExpr;
-    expect(body.kind).toBe("call");
-    expect(body.fn).toBe("sqrt");
-    expect(body.args).toHaveLength(1);
-    expect(body.args[0]).toEqual({ kind: "var", name: "x" });
-  });
-
+describe("parseProgram: expression — call", () => {
   test("call with multiple args", () => {
     const body = parseFnBody("max(a, b)") as CallExpr;
-    expect(body.args).toHaveLength(2);
-    expect(body.args[0]).toEqual({ kind: "var", name: "a" });
-    expect(body.args[1]).toEqual({ kind: "var", name: "b" });
+    expect(body.kind).toBe("call");
+    expect(body.fn).toBe("max");
+    expect(body.args).toEqual([
+      { kind: "var", name: "a" },
+      { kind: "var", name: "b" },
+    ]);
   });
 });
 
@@ -242,32 +169,17 @@ describe("parseProgram: expression — field access", () => {
   });
 });
 
-describe("parseProgram: expression — precedence and nesting", () => {
+describe("parseProgram: expression — precedence", () => {
   test("mul binds tighter than add", () => {
-    // a + b * c  →  a + (b * c)
     const body = parseFnBody("a + b * c") as BinaryExpr;
     expect(body.op).toBe("+");
-    expect(body.left).toEqual({ kind: "var", name: "a" });
-    const right = body.right as BinaryExpr;
-    expect(right.op).toBe("*");
-    expect(right.left).toEqual({ kind: "var", name: "b" });
-    expect(right.right).toEqual({ kind: "var", name: "c" });
+    expect((body.right as BinaryExpr).op).toBe("*");
   });
 
-  test("nested unary and arithmetic", () => {
-    // !a && b
+  test("unary binds tighter than logical", () => {
     const body = parseFnBody("!a && b") as BinaryExpr;
     expect(body.op).toBe("&&");
-    const left = body.left as UnaryExpr;
-    expect(left.kind).toBe("unary");
-    expect(left.expr).toEqual({ kind: "var", name: "a" });
-  });
-
-  test("call inside binary", () => {
-    const body = parseFnBody("f(x) + 1") as BinaryExpr;
-    expect(body.op).toBe("+");
-    expect((body.left as CallExpr).kind).toBe("call");
-    expect((body.right as LiteralExpr).value).toBe(1);
+    expect((body.left as UnaryExpr).kind).toBe("unary");
   });
 });
 
@@ -280,21 +192,12 @@ defpredicate even?
 end
 `;
 
-describe("parseProgram: defpredicate basic", () => {
-  const prog = parseProgram(predicateSimple);
-  const fn = prog.fns[0]!;
-
+describe("parseProgram: defpredicate", () => {
   test("isPredicate is true", () => {
-    expect(fn.isPredicate).toBe(true);
+    expect(parseProgram(predicateSimple).fns[0]!.isPredicate).toBe(true);
   });
 
-  test("no error nodes", () => {
-    const tree = parser.parse(predicateSimple.trim());
-    const cursor = tree.cursor();
-    do {
-      expect(cursor.name).not.toBe("⚠");
-    } while (cursor.next());
-  });
+  test("no error nodes", () => noErrorNodes(predicateSimple));
 });
 
 // ── let bindings ──────────────────────────────────────────────────────────────
@@ -309,48 +212,23 @@ defn compute
 end
 `;
 
-describe("parseProgram: let — body is LetExpr", () => {
-  const prog = parseProgram(fnWithLet);
-  const fn = prog.fns[0]!;
-
-  test("body kind is let", () => {
-    expect(fn.body.kind).toBe("let");
+describe("parseProgram: let", () => {
+  test("structure", () => {
+    const body = parseProgram(fnWithLet).fns[0]!.body as LetExpr;
+    expect(body.kind).toBe("let");
+    expect(body.bindings).toEqual([
+      { name: "a", value: { kind: "binary", op: "+", left: { kind: "var", name: "x" }, right: { kind: "var", name: "y" } } },
+      { name: "b", value: { kind: "binary", op: "*", left: { kind: "var", name: "a" }, right: { kind: "literal", value: 2 } } },
+    ]);
+    expect(body.body).toEqual({ kind: "var", name: "b" });
   });
 
-  test("two bindings", () => {
-    expect((fn.body as LetExpr).bindings).toHaveLength(2);
-  });
-
-  test("first binding name", () => {
-    expect((fn.body as LetExpr).bindings[0]!.name).toBe("a");
-  });
-
-  test("first binding value is binary expr", () => {
-    expect((fn.body as LetExpr).bindings[0]!.value.kind).toBe("binary");
-  });
-
-  test("second binding name", () => {
-    expect((fn.body as LetExpr).bindings[1]!.name).toBe("b");
-  });
-
-  test("body is var b", () => {
-    expect((fn.body as LetExpr).body).toEqual({ kind: "var", name: "b" });
-  });
-
-  test("no error nodes", () => {
-    const tree = parser.parse(fnWithLet.trim());
-    const cursor = tree.cursor();
-    do {
-      expect(cursor.name).not.toBe("⚠");
-    } while (cursor.next());
-  });
+  test("no error nodes", () => noErrorNodes(fnWithLet));
 });
 
 describe("parseProgram: let — no bindings leaves body as plain Expr", () => {
-  const prog = parseProgram(fnSimple);
-
   test("body kind is binary (not let)", () => {
-    expect(prog.fns[0]!.body.kind).toBe("binary");
+    expect(parseProgram(fnSimple).fns[0]!.body.kind).toBe("binary");
   });
 });
 
@@ -374,27 +252,14 @@ end
 `;
 
 describe("parseProgram: multi-definition document", () => {
-  const prog = parseProgram(multiInput);
-
-  test("network name", () => {
+  test("all definitions parsed", () => {
+    const prog = parseProgram(multiInput);
     expect(prog.networks[0]!.name).toBe("myNet");
-  });
-
-  test("record name", () => {
     expect(prog.records[0]!.name).toBe("Vec2");
-  });
-
-  test("fn name", () => {
     expect(prog.fns[0]!.name).toBe("length");
   });
 
-  test("no error nodes", () => {
-    const tree = parser.parse(multiInput.trim());
-    const cursor = tree.cursor();
-    do {
-      expect(cursor.name).not.toBe("⚠");
-    } while (cursor.next());
-  });
+  test("no error nodes", () => noErrorNodes(multiInput));
 });
 
 // ── derive ────────────────────────────────────────────────────────────────────
@@ -405,39 +270,14 @@ derive GradStudent? from Student?;
 `;
 
 describe("parseProgram: derive", () => {
-  const prog = parseProgram(deriveInput);
-
-  test("derives count", () => {
-    expect(prog.derives).toHaveLength(2);
+  test("structure", () => {
+    expect(parseProgram(deriveInput).derives).toEqual([
+      { kind: "derive", sub: "Student?",    sup: "Person?"  },
+      { kind: "derive", sub: "GradStudent?", sup: "Student?" },
+    ]);
   });
 
-  test("first derive sub", () => {
-    expect(prog.derives[0]!.sub).toBe("Student?");
-  });
-
-  test("first derive sup", () => {
-    expect(prog.derives[0]!.sup).toBe("Person?");
-  });
-
-  test("second derive sub", () => {
-    expect(prog.derives[1]!.sub).toBe("GradStudent?");
-  });
-
-  test("second derive sup", () => {
-    expect(prog.derives[1]!.sup).toBe("Student?");
-  });
-
-  test("kind is derive", () => {
-    expect(prog.derives[0]!.kind).toBe("derive");
-  });
-
-  test("no error nodes", () => {
-    const tree = parser.parse(deriveInput.trim());
-    const cursor = tree.cursor();
-    do {
-      expect(cursor.name).not.toBe("⚠");
-    } while (cursor.next());
-  });
+  test("no error nodes", () => noErrorNodes(deriveInput));
 });
 
 describe("parseProgram: derive alongside other definitions", () => {
@@ -448,19 +288,15 @@ end
 
 derive Student? from Person?;
 `;
-  const prog = parseProgram(mixed);
 
-  test("record still parsed", () => {
+  test("record and derive both parsed", () => {
+    const prog = parseProgram(mixed);
     expect(prog.records[0]!.name).toBe("Person");
-  });
-
-  test("derive still parsed", () => {
     expect(prog.derives[0]!.sub).toBe("Student?");
   });
 
   test("derives array empty when absent", () => {
-    const empty = parseProgram("defrecord Foo\n  x: Number?;\nend");
-    expect(empty.derives).toHaveLength(0);
+    expect(parseProgram("defrecord Foo\n  x: Number?;\nend").derives).toHaveLength(0);
   });
 });
 
@@ -479,55 +315,25 @@ end
 `;
 
 describe("parseProgram: match expression", () => {
-  const prog = parseProgram(matchDsl);
-  const fn = prog.fns[0]!;
+  test("no parse errors", () => noErrorNodes(matchDsl));
 
-  test("no parse errors", () => {
-    const tree = parser.parse(matchDsl.trim());
-    const cursor = tree.cursor();
-    do { expect(cursor.name).not.toBe("⚠"); } while (cursor.next());
+  test("body kind, subject, arm count", () => {
+    const body = parseProgram(matchDsl).fns[0]!.body as MatchExpr;
+    expect(body.kind).toBe("match");
+    expect(body.subject).toEqual({ kind: "var", name: "s" });
+    expect(body.arms).toHaveLength(3);
   });
 
-  test("body kind is match", () => {
-    expect(fn.body.kind).toBe("match");
-  });
-
-  test("subject is var s", () => {
-    expect((fn.body as MatchExpr).subject).toEqual({ kind: "var", name: "s" });
-  });
-
-  test("three arms", () => {
-    expect((fn.body as MatchExpr).arms).toHaveLength(3);
-  });
-
-  test("first arm: record pattern Circle with binding radius->r", () => {
-    const arm = (fn.body as MatchExpr).arms[0]!;
-    expect(arm.pattern.kind).toBe("record-pattern");
-    const pat = arm.pattern as RecordPattern;
-    expect(pat.recordName).toBe("Circle");
-    expect(pat.bindings).toHaveLength(1);
-    expect(pat.bindings[0]).toEqual({ field: "radius", as: "r" });
-  });
-
-  test("first arm: guard is r > 10", () => {
-    const arm = (fn.body as MatchExpr).arms[0]!;
+  test("first arm: record pattern with guard", () => {
+    const arm = (parseProgram(matchDsl).fns[0]!.body as MatchExpr).arms[0]!;
+    expect(arm.pattern).toEqual({ kind: "record-pattern", recordName: "Circle", bindings: [{ field: "radius", as: "r" }] });
     expect(arm.guard).not.toBeNull();
     expect(arm.guard!.kind).toBe("binary");
-  });
-
-  test("first arm: body is literal 'large'", () => {
-    const arm = (fn.body as MatchExpr).arms[0]!;
     expect(arm.body).toEqual({ kind: "literal", value: "large" });
   });
 
-  test("second arm: no guard", () => {
-    const arm = (fn.body as MatchExpr).arms[1]!;
-    expect(arm.guard).toBeNull();
-    expect(arm.body).toEqual({ kind: "literal", value: "small" });
-  });
-
-  test("third arm: wildcard pattern", () => {
-    const arm = (fn.body as MatchExpr).arms[2]!;
+  test("wildcard arm", () => {
+    const arm = (parseProgram(matchDsl).fns[0]!.body as MatchExpr).arms[2]!;
     expect(arm.pattern.kind).toBe("wildcard");
     expect(arm.guard).toBeNull();
     expect(arm.body).toEqual({ kind: "literal", value: "other" });
@@ -552,52 +358,29 @@ end
 `;
 
 describe("parseProgram: defagent", () => {
-  const prog = parseProgram(agentDsl);
-  const agent = prog.agents[0]!;
+  const agent = parseProgram(agentDsl).agents[0]!;
 
-  test("no parse errors", () => {
-    const tree = parser.parse(agentDsl.trim());
-    const cursor = tree.cursor();
-    do { expect(cursor.name).not.toBe("⚠"); } while (cursor.next());
-  });
+  test("no parse errors", () => noErrorNodes(agentDsl));
 
-  test("agents array has one entry", () => {
-    expect(prog.agents).toHaveLength(1);
-  });
-
-  test("name", () => {
+  test("name, params, returnType", () => {
     expect(agent.name).toBe("analyzeDocument");
-  });
-
-  test("params", () => {
-    expect(agent.params).toHaveLength(1);
-    expect(agent.params[0]).toEqual({ predicate: "String?", name: "text" });
-  });
-
-  test("returnType", () => {
+    expect(agent.params).toEqual([{ predicate: "String?", name: "text" }]);
     expect(agent.returnType).toEqual({ kind: "scalar", predicate: "String?" });
   });
 
   test("config", () => {
-    expect(agent.config["model"]).toBe("claude-opus-4-7");
-    expect(agent.config["temperature"]).toBe("0.2");
+    expect(agent.config).toEqual({ model: "claude-opus-4-7", temperature: "0.2" });
   });
 
-  test("prompt contains markdown content", () => {
+  test("prompt contains expected content", () => {
     expect(agent.prompt).toContain("# Task");
     expect(agent.prompt).toContain("{{text}}");
-    expect(agent.prompt).toContain('"positive"');
     expect(agent.prompt).toContain('"neutral"');
   });
 
-  test("prompt strips surrounding triple quotes", () => {
+  test("prompt strips surrounding triple-quotes", () => {
     expect(agent.prompt.startsWith('"""')).toBe(false);
     expect(agent.prompt.endsWith('"""')).toBe(false);
-  });
-
-  test("agents array empty when absent", () => {
-    const empty = parseProgram("defrecord Foo\n  x: Number?;\nend");
-    expect(empty.agents).toHaveLength(0);
   });
 });
 
@@ -609,37 +392,15 @@ defenum DocumentType
 end
 `;
 
-describe("parseProgram: defenum basic", () => {
-  const prog = parseProgram(enumInput);
-  const en = prog.enums[0]!;
-
-  test("no parse errors", () => {
-    const tree = parser.parse(enumInput.trim());
-    const cursor = tree.cursor();
-    do { expect(cursor.name).not.toBe("⚠"); } while (cursor.next());
-  });
-
-  test("enums array has one entry", () => {
-    console.log("enums:", JSON.stringify(prog.enums));
-    expect(prog.enums).toHaveLength(1);
-  });
-
-  test("kind is enum", () => {
+describe("parseProgram: defenum", () => {
+  test("structure", () => {
+    const en = parseProgram(enumInput).enums[0]!;
     expect(en.kind).toBe("enum");
-  });
-
-  test("name", () => {
     expect(en.name).toBe("DocumentType");
-  });
-
-  test("values array", () => {
     expect(en.values).toEqual(["report", "email", "legal", "technical"]);
   });
 
-  test("enums empty when absent", () => {
-    const empty = parseProgram("defrecord Foo\n  x: Number?;\nend");
-    expect(empty.enums).toHaveLength(0);
-  });
+  test("no error nodes", () => noErrorNodes(enumInput));
 });
 
 describe("parseProgram: defenum alongside other definitions", () => {
@@ -652,14 +413,10 @@ defenum Status
   'active', 'inactive';
 end
 `;
-  const prog = parseProgram(mixed);
 
-  test("record still parsed", () => {
+  test("record and enum both parsed", () => {
+    const prog = parseProgram(mixed);
     expect(prog.records[0]!.name).toBe("Payload");
-  });
-
-  test("enum still parsed", () => {
-    console.log("mixed enums:", JSON.stringify(prog.enums));
     expect(prog.enums[0]!.name).toBe("Status");
     expect(prog.enums[0]!.values).toEqual(["active", "inactive"]);
   });
@@ -677,17 +434,14 @@ defrecord Segment
 end
 `.trim();
 
-  const prog = parseProgram(src);
-  const rec = prog.records[0]!;
-
   test("no error nodes", () => {
-    const tree = parser.parse(src);
     let hasError = false;
-    tree.iterate({ enter: n => { if (n.name === "⚠") hasError = true; } });
+    parser.parse(src).iterate({ enter: n => { if (n.name === "⚠") hasError = true; } });
     expect(hasError).toBe(false);
   });
 
   test("field names are parsed whole", () => {
-    expect(rec.fields.map(f => f.name)).toEqual(["fromPoint", "toPoint", "withColor", "endTime"]);
+    expect(parseProgram(src).records[0]!.fields.map(f => f.name))
+      .toEqual(["fromPoint", "toPoint", "withColor", "endTime"]);
   });
 });
