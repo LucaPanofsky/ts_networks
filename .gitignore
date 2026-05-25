@@ -1,3 +1,5 @@
+.clj-kondo/
+.lsp/
 node_modules/
 dist/
 src/data-network/parser.js
