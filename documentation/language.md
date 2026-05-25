@@ -2,13 +2,21 @@
 
 ## Overview
 
-The language is built around two complementary ideas: **networks** and **functions**. Together they let you express complex decision-making logic in a form that is easy to change, debug, inspect, and extend.
+The `TS NETWORK` language is built around two complementary ideas: **networks** and **functions**. Together they let you express complex decision-making logic in a form that is easy to change, debug, inspect, and extend.
+
+### Design principles
+
+- **Simple and self-contained.** A program defines its own record types, functions, and networks. There are no imports. Everything a reader needs to understand the program is in the file.
+- **Written by LLMs, debugged by humans.** The syntax is regular and unambiguous — straightforward to generate from a language model. The graph structure of networks makes the execution flow visual and easy to inspect without running the program.
+- **Declarative by default.** Networks express *what* should happen (which cells feed which propagators) rather than *how* (no explicit sequencing, no mutable state). The runtime handles scheduling.
+- **Code is specification, specification is code.** Code must be declarative and simple enough so that it can be used without further infrastructure to communicate specifics through an agentic 'lingua franca'.
 
 ### Networks orchestrate; functions compute
 
-A **network** is a directed graph of cells (data) and propagators (computation). Each propagator reads from one or more cells and writes to another. The runtime activates propagators in dependency order and propagates information forward until the network settles. This graph structure is the backbone of the system — it makes the flow of data and decisions explicit and visual, which means workflows can be modified by changing a few wires rather than rewriting logic buried deep in code.
+A **network** is a directed graph of cells (data) and propagators (computation). Each propagator reads from one or more cells and writes to another. Writes are implemented by means of an associative, commutative and idempotent `merge` operation which guarantees the network will eventually converge to something meaningful. Finally, propagators activate if and only if there is enough information to decide and do nothing if any of the inputs has no information.
+The network runtime does the math for you, scheduling propagators in the right order. 
 
-**Functions** live outside networks and represent pure, self-contained business logic. They are the computation units that propagators invoke. The type annotations on their parameters and return value (`Number?`, `Boolean?`, a record predicate like `Circle?`) are not enforced at runtime today — they are documentation that both humans and tools can read to understand what a function expects and produces.
+**Functions** represent pure, self-contained business logic. They are the computation units that propagators invoke. The type annotations on their parameters and return value (`Number?`, `Boolean?`, a record predicate like `Circle?`) are not enforced at runtime today — they are documentation that both humans and tools can read to understand what a function expects and produces.
 
 ### A concrete example
 
@@ -18,17 +26,11 @@ A typical program might look like this:
 // An LLM agent propagator produces a structured response (a record)
 propagate llmAgent from [query] to agentResponse;
 
-// A rational decision maker classifies the response using pattern matching
+// A rational propagating function classifies the response using pattern matching
 propagate classify from [agentResponse] to decision;
 ```
 
 `llmAgent` is registered externally and wraps a call to a language model. `classify` is a `defn` in the same program that uses `match` to inspect the record type of the response and route accordingly. The network makes the pipeline structure visible; the functions express the classification logic clearly.
-
-### Design principles
-
-- **Simple and self-contained.** A program defines its own record types, functions, and networks. There are no imports. Everything a reader needs to understand the program is in the file.
-- **Written by LLMs, debugged by humans.** The syntax is regular and unambiguous — straightforward to generate from a language model. The graph structure of networks makes the execution flow visual and easy to inspect without running the program.
-- **Declarative by default.** Networks express *what* should happen (which cells feed which propagators) rather than *how* (no explicit sequencing, no mutable state). The runtime handles scheduling.
 
 ---
 
@@ -120,7 +122,7 @@ A network is recursive when it contains a `propagate` term whose function name m
 
 ```
 defnetwork exampleSearch
-  signature: from input to done;
+  signature: from [input] to done;
 
   switch goodEnough? from [input] to inputIsGood;
   propagate not from [inputIsGood] to inputIsNotGood;
@@ -237,7 +239,7 @@ signature: from to Number?;
 The body starts with `expression` and ends with `;`. It can optionally include `let` bindings before the final expression:
 
 ```
-defn hypotenuse
+defn sumOfSquares
   signature: from [Number?(a), Number?(b)] to Number?;
   expression
     let a2 = a * a;
@@ -575,3 +577,6 @@ end
 - Guards: `when <expr>` — the arm only fires if the guard is truthy.
 - Arms are tested in order; the first match wins.
 - Compiles to a guarded IIFE with `if (__v.__type === ...)` chains — no runtime dependency.
+
+> See [`tests/sandbox/jsgen/expressions.test.ts`](../tests/sandbox/jsgen/expressions.test.ts) for expression tests and usage.
+> See also [`examples/`](../examples/) for complete programs.
