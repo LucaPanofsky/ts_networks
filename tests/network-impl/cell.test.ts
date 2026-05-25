@@ -1,12 +1,11 @@
 import { Cell } from "../../src/network-impl/cell.js";
 import { Nothing, Something, Contradiction } from "../../src/info-structure.js";
 
-describe("Cell: knows", () => {
-  test("starts as Nothing by default", () => {
-    expect(new Cell("x").knows()).toBe(Nothing);
-  });
+// ── Capabilities ──────────────────────────────────────────────────────────────
 
-  test("starts with provided default", () => {
+describe("Cell: knows", () => {
+  test("starts as Nothing by default; starts with provided default when given one", () => {
+    expect(new Cell("x").knows()).toBe(Nothing);
     const def = new Something(0);
     expect(new Cell("x", def).knows()).toBe(def);
   });
@@ -27,6 +26,7 @@ describe("Cell: mergeContent", () => {
     expect(cell.knows().equals(new Something(42))).toBe(true);
   });
 
+  // ── Invariants ──────────────────────────────────────────────────────────────
   test("merging same value is idempotent", () => {
     const cell = new Cell("x");
     cell.mergeContent(new Something(42));
@@ -43,38 +43,27 @@ describe("Cell: mergeContent", () => {
 });
 
 describe("Cell: forget", () => {
-  test("resets content to Nothing by default", () => {
-    const cell = new Cell("x");
-    cell.mergeContent(new Something(42));
-    cell.forget();
-    expect(cell.knows()).toBe(Nothing);
-  });
+  test("resets content to Nothing by default; resets to provided default when given one", () => {
+    const plain = new Cell("x");
+    plain.mergeContent(new Something(42));
+    plain.forget();
+    expect(plain.knows()).toBe(Nothing);
 
-  test("resets content to provided default", () => {
     const def = new Something(0);
-    const cell = new Cell("x", def);
-    cell.mergeContent(new Something(99));
-    cell.forget();
-    expect(cell.knows()).toBe(def);
+    const withDefault = new Cell("x", def);
+    withDefault.mergeContent(new Something(99));
+    withDefault.forget();
+    expect(withDefault.knows()).toBe(def);
   });
 });
 
 describe("Cell: neighbors", () => {
-  test("starts empty", () => {
-    expect(new Cell("x").neighbors().size).toBe(0);
-  });
-
-  test("addNeighbor adds to the set", () => {
+  test("starts empty; addNeighbor adds to the set; adding same neighbor twice is idempotent", () => {
     const cell = new Cell("x");
+    expect(cell.neighbors().size).toBe(0);
     const neighbor = {};
     cell.addNeighbor(neighbor);
     expect(cell.neighbors().has(neighbor)).toBe(true);
-  });
-
-  test("adding same neighbor twice is idempotent", () => {
-    const cell = new Cell("x");
-    const neighbor = {};
-    cell.addNeighbor(neighbor);
     cell.addNeighbor(neighbor);
     expect(cell.neighbors().size).toBe(1);
   });

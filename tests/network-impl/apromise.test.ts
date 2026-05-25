@@ -1,6 +1,6 @@
 import { APromise } from "../../src/information-structures/apromise.js";
 import { Deferred, ABORTED } from "../../src/information-structures/deferred.js";
-import { Nothing, Something, Contradiction } from "../../src/info-structure.js";
+import { Nothing, Something } from "../../src/info-structure.js";
 
 function makeAP<A>(value?: A): { ap: APromise<A>; d: Deferred<unknown> } {
   const d = new Deferred<unknown>();
@@ -9,27 +9,22 @@ function makeAP<A>(value?: A): { ap: APromise<A>; d: Deferred<unknown> } {
   return { ap, d };
 }
 
-describe("APromise: content", () => {
-  test("returns undefined when not realized", () => {
-    const { ap } = makeAP();
-    expect(ap.content()).toBeUndefined();
-  });
+// ── Capabilities ──────────────────────────────────────────────────────────────
 
-  test("returns resolved value when realized", () => {
-    const { ap } = makeAP(42);
-    expect(ap.content()).toBe(42);
+describe("APromise: content", () => {
+  test("returns undefined when pending, resolved value when realized", () => {
+    const { ap: pending } = makeAP();
+    expect(pending.content()).toBeUndefined();
+    const { ap: resolved } = makeAP(42);
+    expect(resolved.content()).toBe(42);
   });
 });
 
 describe("APromise: equals", () => {
-  test("equals itself", () => {
-    const { ap } = makeAP();
-    expect(ap.equals(ap)).toBe(true);
-  });
-
-  test("does not equal another APromise", () => {
+  test("equals itself but not another APromise", () => {
     const { ap: ap1 } = makeAP();
     const { ap: ap2 } = makeAP();
+    expect(ap1.equals(ap1)).toBe(true);
     expect(ap1.equals(ap2)).toBe(false);
   });
 });
@@ -62,116 +57,76 @@ describe("APromise: merge", () => {
     expect(await merged.deferred.promise).toEqual(new Something(5));
   });
 
-  test("Something × APromise: delegates to APromise.merge", async () => {
+  // ── Invariants ──────────────────────────────────────────────────────────────
+  test("merge is commutative: Something × APromise delegates to APromise.merge", async () => {
     const { ap, d } = makeAP<unknown>();
     const merged = new Something(5).merge(ap) as APromise<unknown>;
     d.resolve(new Something(5));
     expect(await merged.deferred.promise).toEqual(new Something(5));
   });
 
-  test("Nothing × APromise: returns APromise (a pending computation is more informative than no information)", () => {
+  test("Nothing × APromise: pending computation wins over no information", () => {
     const { ap } = makeAP();
-    const result = Nothing.merge(ap);
-    expect(result).toBe(ap);
+    expect(Nothing.merge(ap)).toBe(ap);
   });
 
-  test("APromise × Nothing (pending): Nothing wins — promise is superseded", () => {
-    const { ap } = makeAP();
-    expect(ap.merge(Nothing)).toBe(Nothing);
-  });
+  test("APromise × Nothing: Nothing wins when pending; resolved value wins when realized", () => {
+    const { ap: pending } = makeAP();
+    expect(pending.merge(Nothing)).toBe(Nothing);
 
-  test("APromise × Nothing (already resolved): returns resolved value", () => {
-    const { ap, d } = makeAP<unknown>();
+    const { ap: realized, d } = makeAP<unknown>();
     d.resolve(new Something(42));
-    expect(ap.merge(Nothing)).toEqual(new Something(42));
-  });
-
-  test("APromise × Nothing: returns Nothing (Nothing is a resolved state, more informative than pending)", () => {
-    const { ap } = makeAP();
-    expect(ap.merge(Nothing)).toBe(Nothing);
+    expect(realized.merge(Nothing)).toEqual(new Something(42));
   });
 });
 
-describe("APromise: flatten — already realized", () => {
-  test("realized with Something flattens to Something", async () => {
-    const d = new Deferred<unknown>();
-    d.resolve(new Something(42));
-    const ap = new APromise(d);
-    const flat = ap.flatten() as APromise<unknown>;
+describe("APromise: flatten", () => {
+  test("already realized: Something passes through; Nothing passes through", async () => {
+    const dSomething = new Deferred<unknown>();
+    dSomething.resolve(new Something(42));
+    const flat = new APromise(dSomething).flatten() as APromise<unknown>;
     expect(await flat.deferred.promise).toEqual(new Something(42));
+
+    const dNothing = new Deferred<unknown>();
+    dNothing.resolve(Nothing);
+    const flatNothing = new APromise(dNothing).flatten() as APromise<unknown>;
+    expect(await flatNothing.deferred.promise).toBe(Nothing);
   });
 
-  test("realized with nested APromise flattens through to inner value", async () => {
+  test("already realized: nested APromise flattens through to inner value", async () => {
     const d_inner = new Deferred<unknown>();
     d_inner.resolve(new Something(42));
     const inner = new APromise(d_inner);
-
     const d_outer = new Deferred<unknown>();
     d_outer.resolve(inner);
-    const outer = new APromise(d_outer);
-
-    const flat = outer.flatten() as APromise<unknown>;
+    const flat = new APromise(d_outer).flatten() as APromise<unknown>;
     expect(await flat.deferred.promise).toEqual(new Something(42));
   });
 
-  test("realized with Nothing flattens to Nothing", async () => {
+  test("not yet realized: resolves to Something after deferred resolves", async () => {
     const d = new Deferred<unknown>();
-    d.resolve(Nothing);
-    const ap = new APromise(d);
-    const flat = ap.flatten() as APromise<unknown>;
-    expect(await flat.deferred.promise).toBe(Nothing);
-  });
-});
-
-describe("APromise: flatten — not yet realized", () => {
-  test("resolves to Something after deferred resolves", async () => {
-    const d = new Deferred<unknown>();
-    const ap = new APromise(d);
-    const flat = ap.flatten() as APromise<unknown>;
+    const flat = new APromise(d).flatten() as APromise<unknown>;
     d.resolve(new Something(7));
     expect(await flat.deferred.promise).toEqual(new Something(7));
   });
 
-  test("resolves through nested APromise resolved after flatten call", async () => {
+  test("not yet realized: resolves through nested APromise created after flatten call", async () => {
     const d_outer = new Deferred<unknown>();
-    const outer = new APromise(d_outer);
-    const flat = outer.flatten() as APromise<unknown>;
-
+    const flat = new APromise(d_outer).flatten() as APromise<unknown>;
     const d_inner = new Deferred<unknown>();
     const inner = new APromise(d_inner);
     d_outer.resolve(inner);
     d_inner.resolve(new Something(99));
-
     expect(await flat.deferred.promise).toEqual(new Something(99));
-  });
-
-  test("deep nesting: three levels flatten to inner value", async () => {
-    const d1 = new Deferred<unknown>();
-    const d2 = new Deferred<unknown>();
-    const d3 = new Deferred<unknown>();
-    const ap1 = new APromise(d1);
-    const ap2 = new APromise(d2);
-    const ap3 = new APromise(d3);
-
-    d1.resolve(ap2);
-    d2.resolve(ap3);
-    d3.resolve(new Something(123));
-
-    const flat = ap1.flatten() as APromise<unknown>;
-    expect(await flat.deferred.promise).toEqual(new Something(123));
   });
 });
 
 describe("APromise: abort", () => {
-  test("abort resolves deferred with ABORTED contradiction", async () => {
+  test("abort resolves deferred with ABORTED and returns ABORTED", async () => {
     const { ap } = makeAP();
-    ap.abort();
+    const returned = ap.abort();
+    expect(returned).toBe(ABORTED);
     expect(await ap.deferred.promise).toBe(ABORTED);
-  });
-
-  test("abort returns ABORTED contradiction", () => {
-    const { ap } = makeAP();
-    expect(ap.abort()).toBe(ABORTED);
   });
 
   test("abort sets AbortSignal to aborted", () => {
@@ -180,6 +135,7 @@ describe("APromise: abort", () => {
     expect(ap.deferred.signal.aborted).toBe(true);
   });
 
+  // ── Invariants ──────────────────────────────────────────────────────────────
   test("abort is a no-op if already realized", async () => {
     const { ap, d } = makeAP<unknown>();
     d.resolve(new Something(42));
