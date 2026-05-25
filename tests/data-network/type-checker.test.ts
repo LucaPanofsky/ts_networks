@@ -273,6 +273,35 @@ end
   });
 });
 
+// ── Arity mismatch ────────────────────────────────────────────────────────────
+
+describe("typeCheck: arity mismatch", () => {
+  const src = `
+defn twoArgs
+  signature: from [Number?(x), Number?(y)] to Number?;
+  expression x;
+end
+
+defnetwork aritynet
+  signature: from [a] to b;
+  propagate twoArgs from [a] to b;
+end
+`;
+  const program = parseProgram(src);
+  const enriched = typeCheck(program.networks[0]!, program);
+  const prop = enriched.propagators.find(p => p.fn === "twoArgs")!;
+
+  test("propagator has arity-mismatch error", () => {
+    expect(prop._errors.some(e => e.kind === "arity-mismatch")).toBe(true);
+  });
+
+  test("error message names expected and actual count", () => {
+    const err = prop._errors.find(e => e.kind === "arity-mismatch")!;
+    expect(err.message).toContain("2");
+    expect(err.message).toContain("1");
+  });
+});
+
 // ── typeCheckProgram ──────────────────────────────────────────────────────────
 
 describe("typeCheckProgram: processes all networks", () => {
