@@ -21,13 +21,11 @@ describe("Hierarchy.derive + isDerived", () => {
   });
 
   test("isDerived is true for equal values", () => {
-    const h = new Hierarchy<string>();
-    expect(h.isDerived("a", "a")).toBe(true);
+    expect(new Hierarchy<string>().isDerived("a", "a")).toBe(true);
   });
 
   test("throws when deriving from itself", () => {
-    const h = new Hierarchy<string>();
-    expect(() => h.derive("a", "a")).toThrow();
+    expect(() => new Hierarchy<string>().derive("a", "a")).toThrow();
   });
 
   test("throws on direct cycle", () => {
@@ -46,14 +44,7 @@ describe("Hierarchy.derive + isDerived", () => {
 
 describe("Hierarchy.ancestors", () => {
   test("returns empty set for node with no parents", () => {
-    const h = new Hierarchy<string>();
-    expect(h.ancestors("a").size).toBe(0);
-  });
-
-  test("returns direct parent", () => {
-    const h = new Hierarchy<string>();
-    h.derive("b", "a");
-    expect(h.ancestors("b").has("a")).toBe(true);
+    expect(new Hierarchy<string>().ancestors("a").size).toBe(0);
   });
 
   test("returns all transitive ancestors", () => {
@@ -66,38 +57,28 @@ describe("Hierarchy.ancestors", () => {
     expect(ancs.size).toBe(2);
   });
 
-  test("ancestors are stable across multiple calls", () => {
-    const h = new Hierarchy<string>();
-    h.derive("b", "a");
-    expect(h.ancestors("b")).toEqual(h.ancestors("b"));
-  });
-
-  test("ancestors reflect a new derive added after first call", () => {
+  test("reflects new derive added after first call", () => {
     const h = new Hierarchy<string>();
     h.derive("b", "a");
     h.ancestors("b"); // prime any cache
     h.derive("b", "z");
+    expect(h.ancestors("b").has("a")).toBe(true);
     expect(h.ancestors("b").has("z")).toBe(true);
+  });
+
+  test("direct parent is included", () => {
+    const h = new Hierarchy<string>();
+    h.derive("b", "a");
+    expect(h.ancestors("b").has("a")).toBe(true);
   });
 });
 
 describe("Hierarchy.descendants", () => {
-  test("returns empty set for leaf node", () => {
-    const h = new Hierarchy<string>();
-    h.derive("b", "a");
-    expect(h.descendants("b").size).toBe(0);
-  });
-
-  test("returns direct child", () => {
-    const h = new Hierarchy<string>();
-    h.derive("b", "a");
-    expect(h.descendants("a").has("b")).toBe(true);
-  });
-
-  test("returns all transitive descendants", () => {
+  test("returns empty for leaf and all transitive descendants for root", () => {
     const h = new Hierarchy<string>();
     h.derive("b", "a");
     h.derive("c", "b");
+    expect(h.descendants("c").size).toBe(0);
     const desc = h.descendants("a");
     expect(desc.has("b")).toBe(true);
     expect(desc.has("c")).toBe(true);

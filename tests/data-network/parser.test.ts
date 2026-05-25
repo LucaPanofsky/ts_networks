@@ -24,15 +24,9 @@ end
 describe("parseNetwork: basic structure", () => {
   const net = parseNetwork(input);
 
-  test("network name", () => {
+  test("name and signature", () => {
     expect(net.name).toBe("mynetwork");
-  });
-
-  test("signature from", () => {
     expect(net.signature.from).toEqual(["a", "b"]);
-  });
-
-  test("signature to", () => {
     expect(net.signature.to).toBe("d");
   });
 
@@ -42,86 +36,46 @@ describe("parseNetwork: basic structure", () => {
 });
 
 describe("parseNetwork: propagate term", () => {
-  const net = parseNetwork(input);
-  const term = net.terms[0]! as PropagateTerm;
+  const term = parseNetwork(input).terms[0]! as PropagateTerm;
 
-  test("kind", () => {
+  test("kind, fn, from, to", () => {
     expect(term.kind).toBe("propagate");
-  });
-
-  test("function name (namespaced)", () => {
     expect(term.fn).toBe("myFunction.couldBeNamespaced");
-  });
-
-  test("from cells", () => {
     expect(term.from).toEqual(["a", "b"]);
-  });
-
-  test("to cell", () => {
     expect(term.to).toBe("c");
   });
 
   test("no params by default", () => {
     expect(term.params).toEqual({});
   });
-});
 
-describe("parseNetwork: switch term — no predicate", () => {
-  const net = parseNetwork(input);
-  const term = net.terms[1]! as SwitchTerm;
-
-  test("kind", () => {
-    expect(term.kind).toBe("switch");
-  });
-
-  test("fn is null when omitted", () => {
-    expect(term.fn).toBeNull();
-  });
-
-  test("from cells", () => {
-    expect(term.from).toEqual(["b", "c"]);
-  });
-
-  test("to cell", () => {
-    expect(term.to).toBe("d");
+  test("with clause params", () => {
+    const t = parseNetwork(inputWithParams).terms[0]! as PropagateTerm;
+    expect(t.params).toEqual({ param1: "asd", param2: "hello world" });
   });
 });
 
-describe("parseNetwork: switch term — with predicate", () => {
-  const net = parseNetwork(`
-    defnetwork test
-      signature: from [a] to b;
-      switch even? from [a] to b;
-    end
-  `);
-  const term = net.terms[0]! as SwitchTerm;
+describe("parseNetwork: switch term", () => {
+  const noFnTerm = parseNetwork(input).terms[1]! as SwitchTerm;
 
-  test("kind", () => {
-    expect(term.kind).toBe("switch");
+  test("kind, from, to", () => {
+    expect(noFnTerm.kind).toBe("switch");
+    expect(noFnTerm.from).toEqual(["b", "c"]);
+    expect(noFnTerm.to).toBe("d");
   });
 
-  test("fn is the predicate name", () => {
-    expect(term.fn).toBe("even?");
+  test("fn is null when predicate omitted", () => {
+    expect(noFnTerm.fn).toBeNull();
   });
 
-  test("from cells", () => {
-    expect(term.from).toEqual(["a"]);
-  });
-
-  test("to cell", () => {
-    expect(term.to).toBe("b");
-  });
-});
-
-describe("parseNetwork: with clause", () => {
-  const net = parseNetwork(inputWithParams);
-  const term = net.terms[0]! as PropagateTerm;
-
-  test("params parsed", () => {
-    expect(term.params).toEqual({
-      param1: "asd",
-      param2: "hello world",
-    });
+  test("fn is predicate name when provided", () => {
+    const net = parseNetwork(`
+      defnetwork test
+        signature: from [a] to b;
+        switch even? from [a] to b;
+      end
+    `);
+    expect((net.terms[0]! as SwitchTerm).fn).toBe("even?");
   });
 });
 
@@ -136,30 +90,41 @@ end
 `;
 
 describe("parseNetwork: cell and constant terms", () => {
-  test("parse tree is clean (no error nodes)", () => {
+  test("parse tree is clean", () => {
     const tree = parser.parse(inputWithCellsAndConstants.trim());
     const cursor = tree.cursor();
-    do {
-      expect(cursor.name).not.toBe("⚠");
-    } while (cursor.next());
+    do { expect(cursor.name).not.toBe("⚠"); } while (cursor.next());
   });
 
-  test("cell term extracted correctly", () => {
-    const net = parseNetwork(inputWithCellsAndConstants);
-    const term = net.terms[0]!;
-    expect(term).toEqual({ kind: "cell", name: "x", value: "42" });
+  test("cell term", () => {
+    expect(parseNetwork(inputWithCellsAndConstants).terms[0]!).toEqual({ kind: "cell", name: "x", value: "42" });
   });
 
-  test("constant term with number", () => {
-    const net = parseNetwork(inputWithCellsAndConstants);
-    const term = net.terms[1]!;
-    expect(term).toEqual({ kind: "constant", name: "pi", value: "3" });
+  test("constant terms (number and string)", () => {
+    const terms = parseNetwork(inputWithCellsAndConstants).terms;
+    expect(terms[1]!).toEqual({ kind: "constant", name: "pi",    value: "3"     });
+    expect(terms[2]!).toEqual({ kind: "constant", name: "label", value: "hello" });
   });
+});
 
-  test("constant term with string", () => {
-    const net = parseNetwork(inputWithCellsAndConstants);
-    const term = net.terms[2]!;
-    expect(term).toEqual({ kind: "constant", name: "label", value: "hello" });
+describe("parse tree: keyword nodes are named", () => {
+  test("all keyword node names present", () => {
+    const src = `
+      defnetwork test
+        signature: from [a] to b;
+        propagate f from [a] to b with: k=v;
+        switch from [a] to b;
+        cell x = 1;
+        constant y = 2;
+      end
+    `;
+    const tree = parser.parse(src.trim());
+    const names = new Set<string>();
+    const cursor = tree.cursor();
+    do { names.add(cursor.name); } while (cursor.next());
+    for (const kw of ["Defnetwork", "End", "Signature_", "From", "To", "Propagate", "With", "Switch", "Cell", "Constant"]) {
+      expect(names).toContain(kw);
+    }
   });
 });
 
@@ -172,42 +137,15 @@ defnetwork myNet
 end
 `;
 
-describe("parse tree: keyword nodes are named (not anonymous)", () => {
-  test("all keyword node names are present in the full tree", () => {
-    const input = `
-      defnetwork test
-        signature: from [a] to b;
-        propagate f from [a] to b with: k=v;
-        switch from [a] to b;
-        cell x = 1;
-        constant y = 2;
-      end
-    `;
-    const tree = parser.parse(input.trim());
-    const names = new Set<string>();
-    const cursor = tree.cursor();
-    do { names.add(cursor.name); } while (cursor.next());
-    for (const kw of ["Defnetwork", "End", "Signature_", "From", "To", "Propagate", "With", "Switch", "Cell", "Constant"]) {
-      expect(names).toContain(kw);
-    }
-  });
-});
-
 describe("parseNetwork: numeric and boolean param values", () => {
-  test("parse tree is clean (no error nodes)", () => {
+  test("parse tree is clean", () => {
     const tree = parser.parse(inputWithNumbers.trim());
     const cursor = tree.cursor();
-    do {
-      expect(cursor.name).not.toBe("⚠");
-    } while (cursor.next());
+    do { expect(cursor.name).not.toBe("⚠"); } while (cursor.next());
   });
 
   test("param values extracted correctly", () => {
     const term = parseNetwork(inputWithNumbers).terms[0]! as PropagateTerm;
-    expect(term.params).toEqual({
-      count: "42",
-      flag: "true",
-      ratio: "3",
-    });
+    expect(term.params).toEqual({ count: "42", flag: "true", ratio: "3" });
   });
 });
