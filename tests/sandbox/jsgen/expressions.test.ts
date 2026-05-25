@@ -209,15 +209,24 @@ defn twoLets
     a + b;
 end
 
+defn shadowing
+  signature: from [] to Number?;
+  expression
+    let x = 1;
+    let x = 2;
+    x;
+end
 `;
 
 describe("let bindings — end-to-end", () => {
   const { sandbox } = compile(letDsl);
   const singleLet = sandbox["singleLet"] as () => number;
   const twoLets   = sandbox["twoLets"]   as () => number;
+  const shadowing = sandbox["shadowing"] as () => number;
 
   it("let a = 3; a * 2 = 6", () => expect(singleLet()).toBe(6));
   it("let a = 3; let b = 4; a + b = 7", () => expect(twoLets()).toBe(7));
+  it("shadowing: second let x = 2 wins", () => expect(shadowing()).toBe(2));
 });
 
 // ── Conditionals (if) ─────────────────────────────────────────────────────────

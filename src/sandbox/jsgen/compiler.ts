@@ -46,8 +46,11 @@ const args = expr.args.map(compileExpr).join(", ");
       return `(() => { ${lines.join(" ")} })()`;
     }
     case "let": {
-      const bindings = expr.bindings.map(b => `const ${b.name} = ${compileExpr(b.value)};`).join(" ");
-      return `(() => { ${bindings} return ${compileExpr(expr.body)}; })()`;
+      const inner = expr.bindings.reduceRight(
+        (body, b) => `(() => { const ${b.name} = ${compileExpr(b.value)}; return ${body}; })()`,
+        compileExpr(expr.body),
+      );
+      return inner;
     }
   }
 }

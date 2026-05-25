@@ -335,7 +335,7 @@ describe("compileExpr: let", () => {
       ],
       body: { kind: "binary", op: "+", left: { kind: "var", name: "a" }, right: { kind: "var", name: "b" } },
     };
-    expect(compileExpr(expr)).toBe("(() => { const a = 1; const b = 2; return (a + b); })()");
+    expect(compileExpr(expr)).toBe("(() => { const a = 1; return (() => { const b = 2; return (a + b); })(); })()");
   });
 
   test("binding value can itself be a complex expression", () => {
