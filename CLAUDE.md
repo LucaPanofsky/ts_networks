@@ -46,12 +46,18 @@ Always run the full test suite through `npm test`, not `npx jest` directly:
 npm test
 ```
 
-`npm test` regenerates the lezer grammar parser and sets `NODE_OPTIONS=--experimental-vm-modules`, which is required for the nbb sandbox tests to run. Running `npx jest` raw skips both steps and produces false failures.
+`npm test` regenerates the lezer grammar parser before running jest. Running `npx jest` raw skips this step and produces false failures.
 
 To run a focused subset during development:
 
 ```bash
 npm test -- --testPathPatterns="validation"
+```
+
+The script tests (`tests/scripts.test.ts`) are excluded from the default run because each test forks a subprocess and makes the suite slow. Run them explicitly when needed:
+
+```bash
+npm run test:all
 ```
 
 ## Non-negotiable: keep the suite clean
@@ -63,5 +69,19 @@ When introducing new files or changing types, update all affected test fixtures 
 ```bash
 npx tsc --noEmit
 ```
+
+---
+
+## Test methodology
+
+When writing or reviewing tests for a module, derive coverage from four categories:
+
+**Capabilities** — "I can do this feature." One test per distinct behavior. If the same check runs on three input kinds, one test exercising all three is enough.
+
+**Invariants** — "This property must hold across all inputs." Use these for constraints invisible to behavioral tests: operator rewrites, idempotency, no-op guards, ordering guarantees. A behavioral test that passes even without the invariant is not an invariant test.
+
+**Negative tests** — Document implicit assumptions that cannot be revealed otherwise. Malformed input, conflicting state, boundary violations. The most valuable tests are the ones that would silently pass if the assumption were wrong.
+
+**Units** — Necessary low-level tests that cannot be expressed end-to-end. Use sparingly; prefer capabilities.
 
 
