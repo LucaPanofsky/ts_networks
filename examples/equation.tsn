@@ -1,0 +1,26 @@
+// Bidirectional constraint propagation: a + b = c
+//
+// The network encodes the equation in all three directions.
+// Give any two of a, b, c and the third is derived automatically.
+//
+// Examples:
+//   npx tsx scripts/run.ts examples/equation.tsn equation 'a=2' 'b=3'   → c = 5
+//   npx tsx scripts/run.ts examples/equation.tsn equation 'a=2' 'c=5'   → b = 3
+//   npx tsx scripts/run.ts examples/equation.tsn equation 'b=3' 'c=5'   → a = 2
+
+defn add
+  signature: from [Number?(a), Number?(b)] to Number?;
+  expression a + b;
+end
+
+defn sub
+  signature: from [Number?(a), Number?(b)] to Number?;
+  expression a - b;
+end
+
+defnetwork equation
+  signature: from [a, b] to c;
+  propagate add from [a, b] to c;
+  propagate sub from [c, b] to a;
+  propagate sub from [c, a] to b;
+end
