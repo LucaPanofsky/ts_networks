@@ -4,7 +4,7 @@ import { typeRefToString } from "./types.js";
 // ── Public types ──────────────────────────────────────────────────────────────
 
 export type TypeError = {
-  kind: "conflicting-cell-types" | "input-type-mismatch" | "unknown-predicate";
+  kind: "conflicting-cell-types" | "input-type-mismatch" | "unknown-predicate" | "arity-mismatch";
   message: string;
 };
 
@@ -87,6 +87,13 @@ export function typeCheck(network: DataNetworkAST, program: ProgramAST): Enriche
     const sig = fnMap.get(term.fn);
 
     if (sig) {
+      if (term.from.length !== sig.params.length) {
+        ep._errors.push({
+          kind: "arity-mismatch",
+          message: `'${term.fn}' expects ${sig.params.length} argument(s) but got ${term.from.length}`,
+        });
+      }
+
       const returnType = sig.returnType;
       getCell(term.to).writtenBy.add(returnType);
       if (!known.has(returnType)) {
