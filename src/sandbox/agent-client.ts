@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { ResponseProtocol } from "../data-network/schema.js";
+import { renderPrompt } from "./prompt-template.js";
 
 let client: Anthropic | undefined;
 function getClient(): Anthropic {
@@ -12,17 +13,19 @@ export type AgentCallConfig = {
   temperature?: number;
 };
 
-function renderPrompt(template: string, args: Record<string, unknown>): string {
-  return template.replace(/\{\{(\w+)\}\}/g, (_, key) => String(args[key] ?? ""));
-}
-
 export async function callAgent(
   promptTemplate: string,
   args: Record<string, unknown>,
   protocol: ResponseProtocol,
   config: AgentCallConfig = {},
 ): Promise<unknown> {
-  const prompt = renderPrompt(promptTemplate, args);
+  const rendered = renderPrompt(promptTemplate, args);
+  if (!rendered.ok) {
+    throw new Error(
+      `prompt references undefined variable(s): ${rendered.missing.join(", ")}`,
+    );
+  }
+  const prompt = rendered.prompt;
   const model = config.model ?? "claude-opus-4-7";
   const temperature = config.temperature ?? 1;
 
