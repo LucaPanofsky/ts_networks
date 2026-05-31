@@ -8,7 +8,7 @@
 - [x] DSL — `defnetwork`, `defn`, `defpredicate`, `defrecord`, `derive`, `defenum`, `defllmfn`; expressions, `match`, vector types
 - [x] JS code generator — compiles DSL to a self-contained JS module; sandbox evaluation; registry and network wiring
 - [x] JSON schema derivation — `defrecord` → JSON Schema; nested inlining, vector fields, predicate resolution
-- [ ] Agent runtime — Anthropic SDK; structured JSON calls; async propagation via `invokeAsync`
+- [ ] LLM function runtime — Anthropic SDK; structured JSON calls; async propagation via `invokeAsync`
 - [x] Validation — references, arities, topology; wired into server
 - [x] Static type checker — cell type inference (`writtenBy`/`readBy`), switch rules, error annotation
 - [x] Operations layer — `parse`, `check`, `typecheck`, `compile-schemas`, `run`; MCP-ready

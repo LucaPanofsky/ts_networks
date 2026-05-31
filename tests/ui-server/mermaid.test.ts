@@ -5,7 +5,7 @@ import { networkToDiagram } from "../../src/ui-server/mermaid.js";
 
 // ── documentPipeline ──────────────────────────────────────────────────────────
 
-const src = readFileSync("examples/agentic_network_document_analysis_example.tsn", "utf8");
+const src = readFileSync("examples/llmfn_network_document_analysis_example.tsn", "utf8");
 const prog = parseProgram(src);
 const { diagram, details } = networkToDiagram(astToDataNetwork(prog.networks[0]!), prog);
 

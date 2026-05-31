@@ -45,7 +45,7 @@ describe("renderPrompt", () => {
     expect(rendered("Hi {{name}}!", { name: "Luca" })).toBe("Hi Luca!");
   });
 
-  // Capability — the chained-agent case: a record value flows into the prompt.
+  // Capability — the chained-LLM-function case: a record value flows into the prompt.
   it("substitutes a record placeholder as JSON", () => {
     const out = rendered("Analysis:\n{{analysis}}", { analysis: { title: "Art. 6" } });
     expect(out).toContain('"title": "Art. 6"');

@@ -60,5 +60,5 @@ npx tsx scripts/parse.ts my-program.tsn | jq '.networks[0]'
 
 ## Contents
 
-- [Language Reference](language.md) — the DSL: networks, records, functions, agents, expressions, and special forms
+- [Language Reference](language.md) — the DSL: networks, records, functions, LLM functions, expressions, and special forms
 - [Status](status.md) — what is implemented, what is pending

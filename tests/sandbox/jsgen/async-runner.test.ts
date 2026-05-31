@@ -8,8 +8,8 @@ jest.mock("../../../src/sandbox/llmfn-client.js", () => ({
 
 const mockCallLLMFn = callLLMFn as jest.MockedFunction<typeof callLLMFn>;
 
-// A recursive network where the "improve" step is an async agent call.
-// Each round the agent increments n by 1; recursion stops when n > 5.
+// A recursive network where the "improve" step is an async LLM function call.
+// Each round the LLM function increments n by 1; recursion stops when n > 5.
 const DSL = `
 defrecord Improved
   value: Number?;
@@ -57,8 +57,8 @@ beforeEach(() => {
   });
 });
 
-describe("invokeAsync: recursive network with async agent step", () => {
-  test("base case: input already good enough — resolves immediately without agent call", async () => {
+describe("invokeAsync: recursive network with async LLM function step", () => {
+  test("base case: input already good enough — resolves immediately without LLM function call", async () => {
     const { networks } = compile(DSL);
     const result = await networks.get("asyncSearch")!.invokeAsync({ input: 6 });
     expect(result.type).toBe("done");
@@ -66,7 +66,7 @@ describe("invokeAsync: recursive network with async agent step", () => {
     expect(mockCallLLMFn).not.toHaveBeenCalled();
   });
 
-  test("input 5 recurses once — agent called once, result is 6", async () => {
+  test("input 5 recurses once — LLM function called once, result is 6", async () => {
     const { networks } = compile(DSL);
     const result = await networks.get("asyncSearch")!.invokeAsync({ input: 5 });
     expect(result.type).toBe("done");
@@ -74,7 +74,7 @@ describe("invokeAsync: recursive network with async agent step", () => {
     expect(mockCallLLMFn).toHaveBeenCalledTimes(1);
   });
 
-  test("input 3 recurses three times — agent called three times, result is 6", async () => {
+  test("input 3 recurses three times — LLM function called three times, result is 6", async () => {
     const { networks } = compile(DSL);
     const result = await networks.get("asyncSearch")!.invokeAsync({ input: 3 });
     expect(result.type).toBe("done");

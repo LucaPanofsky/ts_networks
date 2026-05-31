@@ -5,7 +5,7 @@ import { readFileSync } from "fs";
 // ── Happy path ────────────────────────────────────────────────────────────────
 
 describe("typeCheck: happy path — documentPipeline", () => {
-  const src = readFileSync("examples/agentic_network_document_analysis_example.tsn", "utf-8");
+  const src = readFileSync("examples/llmfn_network_document_analysis_example.tsn", "utf-8");
   const enriched = typeCheck(parseProgram(src).networks[0]!, parseProgram(src));
 
   test("no cell errors", () => {

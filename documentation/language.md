@@ -45,7 +45,7 @@ There are seven kinds of top-level definition:
 | `defenum` | A named finite set of string values |
 | `defn` | A pure function |
 | `defpredicate` | A predicate (returns `Boolean?`) |
-| `defllmfn` | An LLM agent that returns structured output |
+| `defllmfn` | An LLM function that returns structured output |
 | `derive` | A subtype declaration |
 
 ---
@@ -181,7 +181,7 @@ end
 Defining an enum automatically creates:
 - A predicate: `DocumentType?(v)` → `true` if `v` is one of the declared values
 
-The predicate can be used anywhere a type annotation is accepted — function signatures, agent return types, record fields:
+The predicate can be used anywhere a type annotation is accepted — function signatures, LLM function return types, record fields:
 
 ```
 defrecord DocumentAnalysis
@@ -195,7 +195,7 @@ defllmfn classify
 end
 ```
 
-When an enum is used as an agent's return type or as a record field type, the JSON schema constraint is derived automatically:
+When an enum is used as an LLM function's return type or as a record field type, the JSON schema constraint is derived automatically:
 
 ```json
 { "type": "string", "enum": ["report", "email", "legal", "technical"] }
@@ -265,7 +265,7 @@ end
 
 ## `defllmfn`
 
-Defines an LLM agent. An agent has a signature like a `defn`, but instead of a function body it has a prompt template. At runtime the agent calls the Claude API and returns a structured value matching the declared return type.
+Defines an LLM function. An LLM function has a signature like a `defn`, but instead of a function body it has a prompt template. At runtime the LLM function calls the Claude API and returns a structured value matching the declared return type.
 
 ```text
 defllmfn analyzeDocument
@@ -315,7 +315,7 @@ Classify this text: {{text}}
 
 ### Response protocol
 
-The return type determines how the agent communicates with the Claude API:
+The return type determines how the LLM function communicates with the Claude API:
 
 - **Record return type** — the API is asked to return the record's fields directly. The runtime injects `__type` into the result.
 - **Primitive return type** (`String?`, `Number?`, etc.) — the API returns `{ value: ... }`; the runtime unwraps it.
@@ -323,9 +323,9 @@ The return type determines how the agent communicates with the Claude API:
 
 The JSON schema sent to the API is derived automatically from `defrecord` definitions and predicate declarations in the program — no manual schema authoring is needed.
 
-### Using an agent in a network
+### Using an LLM function in a network
 
-An agent is used exactly like a `defn` — referenced by name in a `propagate` term:
+An LLM function is used exactly like a `defn` — referenced by name in a `propagate` term:
 
 ```
 defnetwork documentPipeline
@@ -353,7 +353,7 @@ This tells the type system that any value satisfying `Student?` also satisfies `
 
 Every `defrecord` and `defenum` in a program has a corresponding JSON Schema representation that is derived automatically. This is used in two ways:
 
-- **Agent API calls** — when an agent's return type is a record or enum, the schema is sent to the Claude API as a structured-output constraint, so the model's response is guaranteed to match the declared type.
+- **LLM function API calls** — when an LLM function's return type is a record or enum, the schema is sent to the Claude API as a structured-output constraint, so the model's response is guaranteed to match the declared type.
 - **External tooling** — the `compile-schemas` script emits the full schema map for all records, so it can be used with any JSON Schema validator or passed to external LLM APIs.
 
 ### Schema rules
