@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { ResponseProtocol } from "../data-network/schema.js";
+import type { LLMFnTool } from "./tools.js";
 import { renderPrompt } from "./prompt-template.js";
 
 let client: Anthropic | undefined;
@@ -11,6 +12,9 @@ function getClient(): Anthropic {
 export type LLMFnCallConfig = {
   model?: string;
   maxTokens?: number;
+  // Tools the LLM function may call. Resolved from the program's `with: tools`
+  // clause; not yet exercised by callLLMFn (the tool loop is a separate step).
+  tools?: LLMFnTool[];
 };
 
 const DEFAULT_MODEL = "claude-opus-4-7";

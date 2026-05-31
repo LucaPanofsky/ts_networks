@@ -4,6 +4,7 @@ import type { ProgramAST } from "../../data-network/types.js";
 import { typeRefToString } from "../../data-network/types.js";
 import type { Sandbox } from "./runtime.js";
 import { callLLMFn } from "../llmfn-client.js";
+import { toolsFromConfig } from "../tools.js";
 import { deriveProtocol } from "../../data-network/schema.js";
 import { Something, Contradiction } from "../../info-structure.js";
 import { Deferred } from "../../information-structures/deferred.js";
@@ -59,6 +60,7 @@ export function buildRegistry(program: ProgramAST, sandbox: Sandbox): Registry {
       maxTokens:   llmFn.config["max_tokens"] !== undefined
         ? parseInt(llmFn.config["max_tokens"], 10)
         : undefined,
+      tools:       toolsFromConfig(llmFn.config["tools"]),
     };
     const paramNames = llmFn.params.map(p => p.name);
     registry.register({
