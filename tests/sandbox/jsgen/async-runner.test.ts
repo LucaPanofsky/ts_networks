@@ -1,12 +1,12 @@
 import { compile } from "../../../src/sandbox/jsgen/index.js";
 import { Something } from "../../../src/info-structure.js";
-import { callAgent } from "../../../src/sandbox/agent-client.js";
+import { callLLMFn } from "../../../src/sandbox/llmfn-client.js";
 
-jest.mock("../../../src/sandbox/agent-client.js", () => ({
-  callAgent: jest.fn(),
+jest.mock("../../../src/sandbox/llmfn-client.js", () => ({
+  callLLMFn: jest.fn(),
 }));
 
-const mockCallAgent = callAgent as jest.MockedFunction<typeof callAgent>;
+const mockCallLLMFn = callLLMFn as jest.MockedFunction<typeof callLLMFn>;
 
 // A recursive network where the "improve" step is an async agent call.
 // Each round the agent increments n by 1; recursion stops when n > 5.
@@ -50,8 +50,8 @@ end
 `;
 
 beforeEach(() => {
-  mockCallAgent.mockClear();
-  mockCallAgent.mockImplementation((_prompt, args) => {
+  mockCallLLMFn.mockClear();
+  mockCallLLMFn.mockImplementation((_prompt, args) => {
     const n = (args as { n: unknown }).n as number;
     return Promise.resolve({ __type: "Improved", value: n + 1 });
   });
@@ -63,7 +63,7 @@ describe("invokeAsync: recursive network with async agent step", () => {
     const result = await networks.get("asyncSearch")!.invokeAsync({ input: 6 });
     expect(result.type).toBe("done");
     expect(result.cells.get("done")!.knows()).toEqual(new Something(6));
-    expect(mockCallAgent).not.toHaveBeenCalled();
+    expect(mockCallLLMFn).not.toHaveBeenCalled();
   });
 
   test("input 5 recurses once — agent called once, result is 6", async () => {
@@ -71,7 +71,7 @@ describe("invokeAsync: recursive network with async agent step", () => {
     const result = await networks.get("asyncSearch")!.invokeAsync({ input: 5 });
     expect(result.type).toBe("done");
     expect(result.cells.get("done")!.knows()).toEqual(new Something(6));
-    expect(mockCallAgent).toHaveBeenCalledTimes(1);
+    expect(mockCallLLMFn).toHaveBeenCalledTimes(1);
   });
 
   test("input 3 recurses three times — agent called three times, result is 6", async () => {
@@ -79,6 +79,6 @@ describe("invokeAsync: recursive network with async agent step", () => {
     const result = await networks.get("asyncSearch")!.invokeAsync({ input: 3 });
     expect(result.type).toBe("done");
     expect(result.cells.get("done")!.knows()).toEqual(new Something(6));
-    expect(mockCallAgent).toHaveBeenCalledTimes(3);
+    expect(mockCallLLMFn).toHaveBeenCalledTimes(3);
   });
 });

@@ -1,4 +1,4 @@
-import { buildRequestParams } from "../../src/sandbox/agent-client.js";
+import { buildRequestParams } from "../../src/sandbox/llmfn-client.js";
 import type { ResponseProtocol } from "../../src/data-network/schema.js";
 
 const protocol: ResponseProtocol = {

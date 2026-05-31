@@ -41,10 +41,10 @@ function buildFnMap(program: ProgramAST): Map<string, FnSignature> {
       returnType: typeRefToString(fn.returnType),
     });
   }
-  for (const agent of program.agents) {
-    map.set(agent.name, {
-      params: agent.params.map(p => p.predicate),
-      returnType: typeRefToString(agent.returnType),
+  for (const llmFn of program.llmFns) {
+    map.set(llmFn.name, {
+      params: llmFn.params.map(p => p.predicate),
+      returnType: typeRefToString(llmFn.returnType),
     });
   }
   return map;

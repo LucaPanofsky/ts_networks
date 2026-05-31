@@ -71,7 +71,7 @@ describe("invariants", () => {
 
 describe("compileProgram", () => {
   const program: ProgramAST = {
-    records: [vec2], fns: [addFn], networks: [], derives: [], agents: [], enums: [docType],
+    records: [vec2], fns: [addFn], networks: [], derives: [], llmFns: [], enums: [docType],
   };
 
   test("records emitted before functions", () => {
@@ -88,7 +88,7 @@ describe("compileProgram", () => {
   });
 
   test("empty program emits bare return", () => {
-    expect(compileProgram({ records: [], fns: [], networks: [], derives: [], agents: [], enums: [] }))
+    expect(compileProgram({ records: [], fns: [], networks: [], derives: [], llmFns: [], enums: [] }))
       .toBe("return {};");
   });
 });

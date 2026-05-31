@@ -3,7 +3,7 @@
 }
 
 Definition {
-  NetworkDef | RecordDef | FnDef | PredicateDef | DeriveDef | AgentDef | EnumDef
+  NetworkDef | RecordDef | FnDef | PredicateDef | DeriveDef | LLMFnDef | EnumDef
 }
 
 // ── defnetwork ────────────────────────────────────────────────────────────────
@@ -52,8 +52,8 @@ FunctionName {
 
 // ── defllmfn ──────────────────────────────────────────────────────────────────
 
-AgentDef {
-  Defagent Name FnSignature WithClause? PromptString ";" End
+LLMFnDef {
+  Defllmfn Name FnSignature WithClause? PromptString ";" End
 }
 
 @external tokens promptString from "./prompt-tokenizer" { PromptString }
@@ -181,7 +181,7 @@ Defnetwork   { kw<"defnetwork"> }
 Defrecord    { kw<"defrecord"> }
 Defn         { kw<"defn"> }
 Defpredicate { kw<"defpredicate"> }
-Defagent     { kw<"defllmfn"> }
+Defllmfn     { kw<"defllmfn"> }
 Defenum      { kw<"defenum"> }
 Derive       { kw<"derive"> }
 Let          { kw<"let"> }

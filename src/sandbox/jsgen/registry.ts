@@ -3,7 +3,7 @@ import type { Registry } from "../../registry.js";
 import type { ProgramAST } from "../../data-network/types.js";
 import { typeRefToString } from "../../data-network/types.js";
 import type { Sandbox } from "./runtime.js";
-import { callAgent } from "../agent-client.js";
+import { callLLMFn } from "../llmfn-client.js";
 import { deriveProtocol } from "../../data-network/schema.js";
 import { Something, Contradiction } from "../../info-structure.js";
 import { Deferred } from "../../information-structures/deferred.js";
@@ -52,27 +52,27 @@ export function buildRegistry(program: ProgramAST, sandbox: Sandbox): Registry {
     }
   }
 
-  for (const agent of program.agents) {
-    const protocol = deriveProtocol(agent.returnType, program);
+  for (const llmFn of program.llmFns) {
+    const protocol = deriveProtocol(llmFn.returnType, program);
     const config = {
-      model:       agent.config["model"],
-      maxTokens:   agent.config["max_tokens"] !== undefined
-        ? parseInt(agent.config["max_tokens"], 10)
+      model:       llmFn.config["model"],
+      maxTokens:   llmFn.config["max_tokens"] !== undefined
+        ? parseInt(llmFn.config["max_tokens"], 10)
         : undefined,
     };
-    const paramNames = agent.params.map(p => p.name);
+    const paramNames = llmFn.params.map(p => p.name);
     registry.register({
-      fnName: agent.name,
-      arity: agent.params.length,
+      fnName: llmFn.name,
+      arity: llmFn.params.length,
       impl: (...args: unknown[]) => {
         const namedArgs = Object.fromEntries(paramNames.map((n, i) => [n, args[i]]));
         const d = new Deferred<unknown>();
-        callAgent(agent.prompt, namedArgs, protocol, config)
+        callLLMFn(llmFn.prompt, namedArgs, protocol, config)
           .then(v => d.resolve(new Something(v)))
-          .catch(e => d.resolve(new Contradiction("agent/error", new Set(), e)));
+          .catch(e => d.resolve(new Contradiction("llmfn/error", new Set(), e)));
         return new APromise(d);
       },
-      morphism: { from: agent.params.map(p => p.predicate), to: typeRefToString(agent.returnType) },
+      morphism: { from: llmFn.params.map(p => p.predicate), to: typeRefToString(llmFn.returnType) },
     });
   }
 

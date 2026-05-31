@@ -1,6 +1,6 @@
-// Pure templating core for agent prompts.
+// Pure templating core for LLM function prompts.
 //
-// Kept separate from agent-client.ts (the effectful SDK boundary) so it can be
+// Kept separate from llmfn-client.ts (the effectful SDK boundary) so it can be
 // unit-tested in isolation. Two responsibilities, each a pure total function:
 //   - serializeArg: turn any argument value into prompt text, explicitly.
 //   - renderPrompt: substitute {{placeholders}}, surfacing missing keys as a value.
@@ -10,8 +10,8 @@ const PLACEHOLDER = /\{\{\s*(\w+)\s*\}\}/g;
 /**
  * Render an argument value as prompt text. Total and explicit — no reliance on
  * implicit `toString`, which silently turns records into "[object Object]".
- * Objects and arrays (e.g. a record produced by an upstream agent) are
- * pretty-printed as JSON so a downstream agent can read their structure.
+ * Objects and arrays (e.g. a record produced by an upstream LLM function) are
+ * pretty-printed as JSON so a downstream LLM function can read their structure.
  */
 export function serializeArg(value: unknown): string {
   switch (typeof value) {

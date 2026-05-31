@@ -162,10 +162,10 @@ export type DeriveAST = {
   sup: string;
 };
 
-// ── Agent definitions ─────────────────────────────────────────────────────────
+// ── LLM function definitions ──────────────────────────────────────────────────
 
-export type AgentAST = {
-  kind: "agent";
+export type LLMFnAST = {
+  kind: "llmfn";
   name: string;
   params: TypedParam[];
   returnType: TypeRef;
@@ -180,6 +180,6 @@ export type ProgramAST = {
   records: RecordAST[];
   fns: FnAST[];
   derives: DeriveAST[];
-  agents: AgentAST[];
+  llmFns: LLMFnAST[];
   enums: EnumAST[];
 };

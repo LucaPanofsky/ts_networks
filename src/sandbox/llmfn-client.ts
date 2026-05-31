@@ -8,27 +8,27 @@ function getClient(): Anthropic {
   return client;
 }
 
-export type AgentCallConfig = {
+export type LLMFnCallConfig = {
   model?: string;
   maxTokens?: number;
 };
 
 const DEFAULT_MODEL = "claude-opus-4-7";
 // Structured outputs (e.g. a full classification record) are large; a low ceiling
-// silently truncates the tool result. Default generously; override via the agent's
-// `with:` clause when needed.
+// silently truncates the tool result. Default generously; override via the LLM
+// function's `with:` clause when needed.
 const DEFAULT_MAX_TOKENS = 16384;
 
 /**
  * Build the Messages request from a rendered prompt, a response protocol, and the
- * agent config. Pure and side-effect free so it can be unit-tested without the SDK.
+ * LLM function config. Pure and side-effect free so it can be unit-tested without the SDK.
  * `temperature` is deliberately never sent — it is deprecated and some models
  * reject it outright.
  */
 export function buildRequestParams(
   prompt: string,
   protocol: ResponseProtocol,
-  config: AgentCallConfig,
+  config: LLMFnCallConfig,
 ): Anthropic.MessageCreateParamsNonStreaming {
   const params: Anthropic.MessageCreateParamsNonStreaming = {
     model: config.model ?? DEFAULT_MODEL,
@@ -46,11 +46,11 @@ export function buildRequestParams(
   return params;
 }
 
-export async function callAgent(
+export async function callLLMFn(
   promptTemplate: string,
   args: Record<string, unknown>,
   protocol: ResponseProtocol,
-  config: AgentCallConfig = {},
+  config: LLMFnCallConfig = {},
 ): Promise<unknown> {
   const rendered = renderPrompt(promptTemplate, args);
   if (!rendered.ok) {
@@ -64,7 +64,7 @@ export async function callAgent(
 
   const toolUse = response.content.find(b => b.type === "tool_use");
   if (!toolUse || toolUse.type !== "tool_use") {
-    throw new Error(`Agent did not return a tool_use block`);
+    throw new Error(`LLM function did not return a tool_use block`);
   }
 
   return protocol.extract(toolUse.input as Record<string, unknown>);

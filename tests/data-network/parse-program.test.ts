@@ -342,7 +342,7 @@ describe("parseProgram: match expression", () => {
 
 // ── defllmfn ──────────────────────────────────────────────────────────────────
 
-const agentDsl = `
+const llmFnDsl = `
 defllmfn analyzeDocument
   signature: from [String?(text)] to String?;
   with: model = 'claude-opus-4-7', max_tokens = '4096';
@@ -358,29 +358,29 @@ end
 `;
 
 describe("parseProgram: defllmfn", () => {
-  const agent = parseProgram(agentDsl).agents[0]!;
+  const llmFn = parseProgram(llmFnDsl).llmFns[0]!;
 
-  test("no parse errors", () => noErrorNodes(agentDsl));
+  test("no parse errors", () => noErrorNodes(llmFnDsl));
 
   test("name, params, returnType", () => {
-    expect(agent.name).toBe("analyzeDocument");
-    expect(agent.params).toEqual([{ predicate: "String?", name: "text" }]);
-    expect(agent.returnType).toEqual({ kind: "scalar", predicate: "String?" });
+    expect(llmFn.name).toBe("analyzeDocument");
+    expect(llmFn.params).toEqual([{ predicate: "String?", name: "text" }]);
+    expect(llmFn.returnType).toEqual({ kind: "scalar", predicate: "String?" });
   });
 
   test("config", () => {
-    expect(agent.config).toEqual({ model: "claude-opus-4-7", max_tokens: "4096" });
+    expect(llmFn.config).toEqual({ model: "claude-opus-4-7", max_tokens: "4096" });
   });
 
   test("prompt contains expected content", () => {
-    expect(agent.prompt).toContain("# Task");
-    expect(agent.prompt).toContain("{{text}}");
-    expect(agent.prompt).toContain('"neutral"');
+    expect(llmFn.prompt).toContain("# Task");
+    expect(llmFn.prompt).toContain("{{text}}");
+    expect(llmFn.prompt).toContain('"neutral"');
   });
 
   test("prompt strips surrounding triple-quotes", () => {
-    expect(agent.prompt.startsWith('"""')).toBe(false);
-    expect(agent.prompt.endsWith('"""')).toBe(false);
+    expect(llmFn.prompt.startsWith('"""')).toBe(false);
+    expect(llmFn.prompt.endsWith('"""')).toBe(false);
   });
 });
 

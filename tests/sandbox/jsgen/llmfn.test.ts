@@ -1,13 +1,13 @@
 import { compile } from "../../../src/sandbox/jsgen/index.js";
 import { APromise } from "../../../src/information-structures/apromise.js";
 import { Something } from "../../../src/info-structure.js";
-import { callAgent } from "../../../src/sandbox/agent-client.js";
+import { callLLMFn } from "../../../src/sandbox/llmfn-client.js";
 
-jest.mock("../../../src/sandbox/agent-client.js", () => ({
-  callAgent: jest.fn(),
+jest.mock("../../../src/sandbox/llmfn-client.js", () => ({
+  callLLMFn: jest.fn(),
 }));
 
-const mockCallAgent = callAgent as jest.MockedFunction<typeof callAgent>;
+const mockCallLLMFn = callLLMFn as jest.MockedFunction<typeof callLLMFn>;
 
 const DSL = `
 defrecord DocumentAnalysis
@@ -56,7 +56,7 @@ function fakeAnalysis(overrides: Partial<Record<string, unknown>>) {
 }
 
 async function runPipeline(overrides: Partial<Record<string, unknown>>): Promise<unknown> {
-  mockCallAgent.mockReturnValueOnce(fakeAnalysis(overrides));
+  mockCallLLMFn.mockReturnValueOnce(fakeAnalysis(overrides));
   const { networks } = compile(DSL);
   const result = networks.get("documentPipeline")!.invoke({ text: "some text" });
   const labelAP = result.cells.get("label")!.knows() as APromise<unknown>;
@@ -64,11 +64,11 @@ async function runPipeline(overrides: Partial<Record<string, unknown>>): Promise
   return (resolved as Something<unknown>).content();
 }
 
-beforeEach(() => mockCallAgent.mockClear());
+beforeEach(() => mockCallLLMFn.mockClear());
 
-describe("documentPipeline: agentic network integration", () => {
+describe("documentPipeline: LLM-function network integration", () => {
   test("run() returns synchronously with APromise in label cell", () => {
-    mockCallAgent.mockReturnValueOnce(fakeAnalysis({}));
+    mockCallLLMFn.mockReturnValueOnce(fakeAnalysis({}));
     const { networks } = compile(DSL);
     const result = networks.get("documentPipeline")!.invoke({ text: "some text" });
     const label = result.cells.get("label")!.knows();
