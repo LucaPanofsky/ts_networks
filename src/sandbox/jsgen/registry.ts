@@ -56,8 +56,8 @@ export function buildRegistry(program: ProgramAST, sandbox: Sandbox): Registry {
     const protocol = deriveProtocol(agent.returnType, program);
     const config = {
       model:       agent.config["model"],
-      temperature: agent.config["temperature"] !== undefined
-        ? parseFloat(agent.config["temperature"])
+      maxTokens:   agent.config["max_tokens"] !== undefined
+        ? parseInt(agent.config["max_tokens"], 10)
         : undefined,
     };
     const paramNames = agent.params.map(p => p.name);

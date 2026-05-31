@@ -10,8 +10,41 @@ function getClient(): Anthropic {
 
 export type AgentCallConfig = {
   model?: string;
-  temperature?: number;
+  maxTokens?: number;
 };
+
+const DEFAULT_MODEL = "claude-opus-4-7";
+// Structured outputs (e.g. a full classification record) are large; a low ceiling
+// silently truncates the tool result. Default generously; override via the agent's
+// `with:` clause when needed.
+const DEFAULT_MAX_TOKENS = 16384;
+
+/**
+ * Build the Messages request from a rendered prompt, a response protocol, and the
+ * agent config. Pure and side-effect free so it can be unit-tested without the SDK.
+ * `temperature` is deliberately never sent — it is deprecated and some models
+ * reject it outright.
+ */
+export function buildRequestParams(
+  prompt: string,
+  protocol: ResponseProtocol,
+  config: AgentCallConfig,
+): Anthropic.MessageCreateParamsNonStreaming {
+  const params: Anthropic.MessageCreateParamsNonStreaming = {
+    model: config.model ?? DEFAULT_MODEL,
+    max_tokens: config.maxTokens ?? DEFAULT_MAX_TOKENS,
+    messages: [{ role: "user", content: prompt }],
+    tools: [
+      {
+        name: "respond",
+        description: "Return the structured response",
+        input_schema: protocol.schema as Anthropic.Tool["input_schema"],
+      },
+    ],
+    tool_choice: { type: "any" },
+  };
+  return params;
+}
 
 export async function callAgent(
   promptTemplate: string,
@@ -25,24 +58,9 @@ export async function callAgent(
       `prompt references undefined variable(s): ${rendered.missing.join(", ")}`,
     );
   }
-  const prompt = rendered.prompt;
-  const model = config.model ?? "claude-opus-4-7";
-  const temperature = config.temperature ?? 1;
 
-  const response = await getClient().messages.create({
-    model,
-    max_tokens: 4096,
-    temperature,
-    messages: [{ role: "user", content: prompt }],
-    tools: [
-      {
-        name: "respond",
-        description: "Return the structured response",
-        input_schema: protocol.schema as Anthropic.Tool["input_schema"],
-      },
-    ],
-    tool_choice: { type: "any" },
-  });
+  const params = buildRequestParams(rendered.prompt, protocol, config);
+  const response = await getClient().messages.create(params);
 
   const toolUse = response.content.find(b => b.type === "tool_use");
   if (!toolUse || toolUse.type !== "tool_use") {

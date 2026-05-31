@@ -19,7 +19,7 @@ end
 
 defagent analyzeDocument
   signature: from [String?(text)] to DocumentAnalysis?;
-  with: model = 'claude-opus-4-7', temperature = '0.2';
+  with: model = 'claude-opus-4-7';
   """
   Analyze: {{text}}
   """;

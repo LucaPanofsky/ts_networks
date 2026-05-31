@@ -7,3 +7,6 @@ src/data-network/parser.terms.js
 report/
 *.db
 public/editor.bundle.js
+dev
+# Claude Code local state
+.claude/

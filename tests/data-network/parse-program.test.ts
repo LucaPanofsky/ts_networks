@@ -345,7 +345,7 @@ describe("parseProgram: match expression", () => {
 const agentDsl = `
 defagent analyzeDocument
   signature: from [String?(text)] to String?;
-  with: model = 'claude-opus-4-7', temperature = '0.2';
+  with: model = 'claude-opus-4-7', max_tokens = '4096';
   """
   # Task
 
@@ -369,7 +369,7 @@ describe("parseProgram: defagent", () => {
   });
 
   test("config", () => {
-    expect(agent.config).toEqual({ model: "claude-opus-4-7", temperature: "0.2" });
+    expect(agent.config).toEqual({ model: "claude-opus-4-7", max_tokens: "4096" });
   });
 
   test("prompt contains expected content", () => {
