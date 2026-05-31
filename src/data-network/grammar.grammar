@@ -50,7 +50,7 @@ FunctionName {
   Name ("." Name)*
 }
 
-// ── defagent ──────────────────────────────────────────────────────────────────
+// ── defllmfn ──────────────────────────────────────────────────────────────────
 
 AgentDef {
   Defagent Name FnSignature WithClause? PromptString ";" End
@@ -181,7 +181,7 @@ Defnetwork   { kw<"defnetwork"> }
 Defrecord    { kw<"defrecord"> }
 Defn         { kw<"defn"> }
 Defpredicate { kw<"defpredicate"> }
-Defagent     { kw<"defagent"> }
+Defagent     { kw<"defllmfn"> }
 Defenum      { kw<"defenum"> }
 Derive       { kw<"derive"> }
 Let          { kw<"let"> }

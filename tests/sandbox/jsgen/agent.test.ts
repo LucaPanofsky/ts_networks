@@ -17,7 +17,7 @@ defrecord DocumentAnalysis
   confidence: Number?;
 end
 
-defagent analyzeDocument
+defllmfn analyzeDocument
   signature: from [String?(text)] to DocumentAnalysis?;
   with: model = 'claude-opus-4-7';
   """

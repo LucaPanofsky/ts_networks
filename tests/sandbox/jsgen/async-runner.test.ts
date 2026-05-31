@@ -15,7 +15,7 @@ defrecord Improved
   value: Number?;
 end
 
-defagent asyncImprove
+defllmfn asyncImprove
   signature: from [Number?(n)] to Improved?;
   with: model = 'claude-opus-4-7';
   """Improve {{n}}""";

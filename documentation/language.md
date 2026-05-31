@@ -45,7 +45,7 @@ There are seven kinds of top-level definition:
 | `defenum` | A named finite set of string values |
 | `defn` | A pure function |
 | `defpredicate` | A predicate (returns `Boolean?`) |
-| `defagent` | An LLM agent that returns structured output |
+| `defllmfn` | An LLM agent that returns structured output |
 | `derive` | A subtype declaration |
 
 ---
@@ -189,7 +189,7 @@ defrecord DocumentAnalysis
   summary: String?;
 end
 
-defagent classify
+defllmfn classify
   signature: from [String?(text)] to DocumentType?;
   ...
 end
@@ -263,14 +263,14 @@ end
 
 ---
 
-## `defagent`
+## `defllmfn`
 
 Defines an LLM agent. An agent has a signature like a `defn`, but instead of a function body it has a prompt template. At runtime the agent calls the Claude API and returns a structured value matching the declared return type.
 
 ```text
-defagent analyzeDocument
+defllmfn analyzeDocument
   signature: from [String?(text)] to DocumentAnalysis?;
-  with: model = 'claude-opus-4-7', temperature = '0.2';
+  with: model = 'claude-opus-4-7';
   """
   Analyze the following document and return a structured result.
 
@@ -295,13 +295,13 @@ signature: from [String?(query)] to [SearchResult?];
 Optional model configuration:
 
 ```
-with: model = 'claude-opus-4-7', temperature = '0.2';
+with: model = 'claude-opus-4-7', max_tokens = '4096';
 ```
 
 | Key | Default | Description |
 |---|---|---|
 | `model` | `claude-opus-4-7` | The Claude model to use |
-| `temperature` | `1` | Sampling temperature |
+| `max_tokens` | `16384` | Maximum tokens in the response |
 
 ### Prompt template
 

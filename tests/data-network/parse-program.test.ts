@@ -340,10 +340,10 @@ describe("parseProgram: match expression", () => {
   });
 });
 
-// ── defagent ──────────────────────────────────────────────────────────────────
+// ── defllmfn ──────────────────────────────────────────────────────────────────
 
 const agentDsl = `
-defagent analyzeDocument
+defllmfn analyzeDocument
   signature: from [String?(text)] to String?;
   with: model = 'claude-opus-4-7', max_tokens = '4096';
   """
@@ -357,7 +357,7 @@ defagent analyzeDocument
 end
 `;
 
-describe("parseProgram: defagent", () => {
+describe("parseProgram: defllmfn", () => {
   const agent = parseProgram(agentDsl).agents[0]!;
 
   test("no parse errors", () => noErrorNodes(agentDsl));
