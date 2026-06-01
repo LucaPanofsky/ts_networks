@@ -1,5 +1,6 @@
 import { I, Something, Contradiction, type InfoStructure } from "../info-structure.js";
 import { MergeObject } from "../information-structures/merge-object.js";
+import { MergeSet } from "../information-structures/merge-set.js";
 import type { DataNetwork } from "../data-network/data-network.js";
 import type { Registry } from "../registry.js";
 import { naryUnpacking } from "../nary-unpacking.js";
@@ -30,6 +31,35 @@ function coerceToMergeObject(
   };
 }
 
+// As coerceToMergeObject, but lifts a successful array result into a MergeSet — the
+// set-intersection form. A Something whose content is not an array (number, string,
+// plain object, ...) cannot be lifted, so it becomes a Contradiction.
+function coerceToMergeSet(
+  f: (...args: InfoStructure<unknown>[]) => InfoStructure<unknown>,
+): (...args: InfoStructure<unknown>[]) => InfoStructure<unknown> {
+  return (...args) => {
+    const r = f(...args);
+    if (!(r instanceof Something)) return r;
+    const v = r.content();
+    if (Array.isArray(v)) {
+      // An empty array is an empty domain — unsatisfiable, not a valid set.
+      if (v.length === 0) return new Contradiction("coerce/empty-set", new Set([r]));
+      return MergeSet.lift(v);
+    }
+    return new Contradiction("coerce/not-a-collection", new Set([r]));
+  };
+}
+
+// Maps an `as <Name>` clause to the wrapper that coerces a propagator's output.
+type Coercion = (
+  f: (...args: InfoStructure<unknown>[]) => InfoStructure<unknown>,
+) => (...args: InfoStructure<unknown>[]) => InfoStructure<unknown>;
+
+const COERCIONS = new Map<string, Coercion>([
+  ["MergeObject", coerceToMergeObject],
+  ["MergeSet", coerceToMergeSet],
+]);
+
 export class NetworkRuntime {
   private readonly _cells: Map<string, Cell>;
   private readonly _propagators: Map<string, Propagator>;
@@ -42,8 +72,8 @@ export class NetworkRuntime {
     this._propagators = new Map();
     for (const [name, p] of network.propagators) {
       const asCoercion = p.params["as"];
-      if (asCoercion !== undefined && asCoercion !== "MergeObject") {
-        throw new Error(`NetworkRuntime: unsupported coercion "as ${asCoercion}" (only "MergeObject" is supported)`);
+      if (asCoercion !== undefined && !COERCIONS.has(asCoercion)) {
+        throw new Error(`NetworkRuntime: unsupported coercion "as ${asCoercion}" (supported: ${[...COERCIONS.keys()].join(", ")})`);
       }
       if (p.fn === "__RECURSIVE") {
         if (asCoercion !== undefined) throw new Error(`NetworkRuntime: "as" coercion is not supported on a recursive propagate`);
@@ -76,7 +106,7 @@ export class NetworkRuntime {
           if (!entry) throw new Error(`NetworkRuntime: unknown function "${p.fn}" in registry`);
           unpacked = naryUnpacking(entry.impl, entry.arity);
         }
-        if (asCoercion === "MergeObject") unpacked = coerceToMergeObject(unpacked);
+        if (asCoercion !== undefined) unpacked = COERCIONS.get(asCoercion)!(unpacked);
         this._propagators.set(name, new Propagator(name, p.from, p.to, unpacked));
       }
     }
