@@ -1,4 +1,5 @@
-import { I, Something, type InfoStructure } from "../info-structure.js";
+import { I, Something, Contradiction, type InfoStructure } from "../info-structure.js";
+import { MergeObject } from "../information-structures/merge-object.js";
 import type { DataNetwork } from "../data-network/data-network.js";
 import type { Registry } from "../registry.js";
 import { naryUnpacking } from "../nary-unpacking.js";
@@ -9,6 +10,25 @@ import { run, type RunResult } from "./runner.js";
 import { AsyncPropagator, wrapSync } from "./async-propagator.js";
 import { asyncRun } from "./async-runner.js";
 import { APromise } from "../information-structures/apromise.js";
+
+// Wrap a propagator's unpacked output so a successful (Something) record result
+// becomes a MergeObject — the form that field-merges when two propagators write
+// the same cell. Nothing and Contradiction pass through untouched. A Something
+// whose content is not a plain object (number, string, array, ...) cannot be
+// lifted, so it becomes a Contradiction.
+function coerceToMergeObject(
+  f: (...args: InfoStructure<unknown>[]) => InfoStructure<unknown>,
+): (...args: InfoStructure<unknown>[]) => InfoStructure<unknown> {
+  return (...args) => {
+    const r = f(...args);
+    if (!(r instanceof Something)) return r;
+    const v = r.content();
+    if (v !== null && typeof v === "object" && !Array.isArray(v)) {
+      return MergeObject.lift(v as Record<string, unknown>);
+    }
+    return new Contradiction("coerce/not-an-object", new Set([r]));
+  };
+}
 
 export class NetworkRuntime {
   private readonly _cells: Map<string, Cell>;
@@ -21,7 +41,12 @@ export class NetworkRuntime {
     // Compile propagators: fn string → actual Propagator
     this._propagators = new Map();
     for (const [name, p] of network.propagators) {
-        if (p.fn === "__RECURSIVE") {
+      const asCoercion = p.params["as"];
+      if (asCoercion !== undefined && asCoercion !== "MergeObject") {
+        throw new Error(`NetworkRuntime: unsupported coercion "as ${asCoercion}" (only "MergeObject" is supported)`);
+      }
+      if (p.fn === "__RECURSIVE") {
+        if (asCoercion !== undefined) throw new Error(`NetworkRuntime: "as" coercion is not supported on a recursive propagate`);
         const fromNames = [...p.from];
         const signatureFrom = [...network.signature.from];
         const call = (cells: Map<string, Cell>): NetworkMessage => {
@@ -51,6 +76,7 @@ export class NetworkRuntime {
           if (!entry) throw new Error(`NetworkRuntime: unknown function "${p.fn}" in registry`);
           unpacked = naryUnpacking(entry.impl, entry.arity);
         }
+        if (asCoercion === "MergeObject") unpacked = coerceToMergeObject(unpacked);
         this._propagators.set(name, new Propagator(name, p.from, p.to, unpacked));
       }
     }

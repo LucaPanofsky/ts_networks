@@ -19,7 +19,7 @@ Signature {
 Term { PropagateTerm | SwitchTerm | CellTerm | ConstantTerm }
 
 PropagateTerm {
-  Propagate FunctionName From CellList To Name (WithClause | ";")
+  Propagate FunctionName (As Name)? From CellList To Name (WithClause | ";")
 }
 
 SwitchTerm {
@@ -191,6 +191,7 @@ Expression_  { kw<"expression"> }
 From         { kw<"from"> }
 To           { kw<"to"> }
 Propagate    { kw<"propagate"> }
+As           { kw<"as"> }
 With         { kw<"with"> }
 Switch       { kw<"switch"> }
 Cell         { kw<"cell"> }

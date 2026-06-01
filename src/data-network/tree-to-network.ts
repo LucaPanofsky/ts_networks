@@ -80,15 +80,20 @@ export function parseProgram(input: string): ProgramAST {
     cursor.firstChild();
     cursor.nextSibling(); // FunctionName
     const fn = collectFunctionName();
-    cursor.nextSibling(); // From
+    const params: Record<string, string> = {};
+    cursor.nextSibling(); // As | From
+    if (cursor.name === "As") {
+      cursor.nextSibling(); // Name (coercion type)
+      params["as"] = slice(cursor.from, cursor.to);
+      cursor.nextSibling(); // From
+    }
     cursor.nextSibling(); // CellList
     const from = collectCellList();
     cursor.nextSibling(); // To
     cursor.nextSibling(); // Name (to cell)
     const to = slice(cursor.from, cursor.to);
-    let params: Record<string, string> = {};
     if (cursor.nextSibling() && cursor.name === "WithClause") {
-      params = collectParams();
+      Object.assign(params, collectParams());
     }
     cursor.parent();
     return { kind: "propagate", fn, from, to, params };

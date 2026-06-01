@@ -1,5 +1,6 @@
 import { compile } from "../sandbox/jsgen/index.js";
 import { Something } from "../info-structure.js";
+import { MergeObject } from "../information-structures/merge-object.js";
 import type { Operation } from "./types.js";
 
 type RunInput = {
@@ -67,7 +68,7 @@ export const run: Operation<RunInput, RunOutput> = {
     const cells: Record<string, unknown> = {};
     for (const [name, cell] of result.cells) {
       const info = cell.knows();
-      cells[name] = info instanceof Something ? info.content() : null;
+      cells[name] = info instanceof Something || info instanceof MergeObject ? info.content() : null;
     }
 
     return { ok: true, network: networkName, cells };
