@@ -1,0 +1,73 @@
+defenum DocumentType
+  'report', 'email', 'legal', 'technical', 'unknown';
+end
+
+defenum Sentiment
+  'positive', 'negative', 'neutral';
+end
+
+defenum ClassificationLabel
+  'legal-review-required', 'high-confidence-negative',
+  'high-confidence-positive', 'low-confidence', 'standard';
+end
+
+defrecord DocumentAnalysis
+  type: DocumentType?;
+  sentiment: Sentiment?;
+  summary: String?;
+  confidence: Number?;
+end
+
+defllmfn analyzeDocument
+  signature: from [String?(text)] to DocumentAnalysis?;
+  with: model = 'claude-opus-4-7';
+  """
+  # Document Analysis Task
+
+  You are an expert document analyst. Your task is to analyze the provided text and return a structured analysis.
+
+  ## Input
+
+  Analyze the following document:
+
+  ```
+  {{text}}
+  ```
+
+  ## Output Fields
+
+  Return a JSON object with exactly these fields:
+
+  | Field        | Type    | Description                                      |
+  |--------------|---------|--------------------------------------------------|
+  | `type`       | string  | One of: "report", "email", "legal", "technical"  |
+  | `sentiment`  | string  | One of: "positive", "negative", "neutral"        |
+  | `summary`    | string  | A single sentence summary ending with "."        |
+  | `confidence` | number  | A float between 0.0 and 1.0                      |
+
+  ## Rules
+
+  - Use `"unknown"` for `type` if the document does not fit any category.
+  - Use `"neutral"` as the **default sentiment** when the tone is ambiguous.
+  - The `summary` field must be a *single sentence* — no line breaks, no bullet points.
+  - `confidence` must reflect how certain you are about the `type` classification.
+  """;
+end
+
+defn classifyResult
+  signature: from [DocumentAnalysis?(analysis)] to ClassificationLabel?;
+  expression
+    match analysis
+      | DocumentAnalysis { type: t } when t == 'legal' -> 'legal-review-required'
+      | DocumentAnalysis { sentiment: s, confidence: c } when s == 'negative' && c > 0.7 -> 'high-confidence-negative'
+      | DocumentAnalysis { sentiment: s, confidence: c } when s == 'positive' && c > 0.7 -> 'high-confidence-positive'
+      | DocumentAnalysis { confidence: c } when c < 0.4 -> 'low-confidence'
+      | _ -> 'standard'
+    end;
+end
+
+defnetwork documentPipeline
+  signature: from [text] to label;
+  propagate analyzeDocument from [text] to analysis;
+  propagate classifyResult from [analysis] to label;
+end

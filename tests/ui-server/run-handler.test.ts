@@ -1,7 +1,7 @@
 import { handleRun } from "../../src/ui-server/run-handler.js";
 import { readFileSync } from "fs";
 
-const geometrySrc = readFileSync("examples/geometry.tsn", "utf8");
+const geometrySrc = readFileSync("tests/fixtures/geometry.tsn", "utf8");
 
 test("error when source is empty", () => {
   const result = handleRun({ source: "", network: "rectangleMetrics", cells: {} });
