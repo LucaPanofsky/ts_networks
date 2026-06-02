@@ -18,6 +18,8 @@ The network runtime does the math for you, scheduling propagators in the right o
 
 **Functions** represent pure, self-contained business logic. They are the computation units that propagators invoke. The type annotations on their parameters and return value (`Number?`, `Boolean?`, a record predicate like `Circle?`) are not enforced at runtime today — they are documentation that both humans and tools can read to understand what a function expects and produces.
 
+The computation leaves come in three flavours, all invoked uniformly by propagators (and all callable from expressions): a pure `defn`/`defpredicate`, a neural `defllmfn`, and a symbolic `defgrammar` (text → records). They differ only in how a leaf turns input into output; downstream the network treats every result the same.
+
 ### A concrete example
 
 A typical program might look like this:
@@ -36,7 +38,7 @@ propagate classify from [agentResponse] to decision;
 
 ## Top-level definitions
 
-There are seven kinds of top-level definition:
+There are eight kinds of top-level definition:
 
 | Keyword | Purpose |
 |---|---|
@@ -46,6 +48,7 @@ There are seven kinds of top-level definition:
 | `defn` | A pure function |
 | `defpredicate` | A predicate (returns `Boolean?`) |
 | `defllmfn` | An LLM function that returns structured output |
+| `defgrammar` | A grammar (Ohm) that parses or scans text into records |
 | `derive` | A subtype declaration |
 
 ---
@@ -78,9 +81,29 @@ Four kinds of term can appear in a network body:
 ```
 propagate fnName from [cell1, cell2] to outputCell;
 propagate fnName from [cell1] to outputCell with: key = value, key2 = 'str';
+propagate fnName as <coercion> from [cell1] to outputCell;
 ```
 
 Applies `fnName` to the listed input cells and writes the result to `outputCell`. The optional `with:` clause passes static parameters to the function.
+
+The optional `as <coercion>` clause changes how the function is applied or how its result is written:
+
+| Coercion | Effect |
+|---|---|
+| `as mapping` | The single input cell holds a **vector**; `fnName` (a scalar function) is applied to each element and the results are gathered back into a vector. So `f: X? -> Y?` becomes `[X?] -> [Y?]`. |
+| `as filtering` | The single input cell holds a **vector**; the predicate `fnName` is applied to each element and the elements whose result is truthy are kept, in order. `p: X? -> Boolean?` becomes `[X?] -> [X?]`. |
+| `as MergeObject` | A record result is lifted into a **field-merging** form, so two propagators writing the same cell merge field-by-field instead of conflicting. |
+| `as MergeSet` | An array result is lifted into a **set-intersection** form. |
+
+`as mapping` and `as filtering` take exactly **one** input cell (the vector). This is how a scalar function — including a `grammar/<Name>` — is applied over the elements of a vector produced upstream, e.g. enriching each element of a grammar scan:
+
+```
+defnetwork parseArticleFull
+  signature: from [text] to paragraphs;
+  propagate grammar/ParaScan         from [text] to raw;       // [Paragraph?]
+  propagate enrichParagraph as mapping from [raw] to paragraphs; // [Paragraph?]
+end
+```
 
 #### `switch` — conditional gate
 
@@ -337,6 +360,88 @@ end
 
 ---
 
+## `defgrammar`
+
+Defines a grammar that turns text into typed records. The grammar body is an
+[Ohm](https://ohmjs.org/) grammar carried verbatim in a triple-quoted string; the
+DSL does not interpret it. Like `defn`/`defllmfn` it has an optional signature, and
+it is callable as `grammar/<Name>`.
+
+```
+defrecord Citation
+  title:   String?;
+  section: String?;
+end
+
+defgrammar Cite
+  signature: from [String?(text)] to Citation?;
+  """
+  Cite {
+    cite    = title spaces "U.S.C." spaces "§" spaces section
+    title   = digit+
+    section = digit+
+  }
+  """
+end
+```
+
+The Ohm grammar's name **must match** the `defgrammar` name (`Cite` above).
+
+### How matches become records
+
+There is one generic, per-grammar-free capture rule: **a grammar rule whose name
+matches a record field captures its matched text into that field.** Rules that don't
+match a field name are structural scaffolding and capture nothing. A field rule that
+matches more than once accumulates into an array (use this to fill a vector field); a
+scalar field takes the single (or first) capture.
+
+```
+defgrammar GdprCite
+  signature: from [String?(text)] to [ArticleRef?];
+  """
+  GdprCite {
+    cite    = word spaces numbers   // `cite` is the start rule
+    numbers = num (spaces num)*
+    num     = digit+                // captured into the `num` field (repeats → array)
+    word    = "Article" | "Articles"
+  }
+  """
+end
+```
+
+### Signature chooses the mode
+
+| Return type | Mode |
+|---|---|
+| scalar, `to Rec?` | **Parse**: the *whole* string must match, producing one record. A failure to consume all input is a `Contradiction`. |
+| vector, `to [Rec?]` | **Scan**: find every embedded match of the start rule, returning one record each. Zero matches is `[]` — a scan never fails. |
+| *(no signature)* | **Bare recognizer**: whole-string match returning the matched text; no record. |
+
+This is the natural place for the open-texture split: a scan that finds nothing is
+just absence (`[]`), not an error, so a grammar can probe for optional structure
+without the network "failing".
+
+### Using a grammar
+
+A grammar is invoked by its qualified name `grammar/<Name>`, in two places:
+
+```
+// In a network — as a propagator leaf:
+propagate grammar/Cite from [text] to citation;
+
+// In an expression — as an ordinary function call (grammars are synchronous):
+defn enrichParagraph
+  signature: from [Paragraph?(p)] to Paragraph?;
+  expression
+    Paragraph(p.number, p.body, grammar/PointScan(p.body));
+end
+```
+
+Combined with `as mapping`, this lets a scalar grammar enrich each element of a
+vector produced by another grammar — see [`examples/gdpr_article_nested.tsn`](../examples/gdpr_article_nested.tsn).
+
+---
+
 ## `derive`
 
 Declares that one predicate is a subtype of another.
@@ -525,6 +630,20 @@ sqrt(x)
 max(a, b)
 Circle(15)
 ```
+
+Anything in scope is callable: a `defn`/`defpredicate`, a record constructor, and
+**qualified-name** leaves. Qualified names contain a `/` as part of the name itself
+(`str/upper`, `grammar/Cite`) — distinct from the division operator:
+
+```
+str/upper(s)              // string builtins, namespaced under str/
+str/contains?(s, 'foo')
+grammar/Cite(text)        // a defgrammar — synchronous, returns a record / [record] / Contradiction
+```
+
+Calling a `grammar/<Name>` from an expression runs the grammar and yields its value
+directly. To run a grammar over the elements of a vector, use a `defn` wrapper plus
+`propagate ... as mapping` in a network (see `defgrammar` above).
 
 ### Let bindings
 
