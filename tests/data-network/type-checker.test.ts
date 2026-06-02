@@ -276,3 +276,59 @@ end
         expect(cell._errors).toHaveLength(0);
   });
 });
+
+// ── network/<name> references (arity-only) ─────────────────────────────────────
+
+describe("typeCheck: network/<name> propagator references", () => {
+  const src = `
+defn add
+  signature: from [Number?(x), Number?(y)] to Number?;
+  expression x + y;
+end
+
+defnetwork inner
+  signature: from [x, y] to z;
+  propagate add from [x, y] to z;
+end
+
+defnetwork outer
+  signature: from [a, b] to c;
+  propagate network/inner from [a, b] to c;
+end
+
+defnetwork outerBad
+  signature: from [a] to c;
+  propagate network/inner from [a] to c;
+end
+
+defnetwork outerMixed
+  signature: from [a, b] to c;
+  propagate network/inner from [a, b] to c;
+  propagate add from [a, b] to c;
+end
+`;
+  const program = parseProgram(src);
+  const net = (name: string) => typeCheck(program.networks.find(n => n.name === name)!, program);
+
+  test("correct arity → no propagator or cell errors", () => {
+    const enriched = net("outer");
+    for (const prop of enriched.propagators) expect(prop._errors).toHaveLength(0);
+    for (const cell of enriched.cells.values()) expect(cell._errors).toHaveLength(0);
+  });
+
+  test("wrong arity → arity-mismatch error", () => {
+    const prop = net("outerBad").propagators.find(p => p.fn === "network/inner")!;
+    expect(prop._errors.some(e => e.kind === "arity-mismatch")).toBe(true);
+    const err = prop._errors.find(e => e.kind === "arity-mismatch")!;
+    expect(err.message).toContain("2"); // expects 2
+    expect(err.message).toContain("1"); // got 1
+  });
+
+  test("a network ref contributes no type to its cells (no false conflict)", () => {
+    const enriched = net("outerMixed");
+    const c = enriched.cells.get("c")!;
+    // `add` writes Number?; the network ref adds nothing → single type, no conflict.
+    expect(c.writtenBy.has("Any?")).toBe(false);
+    expect(c._errors.some(e => e.kind === "conflicting-cell-types")).toBe(false);
+  });
+});

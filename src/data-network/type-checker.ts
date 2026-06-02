@@ -64,6 +64,13 @@ export function typeCheck(network: DataNetworkAST, program: ProgramAST): Enriche
   const fnMap = buildFnMap(program);
   const known = buildKnownPredicates(program);
 
+  // A network is callable as `network/<name>` with arity = its number of signature
+  // inputs. Networks declare no cell *types*, so the only sound check is arity — and
+  // it deliberately contributes nothing to cell type-inference (adding a synthetic
+  // type here would create false "conflicting types" errors on shared cells).
+  const networkArity = new Map<string, number>();
+  for (const n of program.networks) networkArity.set(`network/${n.name}`, n.signature.from.length);
+
   const cells = new Map<string, EnrichedCell>();
   const propagators: EnrichedPropagator[] = [];
 
@@ -108,6 +115,18 @@ export function typeCheck(network: DataNetworkAST, program: ProgramAST): Enriche
           ep._errors.push({ kind: "unknown-predicate", message: `parameter type '${paramType}' of '${term.fn}' is not defined` });
         }
       }
+    } else if (networkArity.has(term.fn)) {
+      // A sub-network reference: check arity only. Register the cells so they appear
+      // in the topology, but add no types (networks are untyped at the cell level).
+      const arity = networkArity.get(term.fn)!;
+      if (term.from.length !== arity) {
+        ep._errors.push({
+          kind: "arity-mismatch",
+          message: `'${term.fn}' expects ${arity} argument(s) but got ${term.from.length}`,
+        });
+      }
+      getCell(term.to);
+      for (const c of term.from) getCell(c);
     }
 
     propagators.push(ep);
