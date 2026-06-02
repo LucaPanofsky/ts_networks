@@ -128,6 +128,41 @@ export function parseProgram(input: string): ProgramAST {
     return { kind: "switch", fn, from, to };
   };
 
+  // ── FnSignature ──────────────────────────────────────────────────────────────
+  // Shared by defn, defpredicate, defllmfn, and defgrammar — they all use the same
+  // `from [Pred?(name), …] to (Name | [Name])` signature. Cursor must be on the
+  // FnSignature node; on return it is restored to that node.
+
+  const collectFnSignature = (): { params: TypedParam[]; returnType: TypeRef } => {
+    const params: TypedParam[] = [];
+    let returnType: TypeRef = { kind: "scalar", predicate: "" };
+    let seenTo = false;
+    if (!cursor.firstChild()) return { params, returnType };
+    do {
+      if (cn() === "TypedParam") {
+        const names: string[] = [];
+        if (cursor.firstChild()) {
+          do {
+            if (cn() === "Name") names.push(slice(cursor.from, cursor.to));
+          } while (cursor.nextSibling());
+          cursor.parent();
+        }
+        if (names.length >= 2) params.push({ predicate: names[0]!, name: names[1]! });
+      } else if (cn() === "To") {
+        seenTo = true;
+      } else if (cn() === "VectorTypeRef" && seenTo) {
+        cursor.firstChild(); cursor.nextSibling();
+        const element = slice(cursor.from, cursor.to);
+        cursor.parent();
+        returnType = { kind: "vector", element };
+      } else if (cn() === "Name" && seenTo) {
+        returnType = { kind: "scalar", predicate: slice(cursor.from, cursor.to) };
+      }
+    } while (cursor.nextSibling());
+    cursor.parent();
+    return { params, returnType };
+  };
+
   // ── expression parser ──────────────────────────────────────────────────────
 
   const parseExpr = (): Expr => {
@@ -387,30 +422,7 @@ export function parseProgram(input: string): ProgramAST {
       if (cursor.name === "Name" && !name) {
         name = slice(cursor.from, cursor.to);
       } else if (cursor.name === "FnSignature") {
-        let seenTo = false;
-        if (!cursor.firstChild()) continue;
-        do {
-          if (cn() === "TypedParam") {
-            const names: string[] = [];
-            if (cursor.firstChild()) {
-              do {
-                if (cn() === "Name") names.push(slice(cursor.from, cursor.to));
-              } while (cursor.nextSibling());
-              cursor.parent();
-            }
-            if (names.length >= 2) params.push({ predicate: names[0]!, name: names[1]! });
-          } else if (cn() === "To") {
-            seenTo = true;
-          } else if (cn() === "VectorTypeRef" && seenTo) {
-            cursor.firstChild(); cursor.nextSibling();
-            const element = slice(cursor.from, cursor.to);
-            cursor.parent();
-            returnType = { kind: "vector", element };
-          } else if (cn() === "Name" && seenTo) {
-            returnType = { kind: "scalar", predicate: slice(cursor.from, cursor.to) };
-          }
-        } while (cursor.nextSibling());
-        cursor.parent();
+        ({ params, returnType } = collectFnSignature());
       } else if (cursor.name === "ExpressionBody") {
         cursor.firstChild(); // Expression_
         cursor.nextSibling(); // LetBody
@@ -453,30 +465,7 @@ export function parseProgram(input: string): ProgramAST {
       if (cursor.name === "Name" && !name) {
         name = slice(cursor.from, cursor.to);
       } else if (cursor.name === "FnSignature") {
-        let seenTo = false;
-        if (!cursor.firstChild()) continue;
-        do {
-          if (cn() === "TypedParam") {
-            const names: string[] = [];
-            if (cursor.firstChild()) {
-              do {
-                if (cn() === "Name") names.push(slice(cursor.from, cursor.to));
-              } while (cursor.nextSibling());
-              cursor.parent();
-            }
-            if (names.length >= 2) params.push({ predicate: names[0]!, name: names[1]! });
-          } else if (cn() === "To") {
-            seenTo = true;
-          } else if (cn() === "VectorTypeRef" && seenTo) {
-            cursor.firstChild(); cursor.nextSibling();
-            const element = slice(cursor.from, cursor.to);
-            cursor.parent();
-            returnType = { kind: "vector", element };
-          } else if (cn() === "Name" && seenTo) {
-            returnType = { kind: "scalar", predicate: slice(cursor.from, cursor.to) };
-          }
-        } while (cursor.nextSibling());
-        cursor.parent();
+        ({ params, returnType } = collectFnSignature());
       } else if (cursor.name === "WithClause") {
         config = collectParams();
       } else if (cursor.name === "PromptString") {
@@ -493,18 +482,21 @@ export function parseProgram(input: string): ProgramAST {
   const collectGrammarDef = (): GrammarAST => {
     let name = "";
     let source = "";
+    let signature: GrammarAST["signature"];
 
     if (!cursor.firstChild()) return { kind: "grammar", name, source };
     do {
       if (cursor.name === "Name" && !name) {
         name = slice(cursor.from, cursor.to);
+      } else if (cursor.name === "FnSignature") {
+        signature = collectFnSignature();
       } else if (cursor.name === "PromptString") {
         const raw = slice(cursor.from, cursor.to);
         source = raw.slice(3, -3).trim();
       }
     } while (cursor.nextSibling());
     cursor.parent();
-    return { kind: "grammar", name, source };
+    return { kind: "grammar", name, source, signature };
   };
 
   // ── top-level walk ─────────────────────────────────────────────────────────

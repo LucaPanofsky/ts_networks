@@ -332,3 +332,90 @@ end
     expect(c._errors.some(e => e.kind === "conflicting-cell-types")).toBe(false);
   });
 });
+
+// ── defgrammar call sites (grammar/<name>) ──────────────────────────────────────
+
+describe("typeCheck: grammar/<name> as a typed propagator", () => {
+  const src = `
+defrecord CitationRec
+  title: String?;
+  section: String?;
+end
+
+defgrammar Citation
+  signature: from [String?(text)] to CitationRec?;
+  """
+Citation { cite = title "U.S.C." section
+  title = digit+
+  section = digit+ }
+"""
+end
+
+defgrammar Citations
+  signature: from [String?(text)] to [CitationRec?];
+  """
+Citations { cite = title "U.S.C." section
+  title = digit+
+  section = digit+ }
+"""
+end
+
+defnetwork parseOne
+  signature: from [text] to cite;
+  propagate grammar/Citation from [text] to cite;
+end
+
+defnetwork scanAll
+  signature: from [doc] to cites;
+  propagate grammar/Citations from [doc] to cites;
+end
+`;
+  const program = parseProgram(src);
+  const one = typeCheck(program.networks.find(n => n.name === "parseOne")!, program);
+  const scan = typeCheck(program.networks.find(n => n.name === "scanAll")!, program);
+
+  test("scalar grammar: input read as String?, output written as the record type", () => {
+    expect(one.cells.get("text")!.readBy).toContain("String?");
+    expect(one.cells.get("cite")!.writtenBy).toContain("CitationRec?");
+  });
+
+  test("scalar grammar: no errors on any cell or propagator", () => {
+    for (const cell of one.cells.values()) expect(cell._errors).toHaveLength(0);
+    for (const prop of one.propagators) expect(prop._errors).toHaveLength(0);
+  });
+
+  test("vector (scan) grammar: output written as the vector type, no unknown-predicate error", () => {
+    expect(scan.cells.get("cites")!.writtenBy).toContain("[CitationRec?]");
+    for (const prop of scan.propagators) {
+      expect(prop._errors.some(e => e.kind === "unknown-predicate")).toBe(false);
+    }
+  });
+});
+
+describe("typeCheck: grammar/<name> arity mismatch", () => {
+  const src = `
+defrecord CitationRec
+  title: String?;
+end
+
+defgrammar Citation
+  signature: from [String?(text)] to CitationRec?;
+  """
+Citation { cite = title
+  title = digit+ }
+"""
+end
+
+defnetwork bad
+  signature: from [a, b] to cite;
+  propagate grammar/Citation from [a, b] to cite;
+end
+`;
+  const program = parseProgram(src);
+  const enriched = typeCheck(program.networks[0]!, program);
+
+  test("passing 2 args to a 1-arg grammar is an arity-mismatch", () => {
+    const prop = enriched.propagators.find(p => p.fn === "grammar/Citation")!;
+    expect(prop._errors.some(e => e.kind === "arity-mismatch")).toBe(true);
+  });
+});

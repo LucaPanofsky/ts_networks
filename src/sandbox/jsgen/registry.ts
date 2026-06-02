@@ -5,6 +5,7 @@ import { typeRefToString } from "../../data-network/types.js";
 import type { Sandbox } from "./runtime.js";
 import { callLLMFn } from "../llmfn-client.js";
 import { toolsFromConfig } from "../tools.js";
+import { compileGrammar } from "../grammar-runtime.js";
 import { deriveProtocol } from "../../data-network/schema.js";
 import { Something, Contradiction } from "../../info-structure.js";
 import { Deferred } from "../../information-structures/deferred.js";
@@ -79,6 +80,24 @@ export function buildRegistry(program: ProgramAST, sandbox: Sandbox): Registry {
         return new APromise(d);
       },
       morphism: { from: llmFn.params.map(p => p.predicate), to: typeRefToString(llmFn.returnType) },
+    });
+  }
+
+  // Grammars are exposed under `grammar/<name>` (mirroring `network/<name>`) so a
+  // `propagate grammar/<name> from [text] to cell` resolves through the ordinary
+  // registry path. compileGrammar throws here on a bad Ohm source or a name mismatch,
+  // surfacing at program-compile time.
+  for (const grammar of program.grammars) {
+    const { arity, impl } = compileGrammar(grammar, program, sandbox);
+    const sig = grammar.signature;
+    registry.register({
+      fnName: `grammar/${grammar.name}`,
+      arity,
+      impl,
+      morphism: {
+        from: sig ? sig.params.map(p => p.predicate) : ["String?"],
+        to:   sig ? typeRefToString(sig.returnType) : "String?",
+      },
     });
   }
 

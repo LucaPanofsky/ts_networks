@@ -175,13 +175,17 @@ export type LLMFnAST = {
 
 // ── Grammar definitions ───────────────────────────────────────────────────────
 
-// A named Ohm grammar carried as verbatim source text. Usage/compilation is
-// deferred; for now a defgrammar only contributes its name and source to the
-// program (the codegen ignores it).
+// A named Ohm grammar carried as verbatim source text. The optional signature is
+// the same shape as a fn/llmfn signature (`from [String?(text)] to Rec?`): it binds
+// the parse result to a record. A scalar `returnType` parses the whole input string
+// into one record; a vector `returnType` (`to [Rec?]`) scans for all embedded
+// matches and returns an array. With no signature the grammar is a bare recognizer
+// returning the matched text.
 export type GrammarAST = {
   kind: "grammar";
   name: string;
   source: string;
+  signature?: { params: TypedParam[]; returnType: TypeRef };
 };
 
 // ── Program ───────────────────────────────────────────────────────────────────

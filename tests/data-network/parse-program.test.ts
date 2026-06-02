@@ -420,6 +420,41 @@ describe("parseProgram: defgrammar", () => {
     expect(grammar.source.startsWith('"""')).toBe(false);
     expect(grammar.source.endsWith('"""')).toBe(false);
   });
+
+  test("a bare grammar has no signature", () => {
+    expect(grammar.signature).toBeUndefined();
+  });
+});
+
+describe("parseProgram: defgrammar with a signature", () => {
+  const scalar = parseProgram(`
+defgrammar Citation
+  signature: from [String?(text)] to CitationRec?;
+  """ Citation { cite = "x" } """
+end
+`).grammars[0]!;
+
+  const vector = parseProgram(`
+defgrammar Citations
+  signature: from [String?(text)] to [CitationRec?];
+  """ Citations { cite = "x" } """
+end
+`).grammars[0]!;
+
+  test("a scalar signature reuses the fn-signature shape (params + scalar return)", () => {
+    expect(scalar.signature).toEqual({
+      params: [{ predicate: "String?", name: "text" }],
+      returnType: { kind: "scalar", predicate: "CitationRec?" },
+    });
+  });
+
+  test("a vector return type is captured (scan mode)", () => {
+    expect(vector.signature!.returnType).toEqual({ kind: "vector", element: "CitationRec?" });
+  });
+
+  test("the source is still captured alongside the signature", () => {
+    expect(scalar.source).toContain("Citation { cite");
+  });
 });
 
 // ── defenum ───────────────────────────────────────────────────────────────────

@@ -77,6 +77,46 @@ end
 
 Function names in `propagate` are looked up in a `Registry` at compile time and wrapped with `naryUnpacking` to produce the runtime `Propagator`.
 
+### Grammars (`defgrammar`)
+
+A `defgrammar` carries an [Ohm](https://ohmjs.org/) grammar verbatim in a triple-quoted blob and exposes it as a callable named `grammar/<name>` — the same convention `network/<name>` uses, so a grammar can be propagated like any other function. Its **optional signature** uses the exact `from [Pred?(name)] to Type` shape as `defn`/`defllmfn` and binds matches to a record:
+
+```
+defrecord Citation
+  title:   String?;
+  section: String?;
+end
+
+defgrammar Cite
+  signature: from [String?(text)] to Citation?;
+  """
+  Cite {
+    cite    = title spaces "U.S.C." spaces "§" spaces section
+    title   = digit+
+    section = digit+
+  }
+  """
+end
+
+defnetwork parseCitation
+  signature: from [text] to citation;
+  propagate grammar/Cite from [text] to citation;
+end
+```
+
+Field rules named to match the record's fields (`title`, `section`) capture their matched text into those fields; literals in the parent rule are not captured.
+
+The **return type chooses the mode**:
+
+| Signature | Mode | Result | On no match |
+|-----------|------|--------|-------------|
+| `to Citation?` | parse | matches the **whole** string → one `Citation` | `Contradiction` |
+| `to [Citation?]` | scan | finds **every** embedded match → `[Citation]` | `[]` (empty) |
+
+Scan is the island-parsing pattern (e.g. pulling all citations out of a long legal document); it is implemented with a synthesized Ohm supergrammar. With **no signature** a `defgrammar` is a bare recognizer returning the matched text. Two invariants are checked at compile time: the Ohm grammar must be valid, and its internal name must equal the `defgrammar` name.
+
+See `examples/citations.tsn` for a runnable end-to-end example.
+
 ---
 
 ## Project Structure

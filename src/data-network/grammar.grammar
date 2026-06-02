@@ -61,10 +61,13 @@ LLMFnDef {
 // ── defgrammar ────────────────────────────────────────────────────────────────
 // An Ohm grammar carried verbatim in a triple-quoted blob. The body is opaque to
 // the DSL (the PromptString external tokenizer swallows it), so it may contain any
-// Ohm source. Usage/compilation is deferred — for now this only enters the program.
+// Ohm source. The optional signature reuses FnSignature (identical syntax to defn
+// and defllmfn): `from [String?(text)] to Rec?` binds matches to a record, with a
+// scalar return parsing the whole string and a `to [Rec?]` vector return scanning
+// for all embedded matches. With no signature the grammar is a bare recognizer.
 
 GrammarDef {
-  Defgrammar Name PromptString End
+  Defgrammar Name FnSignature? PromptString End
 }
 
 // ── defenum ───────────────────────────────────────────────────────────────────

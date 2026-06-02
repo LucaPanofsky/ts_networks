@@ -47,6 +47,16 @@ function buildFnMap(program: ProgramAST): Map<string, FnSignature> {
       returnType: typeRefToString(llmFn.returnType),
     });
   }
+  // A signed grammar is callable as `grammar/<name>` and is fully typed like a fn: its
+  // params and (scalar or vector) return type drive the same checks. Unsigned grammars
+  // (bare recognizers) carry no types and are handled arity-only below.
+  for (const grammar of program.grammars) {
+    if (!grammar.signature) continue;
+    map.set(`grammar/${grammar.name}`, {
+      params: grammar.signature.params.map(p => p.predicate),
+      returnType: typeRefToString(grammar.signature.returnType),
+    });
+  }
   return map;
 }
 
@@ -70,6 +80,14 @@ export function typeCheck(network: DataNetworkAST, program: ProgramAST): Enriche
   // type here would create false "conflicting types" errors on shared cells).
   const networkArity = new Map<string, number>();
   for (const n of program.networks) networkArity.set(`network/${n.name}`, n.signature.from.length);
+  // Unsigned grammars (bare recognizers) are arity-only callables, like networks: a
+  // signature would have typed them into fnMap above. Their arity is always 1 (a string).
+  for (const g of program.grammars) if (!g.signature) networkArity.set(`grammar/${g.name}`, 1);
+
+  // A declared type is known if it is a known scalar predicate, or a vector `[X]`
+  // whose element `X` is a known scalar (grammar scan returns and vector-valued fns).
+  const isKnownType = (t: string): boolean =>
+    t.startsWith("[") && t.endsWith("]") ? known.has(t.slice(1, -1)) : known.has(t);
 
   const cells = new Map<string, EnrichedCell>();
   const propagators: EnrichedPropagator[] = [];
@@ -103,7 +121,7 @@ export function typeCheck(network: DataNetworkAST, program: ProgramAST): Enriche
 
       const returnType = sig.returnType;
       getCell(term.to).writtenBy.add(returnType);
-      if (!known.has(returnType)) {
+      if (!isKnownType(returnType)) {
         ep._errors.push({ kind: "unknown-predicate", message: `return type '${returnType}' of '${term.fn}' is not defined` });
       }
 
@@ -111,7 +129,7 @@ export function typeCheck(network: DataNetworkAST, program: ProgramAST): Enriche
         const paramType = sig.params[i];
         if (!paramType) continue;
         getCell(term.from[i]!).readBy.add(paramType);
-        if (!known.has(paramType)) {
+        if (!isKnownType(paramType)) {
           ep._errors.push({ kind: "unknown-predicate", message: `parameter type '${paramType}' of '${term.fn}' is not defined` });
         }
       }
