@@ -98,6 +98,38 @@ npm test        # run all tests
 npm run dev     # watch mode
 ```
 
+## Editor Support
+
+### VS Code extension (`editors/vscode/`)
+
+A minimal, **highlighting-only** VS Code extension for `.tsn` files. It is purely
+declarative — a TextMate grammar plus a language configuration, with **no
+language server and no compiled code**. It is not yet packaged or published; you
+install it locally from the repo.
+
+**Current state:** syntax highlighting only. It colours definition keywords
+(`defnetwork`, `defrecord`, `defn`, `defpredicate`, `defllmfn`, `defgrammar`,
+`defenum`, `derive`), structural keywords (`signature`, `from`, `to`,
+`propagate`, `switch`, `match`, `when`, `let`, …), single-quoted strings,
+triple-quoted `"""…"""` blocks (prompts and `defgrammar` bodies), `//` comments,
+numbers, booleans, operators, Capitalized types/constructors, and namespaced
+calls (`str/…`, `network/…`). There is **no** error checking, hover,
+go-to-definition, or other LSP behaviour.
+
+**Caveat:** this TextMate grammar is **independent** of the Lezer grammar in
+`src/data-network/grammar.grammar` (VS Code cannot consume Lezer). The two are
+maintained separately; the keyword list is the only thing that must be kept in
+sync when the language changes.
+
+**Install (local):** symlink the folder into your VS Code extensions directory
+and reload the window:
+
+```bash
+ln -s "$(pwd)/editors/vscode" ~/.vscode/extensions/tsn-syntax-0.0.1
+```
+
+See `editors/vscode/README.md` for details and for packaging a `.vsix`.
+
 ## Other Types
 
 ### `MergeObject` & plain objects

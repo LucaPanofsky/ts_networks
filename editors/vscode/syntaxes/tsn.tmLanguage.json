@@ -1,0 +1,70 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "ts-networks",
+  "scopeName": "source.tsn",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#triple-string" },
+    { "include": "#string" },
+    { "include": "#keywords" },
+    { "include": "#boolean" },
+    { "include": "#namespaced" },
+    { "include": "#type" },
+    { "include": "#number" },
+    { "include": "#operator" }
+  ],
+  "repository": {
+    "comments": {
+      "name": "comment.line.double-slash.tsn",
+      "match": "//.*$"
+    },
+    "triple-string": {
+      "comment": "Triple-quoted blob: defllmfn prompts and defgrammar bodies (opaque).",
+      "name": "string.quoted.triple.tsn",
+      "begin": "\"\"\"",
+      "end": "\"\"\""
+    },
+    "string": {
+      "comment": "DSL strings are single-quoted only.",
+      "name": "string.quoted.single.tsn",
+      "begin": "'",
+      "end": "'"
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "comment": "Definition keywords.",
+          "name": "keyword.other.tsn",
+          "match": "\\b(defnetwork|defrecord|defpredicate|defllmfn|defgrammar|defenum|defn|derive)\\b"
+        },
+        {
+          "comment": "Structural / control keywords.",
+          "name": "keyword.control.tsn",
+          "match": "\\b(signature|expression|propagate|constant|switch|match|when|cell|with|from|let|end|as|to)\\b"
+        }
+      ]
+    },
+    "boolean": {
+      "name": "constant.language.boolean.tsn",
+      "match": "\\b(true|false)\\b"
+    },
+    "namespaced": {
+      "comment": "Namespaced calls like str/contains? and network/myNet.",
+      "name": "support.function.tsn",
+      "match": "\\b(str|network)/[A-Za-z0-9_?!-]+"
+    },
+    "type": {
+      "comment": "Records, enums, constructors, and predicate types (Capitalized; trailing ? for predicates).",
+      "name": "entity.name.type.tsn",
+      "match": "\\b[A-Z][A-Za-z0-9_]*\\??"
+    },
+    "number": {
+      "name": "constant.numeric.tsn",
+      "match": "\\b[0-9]+(\\.[0-9]+)?\\b"
+    },
+    "operator": {
+      "name": "keyword.operator.tsn",
+      "match": "->|\\|\\||&&|==|!=|<=|>=|[-+*/<>!|=]"
+    }
+  }
+}
