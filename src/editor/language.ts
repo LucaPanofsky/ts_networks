@@ -5,7 +5,7 @@ import { styleTags, tags as t } from "@lezer/highlight";
 const tsnetParser = parser.configure({
   props: [
     styleTags({
-      "Defnetwork Defrecord Defn Defpredicate Defllmfn Derive End": t.definitionKeyword,
+      "Defnetwork Defrecord Defn Defpredicate Defllmfn Defgrammar Derive End": t.definitionKeyword,
       "Signature_ Expression_ From To Propagate Switch With Cell Constant Let Match When": t.keyword,
       String:     t.string,
       Number:     t.number,

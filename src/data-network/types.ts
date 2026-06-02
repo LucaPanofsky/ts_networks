@@ -173,6 +173,17 @@ export type LLMFnAST = {
   config: Record<string, string>;
 };
 
+// ── Grammar definitions ───────────────────────────────────────────────────────
+
+// A named Ohm grammar carried as verbatim source text. Usage/compilation is
+// deferred; for now a defgrammar only contributes its name and source to the
+// program (the codegen ignores it).
+export type GrammarAST = {
+  kind: "grammar";
+  name: string;
+  source: string;
+};
+
 // ── Program ───────────────────────────────────────────────────────────────────
 
 export type ProgramAST = {
@@ -182,4 +193,5 @@ export type ProgramAST = {
   derives: DeriveAST[];
   llmFns: LLMFnAST[];
   enums: EnumAST[];
+  grammars: GrammarAST[];
 };

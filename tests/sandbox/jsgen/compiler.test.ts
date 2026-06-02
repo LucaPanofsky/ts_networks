@@ -71,7 +71,7 @@ describe("invariants", () => {
 
 describe("compileProgram", () => {
   const program: ProgramAST = {
-    records: [vec2], fns: [addFn], networks: [], derives: [], llmFns: [], enums: [docType],
+    records: [vec2], fns: [addFn], networks: [], derives: [], llmFns: [], enums: [docType], grammars: [],
   };
 
   test("records emitted before functions", () => {
@@ -88,7 +88,7 @@ describe("compileProgram", () => {
   });
 
   test("empty program emits only the builtins preamble and a bare return", () => {
-    const out = compileProgram({ records: [], fns: [], networks: [], derives: [], llmFns: [], enums: [] });
+    const out = compileProgram({ records: [], fns: [], networks: [], derives: [], llmFns: [], enums: [], grammars: [] });
     // No user definitions, so the export map is empty; the builtins (every/some)
     // are always in scope.
     expect(out).toContain("const every = function(pred, coll)");

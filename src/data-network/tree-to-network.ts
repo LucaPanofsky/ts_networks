@@ -1,6 +1,6 @@
 import { parser } from "./parser.js";
 import type {
-  ProgramAST, DataNetworkAST, RecordAST, FnAST, DeriveAST, LLMFnAST, EnumAST,
+  ProgramAST, DataNetworkAST, RecordAST, FnAST, DeriveAST, LLMFnAST, EnumAST, GrammarAST,
   Term, PropagateTerm, SwitchTerm, CellTerm, ConstantTerm,
   FieldDecl, TypedParam, TypeRef,
   Expr, LiteralExpr, VarExpr, CallExpr, BinaryExpr, UnaryExpr, FieldExpr,
@@ -35,6 +35,7 @@ export function parseProgram(input: string): ProgramAST {
   const derives: DeriveAST[] = [];
   const llmFns: LLMFnAST[] = [];
   const enums: EnumAST[] = [];
+  const grammars: GrammarAST[] = [];
 
   // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -487,6 +488,25 @@ export function parseProgram(input: string): ProgramAST {
     return { kind: "llmfn", name, params, returnType, prompt, config };
   };
 
+  // ── GrammarDef ───────────────────────────────────────────────────────────────
+
+  const collectGrammarDef = (): GrammarAST => {
+    let name = "";
+    let source = "";
+
+    if (!cursor.firstChild()) return { kind: "grammar", name, source };
+    do {
+      if (cursor.name === "Name" && !name) {
+        name = slice(cursor.from, cursor.to);
+      } else if (cursor.name === "PromptString") {
+        const raw = slice(cursor.from, cursor.to);
+        source = raw.slice(3, -3).trim();
+      }
+    } while (cursor.nextSibling());
+    cursor.parent();
+    return { kind: "grammar", name, source };
+  };
+
   // ── top-level walk ─────────────────────────────────────────────────────────
 
   cursor.firstChild(); // enter Document
@@ -500,11 +520,12 @@ export function parseProgram(input: string): ProgramAST {
       else if (cn() === "DeriveDef") derives.push(collectDeriveDef());
       else if (cn() === "LLMFnDef") llmFns.push(collectLLMFnDef());
       else if (cn() === "EnumDef") enums.push(collectEnumDef());
+      else if (cn() === "GrammarDef") grammars.push(collectGrammarDef());
       cursor.parent();
     }
   } while (cursor.nextSibling());
 
-  return { networks, records, fns, derives, llmFns, enums };
+  return { networks, records, fns, derives, llmFns, enums, grammars };
 }
 
 export function parseNetwork(input: string): DataNetworkAST {

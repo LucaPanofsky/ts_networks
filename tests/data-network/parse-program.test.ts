@@ -384,6 +384,44 @@ describe("parseProgram: defllmfn", () => {
   });
 });
 
+// ── defgrammar ──────────────────────────────────────────────────────────────────
+
+const grammarDsl = `
+defgrammar Citation
+  """
+  Citation {
+    cite          = title "U.S.C." section
+    title         = digit+
+    section       = "§" spaces sectionNumber
+    sectionNumber = digit+ subsec*
+    subsec        = "(" alnum+ ")"
+  }
+  """
+end
+`;
+
+describe("parseProgram: defgrammar", () => {
+  const grammar = parseProgram(grammarDsl).grammars[0]!;
+
+  test("no parse errors", () => noErrorNodes(grammarDsl));
+
+  test("kind and name", () => {
+    expect(grammar.kind).toBe("grammar");
+    expect(grammar.name).toBe("Citation");
+  });
+
+  test("source is captured verbatim", () => {
+    expect(grammar.source).toContain("Citation {");
+    expect(grammar.source).toContain(`cite          = title "U.S.C." section`);
+    expect(grammar.source).toContain("§");
+  });
+
+  test("source strips the surrounding triple-quotes", () => {
+    expect(grammar.source.startsWith('"""')).toBe(false);
+    expect(grammar.source.endsWith('"""')).toBe(false);
+  });
+});
+
 // ── defenum ───────────────────────────────────────────────────────────────────
 
 const enumInput = `
