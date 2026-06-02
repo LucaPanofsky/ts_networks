@@ -457,6 +457,114 @@ end
   });
 });
 
+// ── defparameter ──────────────────────────────────────────────────────────────
+
+const parameterDsl = `
+defparameter myArticle
+  type: Text?;
+  value:
+    """
+    Article 12(1)-(2) GDPR
+    """;
+end
+`;
+
+describe("parseProgram: defparameter", () => {
+  const param = parseProgram(parameterDsl).parameters[0]!;
+
+  test("no parse errors", () => noErrorNodes(parameterDsl));
+
+  test("kind and name", () => {
+    expect(param.kind).toBe("parameter");
+    expect(param.name).toBe("myArticle");
+  });
+
+  test("type is captured as a scalar type ref", () => {
+    expect(param.type).toEqual({ kind: "scalar", predicate: "Text?" });
+  });
+
+  test("value strips the surrounding triple-quotes and trims", () => {
+    expect(param.value).toBe("Article 12(1)-(2) GDPR");
+  });
+});
+
+describe("parseProgram: defparameter without a value", () => {
+  const noValue = `
+defparameter pending
+  type: Text?;
+end
+`;
+  const param = parseProgram(noValue).parameters[0]!;
+
+  test("no parse errors", () => noErrorNodes(noValue));
+
+  test("the type is still captured", () => {
+    expect(param.type).toEqual({ kind: "scalar", predicate: "Text?" });
+  });
+
+  test("a missing value clause leaves value undefined", () => {
+    expect(param.value).toBeUndefined();
+  });
+});
+
+describe("parseProgram: defparameter — value body is opaque", () => {
+  // The triple-quoted value is swallowed verbatim, so DSL-looking punctuation
+  // inside it (`:`, `;`, `[...]`, quotes) is preserved, not parsed.
+  const src = `
+defparameter blob
+  type: Text?;
+  value: """ a: 1; b = [2]; "quoted" """;
+end
+`;
+  test("no parse errors", () => noErrorNodes(src));
+
+  test("inner punctuation is preserved verbatim", () => {
+    expect(parseProgram(src).parameters[0]!.value).toBe(`a: 1; b = [2]; "quoted"`);
+  });
+});
+
+describe("parseProgram: defparameter alongside other definitions", () => {
+  const mixed = `
+defrecord Payload
+  label: String?;
+end
+
+defparameter greeting
+  type: Text?;
+  value: """ hello """;
+end
+`;
+  const prog = parseProgram(mixed);
+
+  test("the parameter and the record are both parsed", () => {
+    expect(prog.records[0]!.name).toBe("Payload");
+    expect(prog.parameters[0]!.name).toBe("greeting");
+    expect(prog.parameters[0]!.value).toBe("hello");
+  });
+});
+
+describe("parseProgram: defparameter — negatives", () => {
+  test("a parameter without a type clause is a syntax error", () => {
+    expect(() => parseProgram(`defparameter foo\nend`)).toThrow(/Syntax error/);
+  });
+});
+
+describe("defparameter keywords remain usable as identifiers (@extend)", () => {
+  // `type` and `value` are contextual keywords inside defparameter; they must
+  // still parse as ordinary names everywhere else.
+  const src = `
+defrecord Config
+  type: String?;
+  value: String?;
+end
+`;
+  test("no parse errors", () => noErrorNodes(src));
+
+  test("'type' and 'value' parse as ordinary field names", () => {
+    expect(parseProgram(src).records[0]!.fields.map(f => f.name)).toEqual(["type", "value"]);
+  });
+});
+
 // ── defenum ───────────────────────────────────────────────────────────────────
 
 const enumInput = `

@@ -23,7 +23,7 @@ const mockSandbox: Sandbox = {
   length: mockLength,
 };
 
-const program: ProgramAST = { records: [vec2], fns: [lengthFn], networks: [], derives: [], llmFns: [], enums: [], grammars: [] };
+const program: ProgramAST = { records: [vec2], fns: [lengthFn], networks: [], derives: [], llmFns: [], enums: [], grammars: [], parameters: [] };
 
 describe("buildRegistry: fns", () => {
   const registry = buildRegistry(program, mockSandbox);

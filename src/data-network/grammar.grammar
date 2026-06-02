@@ -3,7 +3,7 @@
 }
 
 Definition {
-  NetworkDef | RecordDef | FnDef | PredicateDef | DeriveDef | LLMFnDef | EnumDef | GrammarDef
+  NetworkDef | RecordDef | FnDef | PredicateDef | DeriveDef | LLMFnDef | EnumDef | GrammarDef | ParameterDef
 }
 
 // ── defnetwork ────────────────────────────────────────────────────────────────
@@ -69,6 +69,20 @@ LLMFnDef {
 GrammarDef {
   Defgrammar Name FnSignature? PromptString End
 }
+
+// ── defparameter ───────────────────────────────────────────────────────────────
+// A named, overridable input with an optional default. `type:` carries the value's
+// predicate; the optional `value:` carries the default as a triple-quoted blob
+// (text only for now, so the body is swallowed verbatim by the PromptString
+// tokenizer). `type` and `value` are contextual keywords (@extend), so they remain
+// usable as ordinary identifiers (e.g. record field names) everywhere else.
+
+ParameterDef {
+  Defparameter Name TypeClause ValueClause? End
+}
+
+TypeClause  { Type ":" Name ";" }
+ValueClause { Value ":" PromptString ";" }
 
 // ── defenum ───────────────────────────────────────────────────────────────────
 
@@ -189,6 +203,10 @@ MulOp { "*" | Divide }
 
 kw<term> { @specialize[@name={term}]<Name, term> }
 
+// Contextual keyword: recognised as a keyword where the grammar expects it, but
+// still usable as an ordinary Name elsewhere (unlike kw<>, which reserves it).
+ckw<term> { @extend[@name={term}]<Name, term> }
+
 Defnetwork   { kw<"defnetwork"> }
 Defrecord    { kw<"defrecord"> }
 Defn         { kw<"defn"> }
@@ -196,6 +214,9 @@ Defpredicate { kw<"defpredicate"> }
 Defllmfn     { kw<"defllmfn"> }
 Defenum      { kw<"defenum"> }
 Defgrammar   { kw<"defgrammar"> }
+Defparameter { kw<"defparameter"> }
+Type         { ckw<"type"> }
+Value        { ckw<"value"> }
 Derive       { kw<"derive"> }
 Let          { kw<"let"> }
 End          { kw<"end"> }

@@ -1,6 +1,6 @@
 import { parser } from "./parser.js";
 import type {
-  ProgramAST, DataNetworkAST, RecordAST, FnAST, DeriveAST, LLMFnAST, EnumAST, GrammarAST,
+  ProgramAST, DataNetworkAST, RecordAST, FnAST, DeriveAST, LLMFnAST, EnumAST, GrammarAST, ParameterAST,
   Term, PropagateTerm, SwitchTerm, CellTerm, ConstantTerm,
   FieldDecl, TypedParam, TypeRef,
   Expr, LiteralExpr, VarExpr, CallExpr, BinaryExpr, UnaryExpr, FieldExpr,
@@ -36,6 +36,7 @@ export function parseProgram(input: string): ProgramAST {
   const llmFns: LLMFnAST[] = [];
   const enums: EnumAST[] = [];
   const grammars: GrammarAST[] = [];
+  const parameters: ParameterAST[] = [];
 
   // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -499,6 +500,36 @@ export function parseProgram(input: string): ProgramAST {
     return { kind: "grammar", name, source, signature };
   };
 
+  // ── ParameterDef ───────────────────────────────────────────────────────────
+
+  const collectParameterDef = (): ParameterAST => {
+    let name = "";
+    let type: TypeRef = { kind: "scalar", predicate: "" };
+    let value: string | undefined;
+
+    if (!cursor.firstChild()) return { kind: "parameter", name, type };
+    do {
+      if (cursor.name === "Name" && !name) {
+        name = slice(cursor.from, cursor.to);
+      } else if (cursor.name === "TypeClause") {
+        cursor.firstChild(); // Type keyword
+        cursor.nextSibling(); // ":"
+        cursor.nextSibling(); // Name
+        type = { kind: "scalar", predicate: slice(cursor.from, cursor.to) };
+        cursor.parent();
+      } else if (cursor.name === "ValueClause") {
+        cursor.firstChild(); // Value keyword
+        cursor.nextSibling(); // ":"
+        cursor.nextSibling(); // PromptString
+        const raw = slice(cursor.from, cursor.to);
+        value = raw.slice(3, -3).trim();
+        cursor.parent();
+      }
+    } while (cursor.nextSibling());
+    cursor.parent();
+    return { kind: "parameter", name, type, value };
+  };
+
   // ── top-level walk ─────────────────────────────────────────────────────────
 
   cursor.firstChild(); // enter Document
@@ -513,11 +544,12 @@ export function parseProgram(input: string): ProgramAST {
       else if (cn() === "LLMFnDef") llmFns.push(collectLLMFnDef());
       else if (cn() === "EnumDef") enums.push(collectEnumDef());
       else if (cn() === "GrammarDef") grammars.push(collectGrammarDef());
+      else if (cn() === "ParameterDef") parameters.push(collectParameterDef());
       cursor.parent();
     }
   } while (cursor.nextSibling());
 
-  return { networks, records, fns, derives, llmFns, enums, grammars };
+  return { networks, records, fns, derives, llmFns, enums, grammars, parameters };
 }
 
 export function parseNetwork(input: string): DataNetworkAST {

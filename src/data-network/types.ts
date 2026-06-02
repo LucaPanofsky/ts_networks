@@ -188,6 +188,20 @@ export type GrammarAST = {
   signature?: { params: TypedParam[]; returnType: TypeRef };
 };
 
+// ── Parameter definitions ─────────────────────────────────────────────────────
+
+// A named, overridable input. `type` is the value's type reference; `value` is the
+// optional default (the trimmed body of a triple-quoted blob, text only for now).
+// An absent `value` means the default is Nothing — a network reading an unfilled
+// parameter simply produces no information. A `run` entry point (later) wires
+// parameters into network cells and lets the CLI override them.
+export type ParameterAST = {
+  kind: "parameter";
+  name: string;
+  type: TypeRef;
+  value?: string;
+};
+
 // ── Program ───────────────────────────────────────────────────────────────────
 
 export type ProgramAST = {
@@ -198,4 +212,5 @@ export type ProgramAST = {
   llmFns: LLMFnAST[];
   enums: EnumAST[];
   grammars: GrammarAST[];
+  parameters: ParameterAST[];
 };
