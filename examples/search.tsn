@@ -1,5 +1,5 @@
 defnetwork exampleSearch
-  signature: from input to done;
+  signature: from [input] to done;
 
 
   switch goodEnough? from [input] to inputIsGood;
