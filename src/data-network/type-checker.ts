@@ -20,6 +20,11 @@ export type EnrichedPropagator = {
   fn: string | null;
   from: string[];
   to: string;
+  // The param types as seen by the *cells*, after any `as` coercion. For `as mapping`
+  // / `as filtering` these are the fn's params wrapped in a vector; otherwise the
+  // fn's params verbatim. Pass 2 (input-type-mismatch) reads these so it agrees with
+  // the cell types Pass 1 recorded.
+  _paramTypes?: string[];
   _errors: TypeError[];
 };
 
@@ -119,14 +124,29 @@ export function typeCheck(network: DataNetworkAST, program: ProgramAST): Enriche
         });
       }
 
-      const returnType = sig.returnType;
+      // An `as mapping` / `as filtering` coercion distributes the fn over a vector:
+      // the cell types are the fn's types wrapped in `[...]`. Mapping yields a vector
+      // of the return type; filtering keeps survivors, so it yields a vector of the
+      // (single) input element type. The structure coercions (MergeObject/MergeSet)
+      // post-process the value without changing arity, so types are unchanged.
+      const coercion = term.params["as"];
+      const isMapping = coercion === "mapping";
+      const isFiltering = coercion === "filtering";
+      const vec = (t: string) => `[${t}]`;
+
+      const returnType =
+        isMapping   ? vec(sig.returnType) :
+        isFiltering ? vec(sig.params[0] ?? sig.returnType) :
+        sig.returnType;
       getCell(term.to).writtenBy.add(returnType);
       if (!isKnownType(returnType)) {
         ep._errors.push({ kind: "unknown-predicate", message: `return type '${returnType}' of '${term.fn}' is not defined` });
       }
 
+      const paramTypes = (isMapping || isFiltering) ? sig.params.map(vec) : sig.params;
+      ep._paramTypes = paramTypes;
       for (let i = 0; i < term.from.length; i++) {
-        const paramType = sig.params[i];
+        const paramType = paramTypes[i];
         if (!paramType) continue;
         getCell(term.from[i]!).readBy.add(paramType);
         if (!isKnownType(paramType)) {
@@ -214,9 +234,10 @@ export function typeCheck(network: DataNetworkAST, program: ProgramAST): Enriche
     const sig = fnMap.get(ep.fn);
     if (!sig) continue;
 
+    const paramTypes = ep._paramTypes ?? sig.params;
     for (let i = 0; i < ep.from.length; i++) {
       const cell = cells.get(ep.from[i]!);
-      const paramType = sig.params[i];
+      const paramType = paramTypes[i];
       if (!cell || !paramType) continue;
 
       const inferred =

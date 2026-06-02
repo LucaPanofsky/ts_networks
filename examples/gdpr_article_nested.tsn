@@ -1,0 +1,74 @@
+// GDPR Article 33 — nested structural extraction (paragraphs, each with its points).
+//
+// Demonstrates two things working together:
+//   1. A grammar is a function, callable inside a defn expression by its qualified
+//      name `grammar/<Name>` — see enrichParagraph.
+//   2. `as mapping` distributes that defn over a vector, so a scan of paragraphs is
+//      enriched, element by element, into a nested tree.
+//
+// The pipeline (parseArticleFull):
+//   text ──grammar/ParaScan──▶ [Paragraph?]   (each paragraph; points start empty)
+//        ──enrichParagraph as mapping──▶ [Paragraph?]   (points scanned per paragraph)
+//
+// Scanning points PER PARAGRAPH (not over the whole article) is what bounds each
+// point's body: the last point of a paragraph stops at the paragraph's end instead
+// of bleeding into the next one.
+//
+// Run (text normalised through jq):
+//   npx tsx scripts/run.ts examples/gdpr_article_nested.tsn parseArticleFull \
+//     text="$(jq -Rs . examples/gdpr_article_33.txt)"
+
+defrecord Point
+  label: String?;
+  body:  String?;
+end
+
+// SCAN mode (`to [Point?]`): finds lettered points anywhere in the input; absence is
+// not a failure — a body with no points yields []. `label` (not the Ohm built-in
+// `letter`) captures the letter; `body` runs up to the next "(x)" marker.
+defgrammar PointScan
+  signature: from [String?(text)] to [Point?];
+  """
+  PointScan {
+    point = "(" label ")" spaces body
+    label = "a".."z"
+    body  = (~mark any)*
+    mark  = "(" label ")"
+  }
+  """
+end
+
+defrecord Paragraph
+  number: String?;
+  body:   String?;
+  points: [Point?];
+end
+
+// SCAN mode (`to [Paragraph?]`): each match keeps its number paired with its body.
+// `points` has no rule here, so the scan fills it with [] — enrichParagraph adds the
+// real points later.
+defgrammar ParaScan
+  signature: from [String?(text)] to [Paragraph?];
+  """
+  ParaScan {
+    paragraph = number "." spaces body
+    number    = digit+
+    body      = (~paraMark any)+
+    paraMark  = digit+ "."
+  }
+  """
+end
+
+// Returns a NEW paragraph identical to its input but with `points` scanned out of
+// the body. The grammar is invoked as an ordinary function in the expression.
+defn enrichParagraph
+  signature: from [Paragraph?(p)] to Paragraph?;
+  expression
+    Paragraph(p.number, p.body, grammar/PointScan(p.body));
+end
+
+defnetwork parseArticleFull
+  signature: from [text] to paragraphs;
+  propagate grammar/ParaScan         from [text] to raw;
+  propagate enrichParagraph as mapping from [raw] to paragraphs;
+end

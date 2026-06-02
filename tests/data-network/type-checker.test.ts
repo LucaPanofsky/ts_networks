@@ -419,3 +419,83 @@ end
     expect(prop._errors.some(e => e.kind === "arity-mismatch")).toBe(true);
   });
 });
+
+// ── as mapping / as filtering coercions ─────────────────────────────────────────
+// `as mapping` distributes a scalar fn over a vector: the input cell holds [param]
+// and the output holds [returnType]. `as filtering` keeps survivors: input [param],
+// output [param]. The checker must wrap accordingly, or it falsely reports the fn's
+// scalar param conflicting with the vector cell.
+
+describe("typeCheck: as mapping over a grammar-scanned vector", () => {
+  const src = `
+defrecord Point
+  label: String?;
+end
+
+defrecord Paragraph
+  number: String?;
+  points: [Point?];
+end
+
+defgrammar ParaScan
+  signature: from [String?(text)] to [Paragraph?];
+  """
+ParaScan { paragraph = digit+ }
+"""
+end
+
+defn enrichParagraph
+  signature: from [Paragraph?(p)] to Paragraph?;
+  expression p;
+end
+
+defnetwork pipe
+  signature: from [text] to out;
+  propagate grammar/ParaScan from [text] to raw;
+  propagate enrichParagraph as mapping from [raw] to out;
+end
+`;
+  const program = parseProgram(src);
+  const enriched = typeCheck(program.networks[0]!, program);
+
+  test("no cell errors (the scanned vector feeds the mapping cleanly)", () => {
+    for (const cell of enriched.cells.values()) expect(cell._errors).toHaveLength(0);
+  });
+
+  test("no propagator errors", () => {
+    for (const prop of enriched.propagators) expect(prop._errors).toHaveLength(0);
+  });
+
+  test("the mapped input cell is read AND written as a vector", () => {
+    const raw = enriched.cells.get("raw")!;
+    expect(raw.writtenBy).toContain("[Paragraph?]");
+    expect(raw.readBy).toContain("[Paragraph?]");
+  });
+
+  test("the mapping output cell is a vector of the fn's return type", () => {
+    expect(enriched.cells.get("out")!.writtenBy).toContain("[Paragraph?]");
+  });
+});
+
+describe("typeCheck: as filtering", () => {
+  const src = `
+defpredicate big?
+  signature: from [Number?(n)] to Boolean?;
+  expression n > 2;
+end
+
+defnetwork filt
+  signature: from [xs] to ys;
+  propagate big? as filtering from [xs] to ys;
+end
+`;
+  const program = parseProgram(src);
+  const enriched = typeCheck(program.networks[0]!, program);
+
+  test("no errors; input and output are vectors of the element type", () => {
+    for (const cell of enriched.cells.values()) expect(cell._errors).toHaveLength(0);
+    for (const prop of enriched.propagators) expect(prop._errors).toHaveLength(0);
+    expect(enriched.cells.get("xs")!.readBy).toContain("[Number?]");
+    expect(enriched.cells.get("ys")!.writtenBy).toContain("[Number?]");
+  });
+});

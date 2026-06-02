@@ -86,6 +86,7 @@ function compileExportMap(program: ProgramAST): string {
     ]),
     ...program.enums.map(e => `"${e.name}?": ${mangle(e.name + "?")}`),
     ...program.fns.map(f => `"${f.name}": ${mangle(f.name)}`),
+    ...program.grammars.map(g => `"grammar/${g.name}": ${mangle(`grammar/${g.name}`)}`),
   ];
   return entries.length === 0 ? "return {};" : `return { ${entries.join(", ")} };`;
 }
@@ -125,13 +126,24 @@ export function compileProgram(program: ProgramAST): string {
     ...program.records.flatMap(r => [mangle(r.name), mangle(`${r.name}?`)]),
     ...program.enums.map(e => mangle(`${e.name}?`)),
     ...program.fns.map(f => mangle(f.name)),
+    ...program.grammars.map(g => mangle(`grammar/${g.name}`)),
   ]);
   const builtins = Object.entries(BUILTIN_DEFS)
     .filter(([name]) => !declared.has(mangle(name)))
     .map(([name, fn]) => `const ${mangle(name)} = ${fn};`);
 
+  // A grammar is a synchronous function, callable in expressions by its qualified
+  // name `grammar/<name>` (mangled like `str/contains?`). Its impl is a runtime Ohm
+  // closure, not source, so it can't be emitted inline — instead each grammar binds
+  // to a late-resolved entry of the injected `__g` map (populated by createSandbox
+  // once the sandbox the grammar captures records from exists).
+  const grammarBindings = program.grammars.map(
+    g => `const ${mangle(`grammar/${g.name}`)} = function() { return __g[${JSON.stringify(`grammar/${g.name}`)}].apply(this, arguments); };`,
+  );
+
   const lines: string[] = [
     ...builtins,
+    ...grammarBindings,
     ...program.records.map(compileRecord),
     ...program.enums.map(compileEnum),
     ...program.fns.map(compileFn),
