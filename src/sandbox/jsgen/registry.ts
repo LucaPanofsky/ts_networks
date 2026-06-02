@@ -9,6 +9,7 @@ import { deriveProtocol } from "../../data-network/schema.js";
 import { Something, Contradiction } from "../../info-structure.js";
 import { Deferred } from "../../information-structures/deferred.js";
 import { APromise } from "../../information-structures/apromise.js";
+import { defaultExecutor } from "../../network-impl/executor.js";
 
 const trueP = (v: unknown): boolean => v === true;
 
@@ -69,7 +70,10 @@ export function buildRegistry(program: ProgramAST, sandbox: Sandbox): Registry {
       impl: (...args: unknown[]) => {
         const namedArgs = Object.fromEntries(paramNames.map((n, i) => [n, args[i]]));
         const d = new Deferred<unknown>();
-        callLLMFn(llmFn.prompt, namedArgs, protocol, config)
+        // Submit the leaf model call to the bounded executor: it runs now if a slot
+        // is free, otherwise it parks until one opens. The APromise handle returns
+        // immediately either way, so map's eager fan-out becomes eager *scheduling*.
+        defaultExecutor.submit(() => callLLMFn(llmFn.prompt, namedArgs, protocol, config))
           .then(v => d.resolve(new Something(v)))
           .catch(e => d.resolve(new Contradiction("llmfn/error", new Set(), e)));
         return new APromise(d);
