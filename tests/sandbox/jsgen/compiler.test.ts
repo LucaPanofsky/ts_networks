@@ -87,9 +87,13 @@ describe("compileProgram", () => {
     expect(out).toContain(`"DocType?": DocType$`);
   });
 
-  test("empty program emits bare return", () => {
-    expect(compileProgram({ records: [], fns: [], networks: [], derives: [], llmFns: [], enums: [] }))
-      .toBe("return {};");
+  test("empty program emits only the builtins preamble and a bare return", () => {
+    const out = compileProgram({ records: [], fns: [], networks: [], derives: [], llmFns: [], enums: [] });
+    // No user definitions, so the export map is empty; the builtins (every/some)
+    // are always in scope.
+    expect(out).toContain("const every = function(pred, coll)");
+    expect(out).toContain("const some = function(pred, coll)");
+    expect(out.trimEnd().endsWith("return {};")).toBe(true);
   });
 });
 
