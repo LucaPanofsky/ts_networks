@@ -15,7 +15,7 @@
 // of bleeding into the next one.
 //
 // Run (text normalised through jq):
-//   npx tsx scripts/run.ts examples/gdpr_article_nested.tsn parseArticleFull \
+//   npx tsx scripts/run.ts examples/gdpr_article_structured_extraction.tsn parseArticleFull \
 //     text="$(jq -Rs . examples/gdpr_article_33.txt)"
 
 defrecord Point

@@ -190,7 +190,7 @@ over a whole article therefore lets the last point bleed to end-of-input (it nev
 sees a following marker). The fix is **scope**: scan paragraphs first, then scan each
 paragraph's body for points — `propagate ... as mapping` distributes the point-scan
 over the paragraph vector so each scan runs on an already-bounded body. See
-[`examples/gdpr_article_nested.tsn`](../../examples/gdpr_article_nested.tsn).
+[`examples/gdpr_article_structured_extraction.tsn`](../../examples/gdpr_article_structured_extraction.tsn).
 
 This is the general lesson: **match at the granularity of the boundary you have.**
 
@@ -259,9 +259,8 @@ treat grammar development as test-driven.
 - Ohm syntax reference — https://ohmjs.org/docs/syntax-reference
 - Ohm interactive editor — https://ohmjs.org/editor/
 - Ohm API reference (mostly *not* needed here) — https://ohmjs.org/docs/api-reference
-- Worked examples in our conventions: [`examples/gdpr_citations.tsn`](../../examples/gdpr_citations.tsn),
-  [`examples/citations.tsn`](../../examples/citations.tsn),
-  [`examples/gdpr_article_nested.tsn`](../../examples/gdpr_article_nested.tsn)
+- Worked examples in our conventions: [`examples/citations.tsn`](../../examples/citations.tsn),
+  [`examples/gdpr_article_structured_extraction.tsn`](../../examples/gdpr_article_structured_extraction.tsn)
 - The capture/parse/scan runtime: [`src/sandbox/grammar-runtime.ts`](../../src/sandbox/grammar-runtime.ts)
 
 ## Changelog

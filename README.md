@@ -117,6 +117,57 @@ Scan is the island-parsing pattern (e.g. pulling all citations out of a long leg
 
 See `examples/citations.tsn` for a runnable end-to-end example.
 
+### LLM Functions (`defllmfn`)
+
+A `defllmfn` is a computation leaf whose body is a **prompt template** instead of code: at runtime it calls the Claude API and returns a value matching its declared return type. It uses the same `from [Pred?(name)] to Type` signature as `defn`/`defgrammar`, so downstream the network treats its result like any other — the only difference is that the leaf is *neural*.
+
+```
+defrecord DocumentAnalysis
+  type:       String?;
+  summary:    String?;
+  confidence: Number?;
+end
+
+defllmfn analyzeDocument
+  signature: from [String?(text)] to DocumentAnalysis?;
+  with: model = 'claude-opus-4-7', max_tokens = '4096';
+  """
+  Analyze the document and return a structured result.
+
+  {{text}}
+  """;
+end
+
+defnetwork documentPipeline
+  signature: from [text] to analysis;
+  propagate analyzeDocument from [text] to analysis;
+end
+```
+
+Parameter names wrapped in `{{` `}}` are substituted with their runtime values before the call. The optional `with:` clause configures the model (`model`, default `claude-opus-4-7`; `max_tokens`, default `16384`).
+
+The **return type drives the response protocol**, and the JSON schema sent to the API is derived automatically from the program's `defrecord`/`defenum`/predicate declarations — no manual schema authoring:
+
+| Return type | API is asked for | Runtime does |
+|-------------|------------------|--------------|
+| `Record?` | the record's fields directly | injects `__type` |
+| `String?` / `Number?` / … | `{ value: … }` | unwraps `value` |
+| `[Type?]` | `{ items: [...] }` | unwraps the array |
+
+Because an llmfn leaf is **async**, it returns an `APromise` into its cell. `run` drives the async runtime (`invokeAsync`) and awaits terminal leaves, so the cell resolves to the real value rather than `∅`; an API or parse failure surfaces as a `Contradiction`, not a silent empty.
+
+#### Tools (under development)
+
+An llmfn can be given **tools** — host capabilities the model may call mid-generation — via the `with:` clause:
+
+```
+with: tools = 'parse';
+```
+
+Tools are TypeScript functions, not DSL constructs; the program only *selects* them by name. When tools are present the call runs as an agentic loop (the model calls tools until it stops, then a final step coerces the declared structured output); without them it is a single structured call. Today the registry exposes one tool, `parse`, which checks that `.tsn` source the model wrote is syntactically valid and **returns** the error as a value so the model can self-correct.
+
+This is **early and under active development**. The goal is to expose the full set of capabilities that let an agent *reason about the program it is writing* — parsing, type-checking, schema compilation, and the other operations in `src/operations/` — so an LLM can author and refine `.tsn` programs against the same tools a human uses.
+
 ---
 
 ## Project Structure

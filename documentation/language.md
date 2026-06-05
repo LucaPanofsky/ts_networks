@@ -251,12 +251,6 @@ Each parameter is `Type?(name)` — a predicate annotation followed by a binding
 signature: from [String?(query)] to [Result?];   // returns a vector
 ```
 
-For functions with no parameters:
-
-```
-signature: from to Number?;
-```
-
 ### Body
 
 The body starts with `expression` and ends with `;`. It can optionally include `let` bindings before the final expression:
@@ -325,6 +319,21 @@ with: model = 'claude-opus-4-7', max_tokens = '4096';
 |---|---|---|
 | `model` | `claude-opus-4-7` | The Claude model to use |
 | `max_tokens` | `16384` | Maximum tokens in the response |
+| `tools` | `''` (none) | Comma-separated names of host tools the model may call (see below) |
+
+### Tools (under development)
+
+An LLM function can be given **tools** — host capabilities the model may call mid-generation — through the `tools` key:
+
+```
+with: model = 'claude-opus-4-7', tools = 'parse';
+```
+
+Tools are TypeScript functions, not DSL constructs: a program only *selects* them by name, and an unknown name is an error. When one or more tools are present, the call becomes an **agentic loop** — the model may call the tools repeatedly (bounded, currently 10 rounds) until it stops, after which a final step forces the declared structured output. With no tools the call is a single structured request.
+
+Today the registry exposes a single tool, **`parse`**, which checks that `.tsn` source the model wrote parses without syntax errors and *returns* the error as a value so the model can read it and self-correct.
+
+This is **early and under active development**. The intended direction is to expose the capabilities that let an agent *reason about the program it is writing* — parsing, type-checking, schema compilation, and the other operations in `src/operations/` — so an LLM can author and refine `.tsn` programs against the same tools a human uses.
 
 ### Prompt template
 
@@ -438,7 +447,7 @@ end
 ```
 
 Combined with `as mapping`, this lets a scalar grammar enrich each element of a
-vector produced by another grammar — see [`examples/gdpr_article_nested.tsn`](../examples/gdpr_article_nested.tsn).
+vector produced by another grammar — see [`examples/gdpr_article_structured_extraction.tsn`](../examples/gdpr_article_structured_extraction.tsn).
 
 ---
 
