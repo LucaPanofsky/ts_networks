@@ -24,7 +24,7 @@ try {
   console.error(`Cannot read file: ${file}`);
   process.exit(1);
 }
-const result = run.handle({ source, network, cells });
+const result = await run.handle({ source, network, cells });
 
 if (!result.ok) {
   console.error(result.error);
