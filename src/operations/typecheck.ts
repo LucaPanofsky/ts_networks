@@ -2,6 +2,7 @@ import { parseProgram } from "../data-network/tree-to-network.js";
 import { typeCheckProgram } from "../data-network/type-checker.js";
 import { validateGrammarSyntax, validateGrammarSignature } from "../sandbox/grammar-runtime.js";
 import { validateExtract } from "../sandbox/extract-runtime.js";
+import { validateTTable } from "../sandbox/ttable-runtime.js";
 import type { Operation, SerializedEnrichedNetwork, SerializedError } from "./types.js";
 import type { EnrichedNetwork } from "../data-network/type-checker.js";
 
@@ -52,6 +53,11 @@ export const typecheck: Operation<TypecheckInput, TypecheckOutput> = {
       // (cardinality, record agreement, containment). First error wins.
       for (const extract of program.extracts) {
         const [error] = validateExtract(extract, program);
+        if (error) return { ok: false, error };
+      }
+      // A TTable is checked against its row record: headers and fields must agree.
+      for (const ttable of program.ttables) {
+        const [error] = validateTTable(ttable, program);
         if (error) return { ok: false, error };
       }
       const enrichedMap = typeCheckProgram(program);

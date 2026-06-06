@@ -76,3 +76,33 @@ export function compileTTable(ast: TTableAST, program: ProgramAST, sandbox: Sand
 
   return { arity: 1, impl };
 }
+
+// Static type checks for a TTable (run by the typecheck operation). The table is
+// SELF-DESCRIBING, so the invariant is that the declared headers and the row record's
+// fields are the same set: the row record must exist; the delimiter must be non-empty;
+// every declared header maps to a real field (no unknown / no duplicate); and every
+// field of the row record has a header (no unmapped column). Returns one message per
+// problem (empty = clean).
+export function validateTTable(ast: TTableAST, program: ProgramAST): string[] {
+  const errors: string[] = [];
+  const here = `TTable ${ast.name}`;
+
+  const rec = program.records.find(r => r.name === ast.row);
+  if (!rec) {
+    errors.push(`${here}: unknown row record "${ast.row}"`);
+    return errors;
+  }
+  if (ast.cell === "") errors.push(`${here}: the cell delimiter must not be empty`);
+
+  const recordFields = new Set(rec.fields.map(f => f.name));
+  const declared = new Set<string>();
+  for (const h of ast.headers) {
+    if (!recordFields.has(h.field)) errors.push(`${here}: header field "${h.field}" is not a field of ${ast.row}`);
+    if (declared.has(h.field)) errors.push(`${here}: duplicate header for field "${h.field}"`);
+    declared.add(h.field);
+  }
+  for (const f of rec.fields) {
+    if (!declared.has(f.name)) errors.push(`${here}: field "${f.name}" of ${ast.row} has no header (every column must be declared)`);
+  }
+  return errors;
+}
