@@ -26,11 +26,12 @@ TTable Rows
   header newNum;
 end
 
-// A title block: its name is the TITLE line; its rows are the article rows (the TTable
-// consumes the title line as the block's header).
+// A title block: `titles` are the three column-titles (captured, trimmed, as an array
+// so a consumer needn't re-split); `rows` are the article rows (the TTable consumes the
+// title line as the block's header).
 defrecord TitleGroup
-  name: String?;
-  rows: [Equivalence?];
+  titles: [String?];
+  rows:   [Equivalence?];
 end
 
 defrecord Annex
@@ -57,11 +58,13 @@ defgrammar TitleBlock
   signature: from [String?(text)] to TitleGroup?;
   """
   TitleBlock {
-    block     = name body
-    name      = "TITLE" (~nl any)*
-    body      = (~nextTitle any)*
-    nextTitle = nl "TITLE"
-    nl        = "\n"
+    block      = &("TITLE") titleCells body
+    titleCells = (titles sep)+
+    titles     = (~sep ~nl any)*
+    sep        = " | " | " |"
+    body       = (~nextTitle any)*
+    nextTitle  = nl "TITLE"
+    nl         = "\n"
   }
   """
 end

@@ -42,7 +42,7 @@ describe("defextract + TTable: treaty annex", () => {
 });
 
 describe("defextract + declared TTable: treaty grouped by TITLE (Route B, no fold)", () => {
-  type Total = { __type: string; title: string; groups: Array<{ name: string; rows: Array<{ old: string; lisbon: string; newNum: string }> }> };
+  type Total = { __type: string; title: string; groups: Array<{ titles: string[]; rows: Array<{ old: string; lisbon: string; newNum: string }> }> };
 
   test("the grouped parse type-checks", () => {
     expect(typecheck.handle({ source: totalSource }).ok).toBe(true);
@@ -57,9 +57,12 @@ describe("defextract + declared TTable: treaty grouped by TITLE (Route B, no fol
     expect(total.groups).toHaveLength(2);
 
     const [g1, g2] = total.groups;
-    // The title is in `name` (consumed as the block's header), NOT in the rows.
-    expect(g1!.name).toContain("TITLE I");
-    expect(g2!.name).toContain("TITLE II");
+    // The title is captured as a trimmed array of the 3 column-titles, NOT in the rows.
+    expect(g1!.titles).toEqual([
+      "TITLE I — COMMON PROVISIONS", "TITLE I — COMMON PROVISIONS", "TITLE I — COMMON PROVISIONS",
+    ]);
+    expect(g2!.titles[0]).toContain("TITLE II — PROVISIONS AMENDING");
+    expect(g2!.titles[1]).toBe("TITLE II — PROVISIONS ON DEMOCRATIC PRINCIPLES"); // columns differ here
     expect(g1!.rows).toHaveLength(11); // article rows only
     expect(g2!.rows).toHaveLength(4);
     expect(g1!.rows.some(r => r.old.includes("TITLE"))).toBe(false);

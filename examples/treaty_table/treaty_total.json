@@ -4,7 +4,11 @@
     "groups": [
         {
             "__type": "TitleGroup",
-            "name": "TITLE I — COMMON PROVISIONS | TITLE I — COMMON PROVISIONS | TITLE I — COMMON PROVISIONS |",
+            "titles": [
+                "TITLE I — COMMON PROVISIONS",
+                "TITLE I — COMMON PROVISIONS",
+                "TITLE I — COMMON PROVISIONS"
+            ],
             "rows": [
                 {
                     "__type": "Equivalence",
@@ -76,7 +80,11 @@
         },
         {
             "__type": "TitleGroup",
-            "name": "TITLE II — PROVISIONS AMENDING THE TREATY ESTABLISHING THE EUROPEAN ECONOMIC COMMUNITY WITH A VIEW TO ESTABLISHING THE EUROPEAN COMMUNITY | TITLE II — PROVISIONS ON DEMOCRATIC PRINCIPLES | TITLE II — PROVISIONS ON DEMOCRATIC PRINCIPLES |",
+            "titles": [
+                "TITLE II — PROVISIONS AMENDING THE TREATY ESTABLISHING THE EUROPEAN ECONOMIC COMMUNITY WITH A VIEW TO ESTABLISHING THE EUROPEAN COMMUNITY",
+                "TITLE II — PROVISIONS ON DEMOCRATIC PRINCIPLES",
+                "TITLE II — PROVISIONS ON DEMOCRATIC PRINCIPLES"
+            ],
             "rows": [
                 {
                     "__type": "Equivalence",
