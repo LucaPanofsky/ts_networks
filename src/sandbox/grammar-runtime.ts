@@ -16,6 +16,52 @@ export type CompiledGrammar = {
 const recordName = (predicate: string): string =>
   predicate.endsWith("?") ? predicate.slice(0, -1) : predicate;
 
+// The record a signed grammar binds to: a scalar `to Rec?` names it directly, a vector
+// `to [Rec?]` names its element. Bare recognizers (no signature) bind to nothing.
+function signatureRecordName(ast: GrammarAST): string | null {
+  const sig = ast.signature;
+  if (!sig) return null;
+  const ret = sig.returnType;
+  return recordName(ret.kind === "vector" ? ret.element : ret.predicate);
+}
+
+// ── Static validation ─────────────────────────────────────────────────────────
+//
+// Every check `compileGrammar` performs below is sandbox-independent, so it can also
+// run at check/typecheck time on the AST alone. These two pure validators are the
+// single source of truth: `compileGrammar` calls them first (throwing the first
+// message), and the check/typecheck operations call them to surface grammar errors
+// statically — closing the gap where a malformed Ohm body, opaque to the parser,
+// would otherwise only fail at run time.
+
+// Structural well-formedness of the Ohm body: it parses, and the Ohm grammar's own
+// name matches the defgrammar name. Returns one message per problem (empty = clean).
+export function validateGrammarSyntax(ast: GrammarAST): string[] {
+  let g: Grammar;
+  try {
+    g = ohmGrammar(ast.source);
+  } catch (e) {
+    return [`defgrammar ${ast.name}: invalid Ohm grammar — ${(e as Error).message}`];
+  }
+  if (g.name !== ast.name) {
+    return [`defgrammar ${ast.name}: the Ohm grammar is named "${g.name}"; the defgrammar name and the grammar name must match`];
+  }
+  return [];
+}
+
+// Semantic checks against the program: a signed grammar's bound record must exist.
+// (Bare recognizers carry no signature and so have nothing to check here.) Does not
+// re-validate the Ohm body — that is validateGrammarSyntax's responsibility.
+export function validateGrammarSignature(ast: GrammarAST, program: ProgramAST): string[] {
+  const recName = signatureRecordName(ast);
+  if (recName === null) return [];
+  const rec = program.records.find(r => r.name === recName);
+  if (!rec) {
+    return [`defgrammar ${ast.name}: unknown record "${recName}" in signature`];
+  }
+  return [];
+}
+
 const notAString = () => new Contradiction("grammar/not-a-string", new Set());
 
 // A capture is the text every CST node whose rule name is a target field consumed.
@@ -60,16 +106,13 @@ function buildRecord(rec: RecordAST, caps: Record<string, unknown>, sandbox: San
 }
 
 export function compileGrammar(ast: GrammarAST, program: ProgramAST, sandbox: Sandbox): CompiledGrammar {
-  let g: Grammar;
-  try {
-    g = ohmGrammar(ast.source);
-  } catch (e) {
-    throw new Error(`defgrammar ${ast.name}: invalid Ohm grammar — ${(e as Error).message}`);
-  }
-  if (g.name !== ast.name) {
-    throw new Error(`defgrammar ${ast.name}: the Ohm grammar is named "${g.name}"; the defgrammar name and the grammar name must match`);
-  }
+  // Reuse the static validators so the run-time and check-time paths report the same
+  // errors. Syntax first (a broken body makes the signature check meaningless), then
+  // the signature's record. ohmGrammar(ast.source) below cannot fail past this point.
+  const staticErrors = [...validateGrammarSyntax(ast), ...validateGrammarSignature(ast, program)];
+  if (staticErrors.length > 0) throw new Error(staticErrors[0]);
 
+  const g = ohmGrammar(ast.source);
   const sig = ast.signature;
   const arity = sig?.params.length ?? 1;
 
@@ -86,11 +129,8 @@ export function compileGrammar(ast: GrammarAST, program: ProgramAST, sandbox: Sa
   }
 
   const isScan = sig.returnType.kind === "vector";
-  const recName = recordName(sig.returnType.kind === "vector" ? sig.returnType.element : sig.returnType.predicate);
-  const rec = program.records.find(r => r.name === recName);
-  if (!rec) {
-    throw new Error(`defgrammar ${ast.name}: unknown record "${recName}" in signature`);
-  }
+  // validateGrammarSignature already guaranteed this record exists.
+  const rec = program.records.find(r => r.name === signatureRecordName(ast))!;
   const fields = new Set(rec.fields.map(f => f.name));
 
   // Scalar return → parse the whole string into one record (Contradiction on failure).

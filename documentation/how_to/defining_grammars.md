@@ -36,9 +36,12 @@ end
 ```
 
 - The Ohm grammar's name (`Cite {`) **must match** the `defgrammar` name.
-- The body is a triple-quoted blob, **opaque** to the `.tsn` parser. A malformed Ohm
-  grammar is therefore *not* caught by `check`/`typecheck` — it throws at
-  compile/run time. Test it (see [Testing](#testing-and-iterating)).
+- The body is a triple-quoted blob, **opaque** to the `.tsn` parser. The parser itself
+  ignores it, but `check` validates the Ohm source (it parses, and its name matches the
+  `defgrammar` name) and `typecheck` additionally checks the signature's bound record
+  exists — so a malformed body or a missing record is caught statically, not only at
+  run time. (Errors *inside* a successful match — e.g. a rule that never fires — still
+  only show at run time; test those, see [Testing](#testing-and-iterating).)
 - The **signature** is the same `from [Pred?(name)] to Type` shape as `defn`, and it
   chooses the mode (below).
 
@@ -241,8 +244,9 @@ treat grammar development as test-driven.
 ## Gotchas checklist
 
 - **Grammar name must equal the `defgrammar` name.**
-- **Ohm errors are not caught by `check`/`typecheck`** (the body is opaque) — only at
-  compile/run. Test it.
+- **`check` catches malformed Ohm and name mismatches; `typecheck` also catches a
+  signature bound to an unknown record.** Errors inside a *successful* match still only
+  show at run time — test those.
 - **Don't redeclare built-ins** (`letter`, `digit`, `space`, …) — rename the field.
 - **Captures are verbatim `sourceString`**, whitespace included. Tighten the captured
   rule to trim.
