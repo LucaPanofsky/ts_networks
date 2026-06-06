@@ -193,22 +193,63 @@ This is **early and under active development**. The goal is to expose the full s
 
 ## Project Structure
 
+The codebase is organised into **modules** — each a first-level subdirectory under `src/`,
+with a handful of loose root files that are themselves one-file modules. `tests/` mirrors
+this layout one-to-one. Modules fall into four kinds; the **algebra** surface (⚠) is
+given-and-correct and changed only deliberately.
+
+| Module | Kind | Role |
+|--------|------|------|
+| `info-structure.ts` ⚠ | core | `InfoStructure<A>` interface + the core types (`Nothing`, `Something<A>`, `Contradiction`, `I`) |
+| `nary-unpacking.ts` ⚠ | core | `naryUnpacking` — lifts a plain function into a merge-aware propagator |
+| `information-structures/` ⚠ | core | the richer structures: `MergeObject`, `MergeSet`, `APromise`, deferred values |
+| `registry.ts` | core | the function `Registry` that `propagate` resolves names against |
+| `index.ts` | core | public re-exports |
+| `data-network/` | runtime | DSL frontend: Lezer parser, AST→`DataNetwork`, the static type-checker, JSON-schema derivation |
+| `network-impl/` | runtime | the propagator engine: cells, propagators, the sync + async runners |
+| `sandbox/` | runtime | compiles a program to a self-contained JS module; grammar / TTable / extract runtimes; the llmfn client + in-language tools |
+| `operations/` | runtime | the uniform `Operation` interface — `parse`, `check`, `typecheck`, `run`, `compile-schemas`, `run-grammar`, `run-ttable` |
+| `cli.ts` | tooling | command-line entrypoint |
+| `mcp/` | tooling | an MCP server fronting every operation as a tool over stdio (`npm run mcp`) |
+| `editor/`, `ui-server/` | stale | an abandoned browser UI — kept for reference, excluded from analysis |
+
 ```
-src/
-  info-structure.ts   — InfoStructure<A> interface + all core types
-                        (Nothing, Something<A>, Contradiction, I)
-  index.ts            — public re-exports
-tests/
-  algebraic-properties-1.test.ts  — ACI laws for merge
+scripts/    — thin CLI adapters over src/operations/ (one .tsn file per invocation)
+analysis/   — the codebase maintenance-analysis tool (see below)
+examples/   — runnable .tsn programs
+documentation/ — language reference + how-to guides
 ```
+
+A single `Operation` (name + description + JSON-Schema input + handler) is reused verbatim by
+the CLI scripts, the in-language `with: tools` registry, **and** the MCP server — add one to
+`src/operations/` and it appears in all three with no per-surface wiring.
 
 ## Development
 
 ```bash
 npm run build   # compile TypeScript → dist/
-npm test        # run all tests
+npm test        # run all tests (regenerates the Lezer parser + typechecks src + tests first)
 npm run dev     # watch mode
 ```
+
+### Codebase analysis
+
+A maintenance tool in `analysis/` builds the module taxonomy above and computes the metrics
+that show **where to look for refactoring** — per-module LOC, test LOC and test:src ratio,
+the inter-module dependency graph (fan-in/out, instability, import cycles), git churn,
+statement coverage, and weak-typing risk markers. Modules are ranked by a **hotspot** score
+(churn × under-tested × blast-radius, size as a minor amplifier).
+
+```bash
+npm run analyze         # run the suite + coverage, then write a themed HTML report
+npm run analyze:quick   # report only, reusing on-disk coverage (fast, may be stale)
+```
+
+The report is written to `analysis/REPORT.html` — a single self-contained file; open it in a
+browser. The pure metric logic lives in `analysis/metrics.ts` (functional core) and is
+covered by `tests/analysis/`; `analysis/gather.ts` is the I/O shell (filesystem, git, jest).
+Generated artifacts (`analysis/REPORT.html`, `coverage/`) are gitignored; the tool source is
+tracked.
 
 ## Editor Support
 
