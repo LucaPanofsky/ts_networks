@@ -12,7 +12,8 @@
   - [x] Tool loop — agentic `with: tools` (bounded rounds, forced final `respond`)
   - [x] Program-reasoning tools exposed — `parse`, `typecheck`, `compile-schemas`, `run`, `run-grammar`, `run-ttable` (per-fragment grammar/table runners with located failures)
 - [x] Static type checker — cell type inference (`writtenBy`/`readBy`), switch rules, arity & predicate checks, error annotation; topology warnings (signature inputs should be sources, the output a terminal)
-- [x] Operations layer — `parse`, `check`, `typecheck`, `compile-schemas`, `run`; MCP-ready
+- [x] Operations layer — `parse`, `check`, `typecheck`, `compile-schemas`, `run`, `run-grammar`, `run-ttable` (uniform `Operation` interface)
 - [x] CLI scripts — thin adapters over operations
+- [x] MCP server — exposes every operation as a tool over stdio (`npm run mcp`); generic adapter over the `operations` array, stdio transport, errors returned as values
 - [x] (STALE) SSE dev UI — two-column editor/graph, zoom/pan/resize, REPL (wip)
   - [ ] Trace output
