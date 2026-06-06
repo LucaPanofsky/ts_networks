@@ -1,6 +1,7 @@
 import { parseProgram } from "../data-network/tree-to-network.js";
 import { typeCheckProgram } from "../data-network/type-checker.js";
 import { validateGrammarSyntax, validateGrammarSignature } from "../sandbox/grammar-runtime.js";
+import { validateExtract } from "../sandbox/extract-runtime.js";
 import type { Operation, SerializedEnrichedNetwork, SerializedError } from "./types.js";
 import type { EnrichedNetwork } from "../data-network/type-checker.js";
 
@@ -45,6 +46,12 @@ export const typecheck: Operation<TypecheckInput, TypecheckOutput> = {
       // exist) before type-checking. First error wins.
       for (const grammar of program.grammars) {
         const [error] = [...validateGrammarSyntax(grammar), ...validateGrammarSignature(grammar, program)];
+        if (error) return { ok: false, error };
+      }
+      // A defextract is checked against the records and grammars it wires together
+      // (cardinality, record agreement, containment). First error wins.
+      for (const extract of program.extracts) {
+        const [error] = validateExtract(extract, program);
         if (error) return { ok: false, error };
       }
       const enrichedMap = typeCheckProgram(program);
