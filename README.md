@@ -224,6 +224,49 @@ A single `Operation` (name + description + JSON-Schema input + handler) is reuse
 the CLI scripts, the in-language `with: tools` registry, **and** the MCP server — add one to
 `src/operations/` and it appears in all three with no per-surface wiring.
 
+## Where does the language live?
+
+There is **no single "language" module** — and that surprises people, so it is worth being
+explicit. The codebase is organised by **compiler stage**, not by feature, so "the language"
+is spread across the pipeline. Two halves are worth separating:
+
+- **The language's *definition* is extracted** and lives in two files:
+  - **Concrete syntax** — `src/data-network/grammar.grammar`, the [Lezer](https://lezer.codemirror.net/)
+    grammar. It is the single source of truth for what you can write (`@top Document { Definition* }`);
+    `npm run generate` compiles it to `parser.js` / `parser.terms.js`.
+  - **Abstract syntax** — `src/data-network/types.ts`: `ProgramAST` and every `*AST` node
+    (`RecordAST`, `FnAST`, `GrammarAST`, `ExtractAST`, …). This is the language as data.
+- **The language's *meaning* is distributed by phase.** No single module "is" a construct
+  like `defextract`; its behaviour is assembled as the source flows through the stages:
+
+```
+source .tsn
+  │  grammar.grammar → parser.js              [data-network]   concrete syntax
+  ▼  tree-to-network.ts  (parse tree → AST)   [data-network]   ← 663 loc, the bulk
+ProgramAST
+  │  type-checker.ts     (static checks)      [data-network]
+  ▼  jsgen/*             (AST → a JS module)  [sandbox]        semantics of exprs / records / fns
+sandbox + registry
+  │  {grammar,ttable,extract}-runtime.ts      [sandbox]        semantics of the special forms
+  ▼  buildRegistry → propagators
+network                                       [network-impl]   execution: cells, propagators, runners
+  ▼  values under merge                       [info-structure + information-structures]   what values MEAN
+```
+
+So **`data-network/` is the front end** (syntax, AST, parse, type-check), **`sandbox/` is the
+back end** (what each construct *does*, via code generation plus the grammar/table/extract
+runtimes), **`network-impl/` runs it**, and the **algebra modules** define what the resulting
+values mean under `merge`. The directory names describe *roles in the machine*, not "language",
+which is why it does not announce itself.
+
+The most confusing split is the **special forms** (`defgrammar`, `defextract`, `TTable`):
+their *syntax* sits in `grammar.grammar` like everything else, but their *behaviour* lives in
+`src/sandbox/{grammar,extract,ttable}-runtime.ts`.
+
+**To add or change a construct** the touch-set is fixed and ordered: `grammar.grammar` →
+regenerate the parser → `tree-to-network.ts` → `types.ts` → `type-checker.ts` → `jsgen/`. That
+walkthrough is [Extending the language](documentation/how_to/extending_the_language.md).
+
 ## Development
 
 ```bash
