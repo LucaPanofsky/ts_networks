@@ -19,6 +19,8 @@
     "pretest:all": "npm run typecheck",
     "test:all": "npm run generate && TEST_ALL=1 jest",
     "mcp": "npx tsx scripts/mcp.ts",
+    "analyze": "jest --coverage --collectCoverageFrom='src/**/*.ts' --collectCoverageFrom='!src/editor/**' --coverageReporters=json && npx tsx analysis/report.ts",
+    "analyze:quick": "npx tsx analysis/report.ts",
     "dev": "concurrently -n server,bundle -c blue,yellow \"npx tsx --watch src/cli.ts\" \"npm run bundle -- --watch\""
   },
   "devDependencies": {
