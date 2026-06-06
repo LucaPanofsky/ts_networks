@@ -544,7 +544,7 @@ const ttableDsl = `
 defrecord Equivalence
   old:    String?;
   lisbon: String?;
-  new:    String?;
+  newNum: String?;
 end
 
 TTable Equivalences
@@ -552,7 +552,7 @@ TTable Equivalences
   cell: '|';
   header old = 'Old numbering of the Treaty on European Union';
   header lisbon = 'Numbering in the Treaty of Lisbon';
-  header new = 'New numbering of the Treaty on European Union';
+  header newNum = 'New numbering of the Treaty on European Union';
 end
 `;
 
@@ -572,7 +572,7 @@ describe("parseProgram: TTable", () => {
     expect(ttable.headers).toEqual([
       { field: "old",    text: "Old numbering of the Treaty on European Union" },
       { field: "lisbon", text: "Numbering in the Treaty of Lisbon" },
-      { field: "new",    text: "New numbering of the Treaty on European Union" },
+      { field: "newNum", text: "New numbering of the Treaty on European Union" },
     ]);
   });
 
