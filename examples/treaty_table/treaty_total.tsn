@@ -1,0 +1,79 @@
+// Parsing the treaty "totally" WITH title grouping — Route B, no fold.
+//
+// defextract scans the TITLE blocks (each TITLE line + its rows, up to the next
+// TITLE). The shared column header sits BEFORE the first TITLE, so it lands in no
+// block — which is why each block can be read by a DECLARED (headerless) TTable that
+// maps columns by declaration order. Grouping the rows under their title falls out of
+// defextract's span recursion; no fold, no new operation.
+//
+// Run:
+//   npx tsx scripts/run.ts examples/treaty_table/treaty_total.tsn extractTotal \
+//     doc="$(jq -Rs . examples/treaty_table/treaty_extract.txt)"
+
+defrecord Equivalence
+  old:    String?;
+  lisbon: String?;
+  newNum: String?;
+end
+
+// Declared (headerless) TTable: each title block has no column header, so columns are
+// positional by declaration order.
+TTable Rows
+  row: Equivalence;
+  cell: '|';
+  header old;
+  header lisbon;
+  header newNum;
+end
+
+// A title block: its rows are the TITLE row (rows[0]) followed by its article rows.
+defrecord TitleGroup
+  rows: [Equivalence?];
+end
+
+defrecord Annex
+  title:  String?;
+  groups: [TitleGroup?];
+end
+
+// Captures the annex title; its match span is the whole input (the title blocks are
+// scanned from there).
+defgrammar Annex
+  signature: from [String?(text)] to Annex?;
+  """
+  Annex {
+    annex = "ANNEX" spaces title rest
+    title = (~"\n" any)+
+    rest  = any*
+  }
+  """
+end
+
+// One title block: from a "TITLE" line up to the next "TITLE" (or end). Captures
+// nothing itself; its rows are filled by the declared TTable over its span.
+defgrammar TitleBlock
+  signature: from [String?(text)] to TitleGroup?;
+  """
+  TitleBlock {
+    block     = titleLine body
+    titleLine = "TITLE" (~nl any)*
+    body      = (~nextTitle any)*
+    nextTitle = nl "TITLE"
+    nl        = "\n"
+  }
+  """
+end
+
+defextract TreatyTotal
+  within Annex using grammar/Annex
+    scan TitleGroup as groups using grammar/TitleBlock;
+    within groups
+      scan Equivalence as rows using TTable/Rows;
+    end
+  end
+end
+
+defnetwork extractTotal
+  signature: from [doc] to annex;
+  propagate extract/TreatyTotal from [doc] to annex;
+end
