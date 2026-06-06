@@ -119,7 +119,13 @@ parent rule.
 | `"..."` | literal string |
 | `"a".."z"` | character range |
 | `(...)` | grouping |
-| `// ...`, `/* ... */` | comments inside the grammar |
+| `// ...`, `/* ... */` | comments inside the grammar — **only these two** |
+
+> **`--` is not a comment.** In Ohm `--` introduces a *case label* (`rule = a -- foo`),
+> so writing `-- a note` mid-grammar is a syntax error, not an ignored line. Comment with
+> `//` or `/* … */`. (Outside the grammar body, in the surrounding `.tsn`, `--` and `//`
+> are both line comments — it is only *inside* the triple-quoted Ohm blob that `--`
+> changes meaning.)
 
 ### Built-in rules (don't redeclare these)
 
@@ -182,6 +188,20 @@ captures every `num` into the `num[]` array.
 **Optional structure is free in scan mode.** A scan for something that may be absent
 returns `[]`, not a failure — so you can probe for optional sub-parts without the
 network erroring.
+
+**Anchor a scan on content, not on leading whitespace.** In scan mode the runtime walks
+the input looking for embedded matches, and that search **skips whitespace between
+attempts**. So a start rule that begins by matching a newline or leading blanks (`item =
+"\n" …`) will not anchor — the scanner has already consumed the whitespace before trying
+your rule, and the match fails. Start the rule on the first *real* character of the thing
+(a capital letter, a digit, a marker) and let the parent handle separators:
+
+```
+// Won't anchor — the leading newline is already skipped:
+item = "\n" upper (~"\n" any)*
+// Anchors — starts on content:
+item = upper (~"\n" any)*
+```
 
 ---
 
@@ -253,6 +273,9 @@ treat grammar development as test-driven.
 - **Scalar parse must consume all input**; leftover text is a `Contradiction`. Use a
   trailing `any*` (uncaptured) if you only care about a prefix.
 - **Lexical (lowercase) rules don't skip whitespace** — add `spaces` explicitly.
+- **`--` is a case label, not a comment** — comment with `//` or `/* … */` inside the body.
+- **Anchor a scan on content, not a leading newline/blank** — the scanner skips whitespace
+  between attempts, so a rule starting with `"\n"` never anchors. Start on a real character.
 - **Order alternatives longest-first** in `|`.
 - **Scope scans to the boundary** you actually have (see Boundaries).
 

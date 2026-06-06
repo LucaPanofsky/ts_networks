@@ -38,7 +38,7 @@ propagate classify from [agentResponse] to decision;
 
 ## Top-level definitions
 
-There are nine kinds of top-level definition:
+There are ten kinds of top-level definition:
 
 | Keyword | Purpose |
 |---|---|
@@ -50,6 +50,7 @@ There are nine kinds of top-level definition:
 | `defllmfn` | An LLM function that returns structured output |
 | `defgrammar` | A grammar (Ohm) that parses or scans text into records |
 | `defextract` | A structural extractor: nests grammars into a tree of records |
+| `TTable` | A flat text-table extractor: rows of delimited cells into records |
 | `derive` | A subtype declaration |
 
 ---
@@ -506,6 +507,63 @@ field; and the root grammar must return the root record.
 
 See [`examples/gdpr_article_extract.tsn`](../examples/gdpr_article_extract.tsn) for the
 full Article-33 extractor, runnable end-to-end.
+
+---
+
+## `TTable`
+
+Defines a **flat text-table extractor** — the table counterpart of `defgrammar`. Where a
+grammar recognizes prose, a `TTable` reads a grid of **delimited cells**, one record per
+row, declaratively (no Ohm). It is callable as `TTable/<Name>` and returns `[Row?]`.
+
+```
+defrecord Equivalence
+  old:    String?;
+  lisbon: String?;
+  newNum: String?;
+end
+
+TTable Rows
+  row:  Equivalence;     -- the record each row produces
+  cell: '|';             -- the cell delimiter (single-quoted string)
+  header old;            -- one declared column per field, in order
+  header lisbon;
+  header newNum;
+end
+```
+
+### How it reads
+
+- **`row: <Record>;`** names the record each data row becomes; its fields are the columns.
+- **`cell: '<delim>';`** is the cell delimiter (note: TTable string literals are
+  **single-quoted**). Lines containing it are the candidate rows; a trailing delimiter is
+  tolerated (`a | b |` is two cells, not three).
+- **`header <field>;`** declares a column. The **first delimiter-line is always the header
+  and is consumed** — never a data row. Two modes, chosen by whether headers carry a text:
+  - **Positional / declared** (`header old;`): columns map by **declaration order**; the
+    header line's content is ignored.
+  - **Located** (`header old = 'Old numbering';`): each declared text is matched against a
+    column in the header line by **exact-after-trim equality**, so column order in the
+    source is free. A declared header with no matching column ⇒ a `Contradiction`.
+
+The table is **self-validating** by construction: an empty cell becomes `""` (an *asserted
+absence*, which contradicts a conflicting claim under merge), and a row whose cell count
+differs from the header's is a `Contradiction` **at that row's position** — a malformed row
+is refused, not guessed.
+
+### Composition
+
+A `TTable` can be the **leaf of a `defextract`** wherever a scan-mode grammar would go,
+because both return a typed vector (`scan Equivalence as rows using TTable/Rows`). The
+extract orchestrates; the leaf — grammar or TTable — just returns typed records. See
+[`examples/treaty_table/treaty_total.tsn`](../examples/treaty_table/treaty_total.tsn).
+
+### Type-checking
+
+`typecheck` checks a `TTable` against its row record: the record must exist; the delimiter
+must be non-empty; every declared header must map to a real field (no unknown, no
+duplicate); and **every field must have a header** (a table is fully declared). Mixing
+located and positional headers in one table is rejected as ambiguous.
 
 ---
 
