@@ -26,7 +26,11 @@ defrecord Article
   paragraphs: [Paragraph?];
 end
 
-// The header recogniser (scalar parse of the whole document): captures number + title.
+// Each grammar RECOGNISES ONE record (a scalar `to X?`); the defextract verb decides
+// cardinality — `scan` finds many, `parse` finds one. The root Article is parsed once;
+// Paragraph and Point are scanned.
+
+// The header recogniser: parses the whole document, capturing number + title.
 defgrammar Article
   signature: from [String?(text)] to Article?;
   """
@@ -39,9 +43,9 @@ defgrammar Article
   """
 end
 
-// Scans the document for numbered paragraphs; `body` runs up to the next "N." marker.
+// Recognises one numbered paragraph; `body` runs up to the next "N." marker.
 defgrammar Paragraph
-  signature: from [String?(text)] to [Paragraph?];
+  signature: from [String?(text)] to Paragraph?;
   """
   Paragraph {
     paragraph = number "." spaces body
@@ -52,9 +56,9 @@ defgrammar Paragraph
   """
 end
 
-// Scans a paragraph's body for lettered points; `body` runs up to the next "(x)".
+// Recognises one lettered point; `body` runs up to the next "(x)".
 defgrammar Point
-  signature: from [String?(text)] to [Point?];
+  signature: from [String?(text)] to Point?;
   """
   Point {
     point = "(" label ")" spaces body

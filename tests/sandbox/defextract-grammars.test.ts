@@ -10,11 +10,10 @@ import { compileGrammar } from "../../src/sandbox/grammar-runtime.js";
 // runtime — the same machinery defextract will desugar onto — so the grammars are
 // trusted before the extract runtime is built.
 //
-// Paragraph/Point are scan-mode (`to [X?]`), adapted from the proven ParaScan/
-// PointScan in examples/gdpr_article_structured_extraction.tsn; the extract's `scan`
-// will simply call them. This is the FIELD-BASED-FIRST shape (Paragraph keeps a
-// `body` field that the point scan runs over) — to be reconciled with the design's
-// single-element-grammar form when span-based regions land.
+// Each grammar RECOGNISES ONE record (scalar `to X?`); the defextract verb decides
+// cardinality. So Article is exercised through its whole-string `impl`, while Paragraph
+// and Point are exercised through their `scan` (the span-aware island scanner every
+// signed grammar exposes) — that is what the extract's `scan` verb uses.
 
 const dsl = `
 defrecord Point
@@ -47,7 +46,7 @@ defgrammar Article
 end
 
 defgrammar Paragraph
-  signature: from [String?(text)] to [Paragraph?];
+  signature: from [String?(text)] to Paragraph?;
   """
   Paragraph {
     paragraph = number "." spaces body
@@ -59,7 +58,7 @@ defgrammar Paragraph
 end
 
 defgrammar Point
-  signature: from [String?(text)] to [Point?];
+  signature: from [String?(text)] to Point?;
   """
   Point {
     point = "(" label ")" spaces body
@@ -73,16 +72,16 @@ end
 
 const text = readFileSync(join(__dirname, "../../examples/gdpr_article_33.txt"), "utf8");
 
-function compile(name: string): (...args: unknown[]) => unknown {
+function compiled(name: string) {
   const program = parseProgram(dsl);
   const sandbox = createSandbox(program);
   const ast = program.grammars.find(g => g.name === name)!;
-  return compileGrammar(ast, program, sandbox).impl;
+  return compileGrammar(ast, program, sandbox);
 }
 
 describe("defextract point A: Article-33 recognisers", () => {
-  test("Article header → number and title (paragraphs left empty)", () => {
-    const out = compile("Article")(text) as { __type: string; number: string; title: string; paragraphs: unknown[] };
+  test("Article header → number and title (parsed once via impl)", () => {
+    const out = compiled("Article").impl(text) as { __type: string; number: string; title: string; paragraphs: unknown[] };
     expect(out.__type).toBe("Article");
     expect(out.number).toBe("33");
     expect(out.title).toBe("Notification of a personal data breach to the supervisory authority");
@@ -90,15 +89,15 @@ describe("defextract point A: Article-33 recognisers", () => {
   });
 
   test("Paragraph scan → five numbered paragraphs in order", () => {
-    const out = compile("Paragraph")(text) as Array<{ number: string; body: string }>;
-    expect(out.map(p => p.number)).toEqual(["1", "2", "3", "4", "5"]);
-    expect(out[0]!.body).toContain("In the case of a personal data breach");
+    const recs = compiled("Paragraph").scan!(text).map(m => m.record) as Array<{ number: string; body: string }>;
+    expect(recs.map(p => p.number)).toEqual(["1", "2", "3", "4", "5"]);
+    expect(recs[0]!.body).toContain("In the case of a personal data breach");
   });
 
   test("Point scan over paragraph 3 → lettered points a–d", () => {
-    const paras = compile("Paragraph")(text) as Array<{ body: string }>;
+    const paras = compiled("Paragraph").scan!(text).map(m => m.record) as Array<{ body: string }>;
     const para3 = paras[2]!;
-    const points = compile("Point")(para3.body) as Array<{ label: string; body: string }>;
+    const points = compiled("Point").scan!(para3.body).map(m => m.record) as Array<{ label: string; body: string }>;
     expect(points.map(p => p.label)).toEqual(["a", "b", "c", "d"]);
     expect(points[0]!.body).toContain("describe the nature");
   });

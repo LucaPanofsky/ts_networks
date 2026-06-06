@@ -40,7 +40,7 @@ defgrammar Article
 end
 
 defgrammar Paragraph
-  signature: from [String?(text)] to [Paragraph?];
+  signature: from [String?(text)] to Paragraph?;
   """
   Paragraph {
     paragraph = number "." spaces body
@@ -52,7 +52,7 @@ defgrammar Paragraph
 end
 
 defgrammar Point
-  signature: from [String?(text)] to [Point?];
+  signature: from [String?(text)] to Point?;
   """
   Point {
     point = "(" label ")" spaces body

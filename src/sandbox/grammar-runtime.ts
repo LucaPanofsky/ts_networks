@@ -113,6 +113,44 @@ function buildRecord(rec: RecordAST, caps: Record<string, unknown>, sandbox: San
   return ctor(...args);
 }
 
+// Build a span-aware island scanner for a grammar: it walks the input and collects
+// every embedded match of the grammar's start rule, each paired with its captures and
+// the consumed span. `Item = start | any` tries the start rule at each position and
+// otherwise consumes one character, so it finds all non-overlapping matches left to
+// right and never fails. Shared by scan-mode grammars (their impl) AND by defextract's
+// `scan` over single-element grammars — so the VERB, not the signature, drives scanning.
+function buildScanner(g: Grammar, astName: string, rec: RecordAST, fields: Set<string>, sandbox: Sandbox): (input: unknown) => ScanMatch[] {
+  const startRule = (g as unknown as { defaultStartRule?: string }).defaultStartRule ?? Object.keys(g.rules)[0]!;
+  const islandSrc = `Island <: ${g.name} {\n  Items = Item*\n  Item = ${startRule} | any\n}`;
+  let island: Grammar;
+  try {
+    island = ohmGrammar(islandSrc, { [g.name]: g });
+  } catch (e) {
+    throw new Error(`defgrammar ${astName}: could not build island scanner — ${(e as Error).message}`);
+  }
+  type RawMatch = { caps: Record<string, unknown>; span: string };
+  const sem = island.createSemantics();
+  addCaptures(sem, fields);
+  sem.addOperation<RawMatch[]>("scan", {
+    Items(items: Node) {
+      return items.children.flatMap(c => (c as unknown as { scan: () => RawMatch[] }).scan());
+    },
+    Item(node: Node) {
+      if (node.ctorName === startRule) {
+        return [{ caps: (node as unknown as { captures: () => Record<string, unknown> }).captures(), span: node.sourceString }];
+      }
+      return [];
+    },
+  });
+  return (input: unknown): ScanMatch[] => {
+    if (typeof input !== "string") return [];
+    const m = island.match(input, "Items");
+    if (m.failed()) return [];
+    const raw = (sem(m) as unknown as { scan: () => RawMatch[] }).scan();
+    return raw.map(({ caps, span }) => ({ record: buildRecord(rec, caps, sandbox), span }));
+  };
+}
+
 export function compileGrammar(ast: GrammarAST, program: ProgramAST, sandbox: Sandbox): CompiledGrammar {
   // Reuse the static validators so the run-time and check-time paths report the same
   // errors. Syntax first (a broken body makes the signature check meaningless), then
@@ -141,7 +179,13 @@ export function compileGrammar(ast: GrammarAST, program: ProgramAST, sandbox: Sa
   const rec = program.records.find(r => r.name === signatureRecordName(ast))!;
   const fields = new Set(rec.fields.map(f => f.name));
 
-  // Scalar return → parse the whole string into one record (Contradiction on failure).
+  // A signed grammar exposes a span-aware island scanner, built lazily on first use.
+  // It is what `defextract`'s `scan` uses — over a scalar OR a vector grammar alike.
+  let scanner: ((input: unknown) => ScanMatch[]) | null = null;
+  const scan = (input: unknown): ScanMatch[] => (scanner ??= buildScanner(g, ast.name, rec, fields, sandbox))(input);
+
+  // Scalar return → the grammar RECOGNISES ONE record (whole-string parse, Contradiction
+  // on failure). Its `scan` (above) lets defextract find many of it — the verb decides.
   if (!isScan) {
     const sem = g.createSemantics();
     addCaptures(sem, fields);
@@ -153,45 +197,11 @@ export function compileGrammar(ast: GrammarAST, program: ProgramAST, sandbox: Sa
       const caps = (sem(m) as unknown as { captures: () => Record<string, unknown> }).captures();
       return buildRecord(rec, caps, sandbox);
     };
-    return { arity, impl };
+    return { arity, impl, scan };
   }
 
-  // Vector return → island scan: synthesize a supergrammar that walks the input and
-  // collects every embedded match of the user grammar's start rule. `Item = start | any`
-  // tries the start rule at each position and otherwise consumes one character, so the
-  // scan finds all non-overlapping matches left to right. It never fails (`Item*` matches
-  // the empty string), so zero matches is an empty array, not a Contradiction.
-  const startRule = (g as unknown as { defaultStartRule?: string }).defaultStartRule ?? Object.keys(g.rules)[0]!;
-  const islandSrc = `Island <: ${g.name} {\n  Items = Item*\n  Item = ${startRule} | any\n}`;
-  let island: Grammar;
-  try {
-    island = ohmGrammar(islandSrc, { [g.name]: g });
-  } catch (e) {
-    throw new Error(`defgrammar ${ast.name}: could not build island scanner — ${(e as Error).message}`);
-  }
-  // Each match carries its captures AND its consumed span (`node.sourceString`), so a
-  // caller (defextract) can recurse into the exact text a match covered.
-  type RawMatch = { caps: Record<string, unknown>; span: string };
-  const sem = island.createSemantics();
-  addCaptures(sem, fields);
-  sem.addOperation<RawMatch[]>("scan", {
-    Items(items: Node) {
-      return items.children.flatMap(c => (c as unknown as { scan: () => RawMatch[] }).scan());
-    },
-    Item(node: Node) {
-      if (node.ctorName === startRule) {
-        return [{ caps: (node as unknown as { captures: () => Record<string, unknown> }).captures(), span: node.sourceString }];
-      }
-      return [];
-    },
-  });
-  const scan = (input: unknown): ScanMatch[] => {
-    if (typeof input !== "string") return [];
-    const m = island.match(input, "Items");
-    if (m.failed()) return [];
-    const raw = (sem(m) as unknown as { scan: () => RawMatch[] }).scan();
-    return raw.map(({ caps, span }) => ({ record: buildRecord(rec, caps, sandbox), span }));
-  };
+  // Vector return → the grammar's impl IS the scan (records only); zero matches is an
+  // empty array, not a Contradiction.
   const impl = (...args: unknown[]) => {
     const input = args[0];
     if (typeof input !== "string") return notAString();

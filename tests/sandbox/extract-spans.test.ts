@@ -4,6 +4,7 @@ import { parseProgram } from "../../src/data-network/tree-to-network.js";
 import { createSandbox } from "../../src/sandbox/jsgen/runtime.js";
 import { compileGrammar } from "../../src/sandbox/grammar-runtime.js";
 import { compileExtract, type GrammarLeaves } from "../../src/sandbox/extract-runtime.js";
+import { Contradiction } from "../../src/info-structure.js";
 
 // B3: span-based regions. A scan now exposes each match's consumed span, and the
 // extract recurses into that span — so a nested scope needs NO `body` region field.
@@ -42,7 +43,7 @@ defgrammar Article
 end
 
 defgrammar Paragraph
-  signature: from [String?(text)] to [Paragraph?];
+  signature: from [String?(text)] to Paragraph?;
   """
   Paragraph {
     paragraph = number "." spaces rest
@@ -54,7 +55,7 @@ defgrammar Paragraph
 end
 
 defgrammar Point
-  signature: from [String?(text)] to [Point?];
+  signature: from [String?(text)] to Point?;
   """
   Point {
     point = "(" label ")" spaces body
@@ -90,7 +91,7 @@ describe("scan exposes each match's span", () => {
   const { program, sandbox } = build();
   const para = compileGrammar(program.grammars.find(g => g.name === "Paragraph")!, program, sandbox);
 
-  test("a scan-mode grammar has a `scan` that returns records paired with spans", () => {
+  test("a signed grammar exposes a `scan` that returns records paired with spans", () => {
     expect(typeof para.scan).toBe("function");
     const matches = para.scan!(text);
     expect(matches.map(m => (m.record as { number: string }).number)).toEqual(["1", "2", "3", "4", "5"]);
@@ -105,9 +106,12 @@ describe("scan exposes each match's span", () => {
     expect(matches[0]!.span).not.toContain("(a)");
   });
 
-  test("impl is exactly scan(...).map(record) — records only", () => {
-    const matches = para.scan!(text);
-    expect(para.impl(text)).toEqual(matches.map(m => m.record));
+  // The verb decides cardinality: a scalar grammar's impl recognises ONE (here the
+  // whole document is not a single paragraph, so it is a Contradiction), while `scan`
+  // finds many. This is what lets the same grammar back both `parse` and `scan`.
+  test("scalar grammar: impl recognises one, scan finds many", () => {
+    expect(para.impl(text)).toBeInstanceOf(Contradiction);
+    expect(para.scan!(text).length).toBe(5);
   });
 });
 
