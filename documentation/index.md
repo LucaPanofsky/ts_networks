@@ -62,3 +62,9 @@ npx tsx scripts/parse.ts my-program.tsn | jq '.networks[0]'
 
 - [Language Reference](language.md) — the DSL: networks, records, functions, LLM functions, expressions, and special forms
 - [Status](status.md) — what is implemented, what is pending
+
+**How-to guides**
+
+- [Defining grammars](how_to/defining_grammars.md) — write a `defgrammar` (Ohm) that turns text into records
+- [Extracting documents](how_to/extracting_documents.md) — compose grammars into a `defextract` that produces a nested tree of records
+- [Extending the language](how_to/extending_the_language.md) — add a new construct to the DSL, stage by stage
