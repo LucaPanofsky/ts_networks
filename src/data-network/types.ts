@@ -223,6 +223,24 @@ export type ExtractAST = {
   root: ExtractWithin;
 };
 
+// ── Text-table definitions (TTable) ────────────────────────────────────────────
+
+// One column's header binding: the declared header text identifies the column that
+// fills `field`.
+export type TTableHeader = { field: string; text: string };
+
+// A flat text-table extractor, callable as `TTable/<name>` (text → [Row?]). It
+// declares the row record, the cell delimiter, and the per-column headers. The header
+// is mandatory: it locates the table, maps columns by name (order-independent), and
+// self-validates (a header that doesn't match → Contradiction).
+export type TTableAST = {
+  kind: "ttable";
+  name: string;
+  row: string;             // the row record name
+  cell: string;            // the cell delimiter (verbatim, quotes stripped)
+  headers: TTableHeader[]; // the declared column headers
+};
+
 // ── Parameter definitions ─────────────────────────────────────────────────────
 
 // A named, overridable input. `type` is the value's type reference; `value` is the
@@ -248,5 +266,6 @@ export type ProgramAST = {
   enums: EnumAST[];
   grammars: GrammarAST[];
   extracts: ExtractAST[];
+  ttables: TTableAST[];
   parameters: ParameterAST[];
 };

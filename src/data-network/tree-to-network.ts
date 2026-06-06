@@ -1,7 +1,7 @@
 import { parser } from "./parser.js";
 import type {
   ProgramAST, DataNetworkAST, RecordAST, FnAST, DeriveAST, LLMFnAST, EnumAST, GrammarAST, ParameterAST,
-  ExtractAST, ExtractWithin, ExtractStmt,
+  ExtractAST, ExtractWithin, ExtractStmt, TTableAST,
   Term, PropagateTerm, SwitchTerm, CellTerm, ConstantTerm,
   FieldDecl, TypedParam, TypeRef,
   Expr, LiteralExpr, VarExpr, CallExpr, BinaryExpr, UnaryExpr, FieldExpr,
@@ -38,6 +38,7 @@ export function parseProgram(input: string): ProgramAST {
   const enums: EnumAST[] = [];
   const grammars: GrammarAST[] = [];
   const extracts: ExtractAST[] = [];
+  const ttables: TTableAST[] = [];
   const parameters: ParameterAST[] = [];
 
   // ── helpers ────────────────────────────────────────────────────────────────
@@ -562,6 +563,41 @@ export function parseProgram(input: string): ProgramAST {
     return { kind: "extract", name, root };
   };
 
+  // ── TTableDef ──────────────────────────────────────────────────────────────
+  // Clauses may appear in any order: a RowClause (`row: Rec;`), a CellClause
+  // (`cell: '|';`), and HeaderClause lines (`header field = 'text';`). Strings are
+  // single-quoted, so slice(1, -1) drops the quotes.
+  const collectTTableDef = (): TTableAST => {
+    let name = "";
+    let row = "";
+    let cell = "";
+    const headers: { field: string; text: string }[] = [];
+    cursor.firstChild(); // Ttable keyword
+    do {
+      const n = cursor.name;
+      if (n === "Name" && !name) {
+        name = slice(cursor.from, cursor.to);
+      } else if (n === "RowClause") {
+        cursor.firstChild(); cursor.nextSibling(); cursor.nextSibling(); // Row, ":", Name
+        row = slice(cursor.from, cursor.to);
+        cursor.parent();
+      } else if (n === "CellClause") {
+        cursor.firstChild(); cursor.nextSibling(); cursor.nextSibling(); // Cell, ":", String
+        cell = slice(cursor.from, cursor.to).slice(1, -1);
+        cursor.parent();
+      } else if (n === "HeaderClause") {
+        cursor.firstChild(); cursor.nextSibling(); // Header, Name (field)
+        const field = slice(cursor.from, cursor.to);
+        cursor.nextSibling(); cursor.nextSibling(); // "=", String
+        const text = slice(cursor.from, cursor.to).slice(1, -1);
+        headers.push({ field, text });
+        cursor.parent();
+      }
+    } while (cursor.nextSibling());
+    cursor.parent();
+    return { kind: "ttable", name, row, cell, headers };
+  };
+
   // ── ParameterDef ───────────────────────────────────────────────────────────
 
   const collectParameterDef = (): ParameterAST => {
@@ -607,12 +643,13 @@ export function parseProgram(input: string): ProgramAST {
       else if (cn() === "EnumDef") enums.push(collectEnumDef());
       else if (cn() === "GrammarDef") grammars.push(collectGrammarDef());
       else if (cn() === "ExtractDef") extracts.push(collectExtractDef());
+      else if (cn() === "TTableDef") ttables.push(collectTTableDef());
       else if (cn() === "ParameterDef") parameters.push(collectParameterDef());
       cursor.parent();
     }
   } while (cursor.nextSibling());
 
-  return { networks, records, fns, derives, llmFns, enums, grammars, extracts, parameters };
+  return { networks, records, fns, derives, llmFns, enums, grammars, extracts, ttables, parameters };
 }
 
 export function parseNetwork(input: string): DataNetworkAST {

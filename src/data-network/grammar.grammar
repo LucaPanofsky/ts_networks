@@ -3,7 +3,7 @@
 }
 
 Definition {
-  NetworkDef | RecordDef | FnDef | PredicateDef | DeriveDef | LLMFnDef | EnumDef | GrammarDef | ExtractDef | ParameterDef
+  NetworkDef | RecordDef | FnDef | PredicateDef | DeriveDef | LLMFnDef | EnumDef | GrammarDef | ExtractDef | TTableDef | ParameterDef
 }
 
 // ── defnetwork ────────────────────────────────────────────────────────────────
@@ -91,6 +91,18 @@ ExtractStmt {
 
 ScanStmt  { Scan Name As Name Using Name ";" }
 ParseStmt { Parse Name As Name Using Name ";" }
+
+// ── TTable ──────────────────────────────────────────────────────────────────────
+// A flat text-table extractor: declares the row record, the cell delimiter, and the
+// per-column headers. Clauses may appear in any order. Callable as TTable/<name>.
+
+TTableDef {
+  Ttable Name (RowClause | CellClause | HeaderClause)* End
+}
+
+RowClause    { Row ":" Name ";" }
+CellClause   { Cell ":" String ";" }
+HeaderClause { Header Name "=" String ";" }
 
 // ── defparameter ───────────────────────────────────────────────────────────────
 // A named, overridable input with an optional default. `type:` carries the value's
@@ -241,6 +253,9 @@ Within       { kw<"within"> }
 Scan         { kw<"scan"> }
 Parse        { kw<"parse"> }
 Using        { kw<"using"> }
+Ttable       { kw<"TTable"> }
+Row          { ckw<"row"> }
+Header       { ckw<"header"> }
 Defparameter { kw<"defparameter"> }
 Type         { ckw<"type"> }
 Value        { ckw<"value"> }

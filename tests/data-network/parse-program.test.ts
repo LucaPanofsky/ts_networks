@@ -538,6 +538,60 @@ end
   });
 });
 
+// ── TTable ──────────────────────────────────────────────────────────────────────
+
+const ttableDsl = `
+defrecord Equivalence
+  old:    String?;
+  lisbon: String?;
+  new:    String?;
+end
+
+TTable Equivalences
+  row: Equivalence;
+  cell: '|';
+  header old = 'Old numbering of the Treaty on European Union';
+  header lisbon = 'Numbering in the Treaty of Lisbon';
+  header new = 'New numbering of the Treaty on European Union';
+end
+`;
+
+describe("parseProgram: TTable", () => {
+  const ttable = parseProgram(ttableDsl).ttables[0]!;
+
+  test("no parse errors", () => noErrorNodes(ttableDsl));
+
+  test("kind, name, row record, and cell delimiter", () => {
+    expect(ttable.kind).toBe("ttable");
+    expect(ttable.name).toBe("Equivalences");
+    expect(ttable.row).toBe("Equivalence");
+    expect(ttable.cell).toBe("|");
+  });
+
+  test("headers map fields to column texts, in order", () => {
+    expect(ttable.headers).toEqual([
+      { field: "old",    text: "Old numbering of the Treaty on European Union" },
+      { field: "lisbon", text: "Numbering in the Treaty of Lisbon" },
+      { field: "new",    text: "New numbering of the Treaty on European Union" },
+    ]);
+  });
+
+  // Clauses may appear in any order — the walker keys on clause kind, not position.
+  test("clauses parse in any order", () => {
+    const reordered = parseProgram(`
+defrecord R x: String?; end
+TTable T
+  header x = 'X';
+  cell: '|';
+  row: R;
+end
+`).ttables[0]!;
+    expect(reordered.row).toBe("R");
+    expect(reordered.cell).toBe("|");
+    expect(reordered.headers).toEqual([{ field: "x", text: "X" }]);
+  });
+});
+
 // ── defparameter ──────────────────────────────────────────────────────────────
 
 const parameterDsl = `
