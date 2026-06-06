@@ -1,4 +1,5 @@
 import { compile } from "../sandbox/jsgen/index.js";
+import { toolsFromConfig } from "./tools.js";
 import { Something, Contradiction, type InfoStructure } from "../info-structure.js";
 import { MergeObject } from "../information-structures/merge-object.js";
 import { MergeSet } from "../information-structures/merge-set.js";
@@ -38,7 +39,9 @@ export const run: Operation<RunInput, Promise<RunOutput>> = {
 
     let compiled;
     try {
-      compiled = compile(source);
+      // Inject the full program-reasoning resolver: an executed llmfn's `with: tools`
+      // can reach every operation (run-grammar, typecheck, run, …), not just `parse`.
+      compiled = compile(source, toolsFromConfig);
     } catch (e) {
       return { ok: false, error: `compile error: ${e}` };
     }

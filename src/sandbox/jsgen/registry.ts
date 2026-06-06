@@ -4,7 +4,7 @@ import type { ProgramAST } from "../../data-network/types.js";
 import { typeRefToString } from "../../data-network/types.js";
 import type { Sandbox } from "./runtime.js";
 import { callLLMFn } from "../llmfn-client.js";
-import { toolsFromConfig } from "../tools.js";
+import { toolsFromConfig as sandboxToolsFromConfig, type ToolResolver } from "../tools.js";
 import { compileGrammar } from "../grammar-runtime.js";
 import { compileExtract, type GrammarLeaves } from "../extract-runtime.js";
 import { compileTTable } from "../ttable-runtime.js";
@@ -25,7 +25,15 @@ function registerBuiltins(registry: Registry): void {
   });
 }
 
-export function buildRegistry(program: ProgramAST, sandbox: Sandbox): Registry {
+// `toolsFromConfig` is injected so the sandbox stays decoupled from the operations
+// layer: by default an llmfn only sees the self-contained `parse` tool (sandbox
+// registry); the `run` operation injects the full program-reasoning resolver
+// (operations/tools.ts) when it compiles a program for execution.
+export function buildRegistry(
+  program: ProgramAST,
+  sandbox: Sandbox,
+  toolsFromConfig: ToolResolver = sandboxToolsFromConfig,
+): Registry {
   const registry = createRegistry();
   registerBuiltins(registry);
 

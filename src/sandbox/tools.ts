@@ -6,14 +6,17 @@
 // tools into the definitions it sends to the Claude API and executes when the
 // model calls them — that loop is a separate step; this module only defines the
 // tools and resolves names to them.
+//
+// LAYERING: this module is in the `sandbox` layer and must NOT import `operations`
+// (operations sit ABOVE the sandbox and compile/run it — importing them here would
+// re-create the operations↔sandbox cycle). It therefore knows only the ONE
+// self-contained tool, `parse`. The richer program-reasoning tools (run-grammar,
+// typecheck, run, …) are operation-backed; they live in `operations/tools.ts` and
+// are INJECTED into the sandbox at compile time (see `ToolResolver`,
+// `buildRegistry`, `compile`). Resolution itself is generic over a registry, so
+// both layers reuse the exact same code — only the registry they pass differs.
 
 import { parseProgram } from "../data-network/tree-to-network.js";
-import { runGrammar } from "../operations/run-grammar.js";
-import { runTtable } from "../operations/run-ttable.js";
-import { typecheck } from "../operations/typecheck.js";
-import { compileSchemas } from "../operations/compile-schemas.js";
-import { run } from "../operations/run.js";
-import type { Operation } from "../operations/types.js";
 
 export type ToolInput = Record<string, unknown>;
 
@@ -32,12 +35,19 @@ export type LLMFnTool = {
   run: (input: ToolInput) => unknown | Promise<unknown>;
 };
 
+/** A name→tool lookup. Both the sandbox (parse-only) and operations (full) layers use this shape. */
+export type ToolRegistry = Record<string, LLMFnTool>;
+
+/** Turns a raw `with: tools` string into resolved tools. Injected into compile by the caller. */
+export type ToolResolver = (raw: string | undefined) => LLMFnTool[];
+
 // ── tools ───────────────────────────────────────────────────────────────────
 
 // `parse` lets the model check that .tsn source it produced is syntactically
 // valid before returning it. Errors are returned as a value, never thrown — the
-// model is expected to read the result and react.
-const parseTool: LLMFnTool = {
+// model is expected to read the result and react. It is self-contained (only the
+// parser), so it lives here in the sandbox layer with no operation dependency.
+export const parseTool: LLMFnTool = {
   name: "parse",
   description:
     "Check whether a ts-networks (.tsn) program parses without syntax errors. " +
@@ -61,62 +71,10 @@ const parseTool: LLMFnTool = {
   },
 };
 
-const str = (v: unknown): string => (typeof v === "string" ? v : "");
+/** The sandbox-layer registry: only the self-contained `parse` tool. */
+export const SANDBOX_TOOLS: ToolRegistry = { [parseTool.name]: parseTool };
 
-// Adapt an operation to a tool: the operation owns the logic, schema, and description
-// (single source of truth); the adapter only coerces tool inputs and forwards. Errors
-// are returned as values by the operations, never thrown.
-function adaptOp<I, O>(op: Operation<I, O>, coerce: (input: ToolInput) => I): LLMFnTool {
-  return {
-    name: op.name,
-    description: op.description,
-    input_schema: op.inputSchema,
-    run: (input: ToolInput) => op.handle(coerce(input)),
-  };
-}
-
-function coerceCells(raw: unknown): Record<string, string> {
-  const cells: Record<string, string> = {};
-  if (raw && typeof raw === "object") {
-    for (const [k, v] of Object.entries(raw as Record<string, unknown>)) cells[k] = str(v);
-  }
-  return cells;
-}
-
-// The registry is built LAZILY, on first selection. The operation-backed tools import
-// `run`, whose module pulls jsgen → registry → llmfn-client → back to this module — a
-// cycle. Reading `run.name`/etc. at module-init time would hit the not-yet-initialized
-// binding (TDZ). Deferring construction to first use moves every operation-metadata
-// read to runtime, by when all modules are initialized. parseTool stays eager (it is
-// self-contained — no operation import, no cycle).
-//
-// What each operation-backed tool gives the model:
-//   run-grammar     — test one defgrammar against a sample; the located Ohm failure on a
-//                     mismatch is the point, not a pass/fail bit (the grammar-induction tool).
-//   run-ttable      — the tabular twin: test one TTable against a sample, surfacing per-row
-//                     contradictions and located header mismatches.
-//   typecheck       — wiring soundness: located type errors AND topology warnings (the
-//                     highest-signal authoring tool — "does it hold together", not just "parses").
-//   compile-schemas — the JSON Schema per defrecord, i.e. the structured-output contract.
-//   run             — compile and EXECUTE a network with seeded cells (end-to-end ground
-//                     truth). It evaluates the program's sandbox JS — same trust boundary as
-//                     the program itself; flagged because the model invokes it unattended.
-let REGISTRY_CACHE: Record<string, LLMFnTool> | null = null;
-function registry(): Record<string, LLMFnTool> {
-  if (REGISTRY_CACHE) return REGISTRY_CACHE;
-  const tools: LLMFnTool[] = [
-    parseTool,
-    adaptOp(runGrammar, i => ({ source: str(i.source), grammar: str(i.grammar), input: str(i.input) })),
-    adaptOp(runTtable, i => ({ source: str(i.source), ttable: str(i.ttable), input: str(i.input) })),
-    adaptOp(typecheck, i => ({ source: str(i.source) })),
-    adaptOp(compileSchemas, i => ({ source: str(i.source) })),
-    adaptOp(run, i => ({ source: str(i.source), network: str(i.network), cells: coerceCells(i.cells) })),
-  ];
-  REGISTRY_CACHE = Object.fromEntries(tools.map(t => [t.name, t]));
-  return REGISTRY_CACHE;
-}
-
-// ── selection ───────────────────────────────────────────────────────────────
+// ── selection (generic over a registry) ──────────────────────────────────────
 
 /**
  * Split a `with: tools = '...'` value into tool names: comma-separated, trimmed,
@@ -135,9 +93,8 @@ export function parseToolList(raw: string): string[] {
   return names;
 }
 
-/** Resolve tool names against the registry. Throws on the first unknown name. */
-export function resolveTools(names: string[]): LLMFnTool[] {
-  const reg = registry();
+/** Resolve tool names against a registry (default: the sandbox's). Throws on the first unknown name. */
+export function resolveTools(names: string[], reg: ToolRegistry = SANDBOX_TOOLS): LLMFnTool[] {
   return names.map(name => {
     const tool = reg[name];
     if (tool === undefined) {
@@ -148,12 +105,15 @@ export function resolveTools(names: string[]): LLMFnTool[] {
   });
 }
 
-/** Convenience: parse a raw `with: tools` value and resolve it in one step. */
-export function toolsFromConfig(raw: string | undefined): LLMFnTool[] {
-  return resolveTools(parseToolList(raw ?? ""));
+/** Convenience: parse a raw `with: tools` value and resolve it against a registry in one step. */
+export function toolsFromConfig(
+  raw: string | undefined,
+  reg: ToolRegistry = SANDBOX_TOOLS,
+): LLMFnTool[] {
+  return resolveTools(parseToolList(raw ?? ""), reg);
 }
 
-/** Names of all registered tools (for diagnostics / docs). */
-export function availableToolNames(): string[] {
-  return Object.keys(registry());
+/** Names of all tools in a registry (default: the sandbox's) — for diagnostics / docs. */
+export function availableToolNames(reg: ToolRegistry = SANDBOX_TOOLS): string[] {
+  return Object.keys(reg);
 }
