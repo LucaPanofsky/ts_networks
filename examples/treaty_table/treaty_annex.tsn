@@ -1,0 +1,51 @@
+// Composing defextract + TTable: parse the treaty annex "totally". A defextract
+// carves the skeleton (the annex title) and delegates the table region to TTable —
+// `scan Equivalence as rows using TTable/Equivalences` uses the table as a leaf,
+// exactly the way a `using grammar/<name>` leaf would. The title rows come out as
+// ordinary rows (grouping them under their TITLE is a later, optional refinement).
+//
+// Run:
+//   npx tsx scripts/run.ts examples/treaty_table/treaty_annex.tsn extractAnnex \
+//     doc="$(jq -Rs . examples/treaty_table/treaty_extract.txt)"
+
+defrecord Equivalence
+  old:    String?;
+  lisbon: String?;
+  newNum: String?;
+end
+
+TTable Equivalences
+  row: Equivalence;
+  cell: '|';
+  header old    = 'Old numbering of the Treaty on European Union';
+  header lisbon = 'Numbering in the Treaty of Lisbon';
+  header newNum = 'New numbering of the Treaty on European Union';
+end
+
+defrecord Annex
+  title: String?;            // "TABLES OF EQUIVALENCES REFERRED TO IN ARTICLE 5 ..."
+  rows:  [Equivalence?];     // filled by the TTable leaf
+end
+
+// Captures the annex title; the rest is the table, scanned by TTable.
+defgrammar Annex
+  signature: from [String?(text)] to Annex?;
+  """
+  Annex {
+    annex = "ANNEX" spaces title rest
+    title = (~"\n" any)+
+    rest  = any*
+  }
+  """
+end
+
+defextract TreatyAnnex
+  within Annex using grammar/Annex
+    scan Equivalence as rows using TTable/Equivalences;
+  end
+end
+
+defnetwork extractAnnex
+  signature: from [doc] to annex;
+  propagate extract/TreatyAnnex from [doc] to annex;
+end

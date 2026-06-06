@@ -105,10 +105,24 @@ export function buildRegistry(program: ProgramAST, sandbox: Sandbox): Registry {
     });
   }
 
+  // A TTable is callable as `TTable/<name>` (text → [Row?]), mirroring grammar/extract.
+  // It is ALSO an extract leaf: a `scan … using TTable/<name>` bind delegates the region
+  // to the table. So add it to the extract leaf map (impl only, no span-aware scan —
+  // table rows are terminal) BEFORE compiling the extracts that may reference it.
+  for (const ttable of program.ttables) {
+    const { arity, impl } = compileTTable(ttable, program, sandbox);
+    grammarLeaves[`TTable/${ttable.name}`] = { impl };
+    registry.register({
+      fnName: `TTable/${ttable.name}`,
+      arity,
+      impl,
+      morphism: { from: ["String?"], to: `[${ttable.row}?]` },
+    });
+  }
+
   // An extract is callable as `extract/<name>` (mirroring grammar/network), so a
   // `propagate extract/<name> from [doc] to cell` resolves through the registry. Its
-  // impl orchestrates the grammar leaves above and returns the root record. The root
-  // `within` names the target record, so the morphism returns `<Root>?`.
+  // impl orchestrates the grammar/TTable leaves above and returns the root record.
   for (const extract of program.extracts) {
     const { arity, impl } = compileExtract(extract, grammarLeaves);
     registry.register({
@@ -116,17 +130,6 @@ export function buildRegistry(program: ProgramAST, sandbox: Sandbox): Registry {
       arity,
       impl,
       morphism: { from: ["String?"], to: `${extract.root.target}?` },
-    });
-  }
-
-  // A TTable is callable as `TTable/<name>` (text → [Row?]), mirroring grammar/extract.
-  for (const ttable of program.ttables) {
-    const { arity, impl } = compileTTable(ttable, program, sandbox);
-    registry.register({
-      fnName: `TTable/${ttable.name}`,
-      arity,
-      impl,
-      morphism: { from: ["String?"], to: `[${ttable.row}?]` },
     });
   }
 

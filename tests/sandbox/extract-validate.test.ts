@@ -133,6 +133,59 @@ end
   });
 });
 
+describe("validateExtract: TTable leaves", () => {
+  const base = `
+defrecord Row a: String?; end
+TTable Rows
+  row: Row;
+  cell: '|';
+  header a = 'A';
+end
+defrecord Doc rows: [Row?]; end
+defgrammar Doc
+  signature: from [String?(text)] to Doc?;
+  """ Doc { d = any* } """
+end
+`;
+  const validateFull = (dsl: string): string[] => {
+    const p = parseProgram(dsl);
+    return validateExtract(p.extracts[0]!, p);
+  };
+
+  test("scan ... using TTable/<name> validates clean", () => {
+    expect(validateFull(base + `
+defextract E
+  within Doc using grammar/Doc
+    scan Row as rows using TTable/Rows;
+  end
+end
+`)).toEqual([]);
+  });
+
+  test("parse ... using TTable/<name> is rejected (a TTable yields a vector)", () => {
+    const errs = validateFull(base + `
+defextract E
+  within Doc using grammar/Doc
+    parse Row as rows using TTable/Rows;
+  end
+end
+`);
+    expect(errs.some(e => /use scan, not parse/.test(e))).toBe(true);
+  });
+
+  test("a TTable whose row record differs from the bind is rejected", () => {
+    const errs = validateFull(base + `
+defrecord Other z: String?; end
+defextract E
+  within Doc using grammar/Doc
+    scan Other as rows using TTable/Rows;
+  end
+end
+`);
+    expect(errs.some(e => /produces Row rows/.test(e))).toBe(true);
+  });
+});
+
 describe("validateExtract: root grammar", () => {
   test("a root grammar returning the wrong record is rejected", () => {
     const errs = validate(`

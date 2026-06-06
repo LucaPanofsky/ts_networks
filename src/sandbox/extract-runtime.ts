@@ -50,9 +50,21 @@ export function validateExtract(ast: ExtractAST, program: ProgramAST): string[] 
         if (stmt.kind === "parse" && isVector) errors.push(`${here}: "parse ... as ${stmt.as}" must fill a scalar field, but "${stmt.as}" on ${recordName} is a vector`);
         const elem = fieldRecord(field.type);
         if (elem !== stmt.record) errors.push(`${here}: "${stmt.kind} ${stmt.record} as ${stmt.as}" — field "${stmt.as}" holds ${elem}, not ${stmt.record}`);
-        const gRec = grammarReturnRecord(stmt.grammar, program);
-        if (gRec === null) errors.push(`${here}: ${stmt.grammar} is not a record-returning grammar`);
-        else if (gRec !== stmt.record) errors.push(`${here}: ${stmt.grammar} returns ${gRec}, but "${stmt.kind} ${stmt.record}" expects ${stmt.record}`);
+        // The leaf is either a grammar (`grammar/X`, scan or parse) or a TTable
+        // (`TTable/X`, always a vector ⇒ scan only); its produced record must match.
+        if (stmt.grammar.startsWith("TTable/")) {
+          const tname = stmt.grammar.slice("TTable/".length);
+          const tt = program.ttables.find(t => t.name === tname);
+          if (!tt) errors.push(`${here}: ${stmt.grammar} is not a defined TTable`);
+          else {
+            if (stmt.kind === "parse") errors.push(`${here}: ${stmt.grammar} yields a vector ([${tt.row}?]) — use scan, not parse`);
+            if (tt.row !== stmt.record) errors.push(`${here}: ${stmt.grammar} produces ${tt.row} rows, but "${stmt.kind} ${stmt.record}" expects ${stmt.record}`);
+          }
+        } else {
+          const gRec = grammarReturnRecord(stmt.grammar, program);
+          if (gRec === null) errors.push(`${here}: ${stmt.grammar} is not a record-returning grammar`);
+          else if (gRec !== stmt.record) errors.push(`${here}: ${stmt.grammar} returns ${gRec}, but "${stmt.kind} ${stmt.record}" expects ${stmt.record}`);
+        }
       }
     }
   };
