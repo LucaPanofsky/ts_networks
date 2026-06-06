@@ -3,7 +3,7 @@
 }
 
 Definition {
-  NetworkDef | RecordDef | FnDef | PredicateDef | DeriveDef | LLMFnDef | EnumDef | GrammarDef | ParameterDef
+  NetworkDef | RecordDef | FnDef | PredicateDef | DeriveDef | LLMFnDef | EnumDef | GrammarDef | ExtractDef | ParameterDef
 }
 
 // ── defnetwork ────────────────────────────────────────────────────────────────
@@ -69,6 +69,28 @@ LLMFnDef {
 GrammarDef {
   Defgrammar Name FnSignature? PromptString End
 }
+
+// ── defextract ──────────────────────────────────────────────────────────────────
+// A structural extractor: a tree of `within` scopes binding record-valued fields to
+// recognisers. The ROOT `within` names the target record and the grammar that parses
+// it (`using grammar/X`); NESTED `within` scopes recurse into a field a prior scan
+// produced, carrying no grammar. `scan` fills a vector field (many), `parse` a scalar
+// one. The grammar reference is a single Name (slash-names like `grammar/Article`).
+
+ExtractDef {
+  Defextract Name WithinBlock End
+}
+
+WithinBlock {
+  Within Name (Using Name)? ExtractStmt* End
+}
+
+ExtractStmt {
+  ScanStmt | ParseStmt | WithinBlock
+}
+
+ScanStmt  { Scan Name As Name Using Name ";" }
+ParseStmt { Parse Name As Name Using Name ";" }
 
 // ── defparameter ───────────────────────────────────────────────────────────────
 // A named, overridable input with an optional default. `type:` carries the value's
@@ -214,6 +236,11 @@ Defpredicate { kw<"defpredicate"> }
 Defllmfn     { kw<"defllmfn"> }
 Defenum      { kw<"defenum"> }
 Defgrammar   { kw<"defgrammar"> }
+Defextract   { kw<"defextract"> }
+Within       { kw<"within"> }
+Scan         { kw<"scan"> }
+Parse        { kw<"parse"> }
+Using        { kw<"using"> }
 Defparameter { kw<"defparameter"> }
 Type         { ckw<"type"> }
 Value        { ckw<"value"> }

@@ -1,6 +1,7 @@
 import { parser } from "./parser.js";
 import type {
   ProgramAST, DataNetworkAST, RecordAST, FnAST, DeriveAST, LLMFnAST, EnumAST, GrammarAST, ParameterAST,
+  ExtractAST, ExtractWithin, ExtractStmt,
   Term, PropagateTerm, SwitchTerm, CellTerm, ConstantTerm,
   FieldDecl, TypedParam, TypeRef,
   Expr, LiteralExpr, VarExpr, CallExpr, BinaryExpr, UnaryExpr, FieldExpr,
@@ -36,6 +37,7 @@ export function parseProgram(input: string): ProgramAST {
   const llmFns: LLMFnAST[] = [];
   const enums: EnumAST[] = [];
   const grammars: GrammarAST[] = [];
+  const extracts: ExtractAST[] = [];
   const parameters: ParameterAST[] = [];
 
   // ── helpers ────────────────────────────────────────────────────────────────
@@ -500,6 +502,66 @@ export function parseProgram(input: string): ProgramAST {
     return { kind: "grammar", name, source, signature };
   };
 
+  // ── ExtractDef ─────────────────────────────────────────────────────────────
+  // A ScanStmt/ParseStmt holds three Names in source order — record, field, grammar
+  // — separated by the As/Using keyword nodes. Collecting Names by order is robust to
+  // those intervening keyword nodes.
+  const collectExtractBind = (kind: "scan" | "parse"): ExtractStmt => {
+    const names: string[] = [];
+    cursor.firstChild();
+    do {
+      if (cursor.name === "Name") names.push(slice(cursor.from, cursor.to));
+    } while (cursor.nextSibling());
+    cursor.parent();
+    return { kind, record: names[0] ?? "", as: names[1] ?? "", grammar: names[2] ?? "" };
+  };
+
+  // A WithinBlock: `Within Name (Using Name)? ExtractStmt* End`. The first Name is the
+  // target (record at the root, field when nested); a Name after the Using node is the
+  // grammar reference (root only). Nested scopes carry no grammar.
+  const collectWithinBlock = (): ExtractWithin => {
+    let target = "";
+    let grammar: string | undefined;
+    let seenUsing = false;
+    const body: ExtractStmt[] = [];
+    cursor.firstChild(); // Within keyword
+    do {
+      const n = cursor.name;
+      if (n === "Name") {
+        if (!target) target = slice(cursor.from, cursor.to);
+        else if (seenUsing) grammar = slice(cursor.from, cursor.to);
+      } else if (n === "Using") {
+        seenUsing = true;
+      } else if (n === "ExtractStmt") {
+        // ExtractStmt is a wrapper (like Term); descend to the ScanStmt/ParseStmt/
+        // WithinBlock it holds.
+        cursor.firstChild();
+        const inner = cursor.name;
+        if (inner === "ScanStmt") body.push(collectExtractBind("scan"));
+        else if (inner === "ParseStmt") body.push(collectExtractBind("parse"));
+        else if (inner === "WithinBlock") body.push(collectWithinBlock());
+        cursor.parent();
+      }
+    } while (cursor.nextSibling());
+    cursor.parent();
+    const within: ExtractWithin = { kind: "within", target, body };
+    if (grammar !== undefined) within.grammar = grammar;
+    return within;
+  };
+
+  const collectExtractDef = (): ExtractAST => {
+    let name = "";
+    let root: ExtractWithin = { kind: "within", target: "", body: [] };
+    cursor.firstChild(); // Defextract keyword
+    do {
+      const n = cursor.name;
+      if (n === "Name" && !name) name = slice(cursor.from, cursor.to);
+      else if (n === "WithinBlock") root = collectWithinBlock();
+    } while (cursor.nextSibling());
+    cursor.parent();
+    return { kind: "extract", name, root };
+  };
+
   // ── ParameterDef ───────────────────────────────────────────────────────────
 
   const collectParameterDef = (): ParameterAST => {
@@ -544,12 +606,13 @@ export function parseProgram(input: string): ProgramAST {
       else if (cn() === "LLMFnDef") llmFns.push(collectLLMFnDef());
       else if (cn() === "EnumDef") enums.push(collectEnumDef());
       else if (cn() === "GrammarDef") grammars.push(collectGrammarDef());
+      else if (cn() === "ExtractDef") extracts.push(collectExtractDef());
       else if (cn() === "ParameterDef") parameters.push(collectParameterDef());
       cursor.parent();
     }
   } while (cursor.nextSibling());
 
-  return { networks, records, fns, derives, llmFns, enums, grammars, parameters };
+  return { networks, records, fns, derives, llmFns, enums, grammars, extracts, parameters };
 }
 
 export function parseNetwork(input: string): DataNetworkAST {

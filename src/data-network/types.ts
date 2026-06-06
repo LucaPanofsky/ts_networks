@@ -188,6 +188,41 @@ export type GrammarAST = {
   signature?: { params: TypedParam[]; returnType: TypeRef };
 };
 
+// ── Extract definitions (defextract) ──────────────────────────────────────────
+
+// A `scan`/`parse` statement binds a record-valued field of the enclosing scope to a
+// recogniser. The verb sets cardinality: `scan` fills a vector field (many matches),
+// `parse` fills a scalar field (one match). Spelled with the bare element record
+// (`scan Paragraph`); the `as <field>` target carries the [X?]/X? cardinality.
+export type ExtractBind = {
+  kind: "scan" | "parse";
+  record: string;   // the element record recognised, e.g. "Paragraph"
+  as: string;       // the field it fills on the enclosing scope's record
+  grammar: string;  // the recogniser reference, e.g. "grammar/Paragraph"
+};
+
+// A `within` scope. The ROOT names the record TYPE it builds (which is also the
+// extract's return type) and carries `grammar`, the recogniser that parses it; its
+// region is the whole input. A NESTED `within` names a FIELD produced by a prior
+// `scan`/`parse`, carries no grammar, and recurses into each matched element scoped
+// to the SPAN that element's grammar consumed (span-based — no region field).
+export type ExtractWithin = {
+  kind: "within";
+  target: string;     // root: record name; nested: field name
+  grammar?: string;   // root: grammar reference; nested: undefined
+  body: ExtractStmt[];
+};
+
+export type ExtractStmt = ExtractBind | ExtractWithin;
+
+// A named structural extractor, callable as `extract/<name>`. It has exactly one root
+// `within` (the document tree is a single record), built from nested withins/binds.
+export type ExtractAST = {
+  kind: "extract";
+  name: string;
+  root: ExtractWithin;
+};
+
 // ── Parameter definitions ─────────────────────────────────────────────────────
 
 // A named, overridable input. `type` is the value's type reference; `value` is the
@@ -212,5 +247,6 @@ export type ProgramAST = {
   llmFns: LLMFnAST[];
   enums: EnumAST[];
   grammars: GrammarAST[];
+  extracts: ExtractAST[];
   parameters: ParameterAST[];
 };

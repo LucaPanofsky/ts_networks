@@ -457,6 +457,87 @@ end
   });
 });
 
+// ── defextract ──────────────────────────────────────────────────────────────────
+
+const extractDsl = `
+defextract GdprArticle
+  within Article using grammar/Article
+    scan Paragraph as paragraphs using grammar/Paragraph;
+    within paragraphs
+      scan Point as points using grammar/Point;
+    end
+  end
+end
+`;
+
+describe("parseProgram: defextract", () => {
+  const extract = parseProgram(extractDsl).extracts[0]!;
+
+  test("no parse errors", () => noErrorNodes(extractDsl));
+
+  test("kind and name", () => {
+    expect(extract.kind).toBe("extract");
+    expect(extract.name).toBe("GdprArticle");
+  });
+
+  // Capability: the whole nested tree is captured in one structural assertion.
+  test("the full within/scan tree is parsed", () => {
+    expect(extract.root).toEqual({
+      kind: "within",
+      target: "Article",
+      grammar: "grammar/Article",
+      body: [
+        { kind: "scan", record: "Paragraph", as: "paragraphs", grammar: "grammar/Paragraph" },
+        {
+          kind: "within",
+          target: "paragraphs",
+          body: [
+            { kind: "scan", record: "Point", as: "points", grammar: "grammar/Point" },
+          ],
+        },
+      ],
+    });
+  });
+
+  // Invariant: the ROOT within carries the grammar that parses it; a NESTED within
+  // names a field already produced by a scan and carries NO grammar. This encodes the
+  // root-vs-nested distinction that the rest of the pipeline relies on.
+  test("root within has a grammar; nested within does not", () => {
+    expect(extract.root.grammar).toBe("grammar/Article");
+    const nested = extract.root.body.find(s => s.kind === "within")!;
+    expect(nested.kind).toBe("within");
+    if (nested.kind === "within") expect(nested.grammar).toBeUndefined();
+  });
+
+  // Unit: a slash-name (`grammar/Article`) is captured verbatim — it tokenises as one
+  // Name, the same way `propagate grammar/Cite ...` does.
+  test("grammar references are captured verbatim as slash-names", () => {
+    const bind = extract.root.body[0]!;
+    expect(bind.kind).toBe("scan");
+    if (bind.kind === "scan") expect(bind.grammar).toBe("grammar/Paragraph");
+  });
+});
+
+describe("parseProgram: defextract `parse` verb", () => {
+  const parseVerbDsl = `
+defextract Doc
+  within Report using grammar/Report
+    parse Header as header using grammar/Header;
+  end
+end
+`;
+  const extract = parseProgram(parseVerbDsl).extracts[0]!;
+
+  test("no parse errors", () => noErrorNodes(parseVerbDsl));
+
+  // Capability: `parse` is the scalar counterpart of `scan` — same shape, different verb.
+  test("a parse statement yields kind 'parse'", () => {
+    expect(extract.root.body[0]).toEqual({
+      kind: "parse", record: "Header", as: "header", grammar: "grammar/Header",
+    });
+  });
+});
+
 // ── defparameter ──────────────────────────────────────────────────────────────
 
 const parameterDsl = `

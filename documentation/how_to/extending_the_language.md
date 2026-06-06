@@ -65,7 +65,10 @@ Two project rules govern the whole process:
 4. **Collector** — `src/data-network/tree-to-network.ts`. Walk the parse tree
    into the AST type, and dispatch to it from the top-level walk.
 5. **Fix `ProgramAST` literals.** A few tests build a `ProgramAST` by hand; a new
-   required field breaks them until you add it. `grep` for them.
+   required field breaks them until you add it. `grep` for them. Note: the root
+   `tsconfig.json` includes only `src/**/*`, so `tsc --noEmit` does **not** check
+   `tests/` — it won't report these. `npm test` surfaces them as "suite failed to
+   run." After changing a shared type, run the full suite, not `tsc` alone.
 6. **(Callables only)** type-checker, then sandbox/registry
    (`src/sandbox/jsgen/registry.ts`), then a runnable `examples/*.tsn`, then a
    note in `README.md`.
@@ -169,8 +172,20 @@ That was the whole change for a declaration. A callable would continue: teach
 - **Cursor discipline.** Every `firstChild()` that succeeds must be balanced by a
   `parent()` before the enclosing loop advances, or the walk desyncs. Anonymous
   tokens (`":"`, `";"`) appear as nodes — step over them with `nextSibling()`.
+- **Alternation rules produce a wrapper node.** A rule like `ExtractStmt {
+  ScanStmt | ParseStmt | WithinBlock }` (or `Term { … }`) appears in the parse
+  tree as an `ExtractStmt` node *wrapping* the chosen alternative — **not** as the
+  alternative directly. The collector must `firstChild()` into the wrapper to reach
+  the real node (see the `Term` handling in `collectNetworkDef`, or the
+  `ExtractStmt` handling in `collectWithinBlock`). Forgetting this yields a
+  **silently empty list** — the loop matches no child — which a full-tree AST
+  assertion catches at once.
 - **Run the right command.** `npm test` (regenerates the parser); `npm run
   test:all` to include the slow subprocess-based script tests; `npx tsc --noEmit`
   after any type change.
 
 ## Changelog
+
+- `defextract` (parse + AST): a nested `within` / `scan` / `parse` structural
+  extractor. Landed at stage 5 (parse + AST), runtime deferred. Surfaced the
+  alternation-wrapper-node gotcha documented above.
