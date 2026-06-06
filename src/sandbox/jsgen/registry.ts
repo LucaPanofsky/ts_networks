@@ -7,6 +7,7 @@ import { callLLMFn } from "../llmfn-client.js";
 import { toolsFromConfig } from "../tools.js";
 import { compileGrammar } from "../grammar-runtime.js";
 import { compileExtract, type GrammarLeaves } from "../extract-runtime.js";
+import { compileTTable } from "../ttable-runtime.js";
 import { deriveProtocol } from "../../data-network/schema.js";
 import { Something, Contradiction } from "../../info-structure.js";
 import { Deferred } from "../../information-structures/deferred.js";
@@ -115,6 +116,17 @@ export function buildRegistry(program: ProgramAST, sandbox: Sandbox): Registry {
       arity,
       impl,
       morphism: { from: ["String?"], to: `${extract.root.target}?` },
+    });
+  }
+
+  // A TTable is callable as `TTable/<name>` (text → [Row?]), mirroring grammar/extract.
+  for (const ttable of program.ttables) {
+    const { arity, impl } = compileTTable(ttable, program, sandbox);
+    registry.register({
+      fnName: `TTable/${ttable.name}`,
+      arity,
+      impl,
+      morphism: { from: ["String?"], to: `[${ttable.row}?]` },
     });
   }
 
