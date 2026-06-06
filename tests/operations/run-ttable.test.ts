@@ -1,37 +1,39 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { run } from "../../src/operations/run.js";
 
-// Step 3: end-to-end through the real pipeline. The `run` operation compiles the
-// example and executes the network, whose `propagate TTable/Equivalences` resolves the
-// table leaf from the registry.
+// A TTable is callable directly as a propagator (`propagate TTable/<name> …`). This
+// drives the real pipeline (parse → sandbox → registry → network → table leaf) for the
+// located mode (the header row matched by its declared texts and consumed).
 
-const source = readFileSync(join(__dirname, "../../examples/treaty_table/treaty.tsn"), "utf8");
-const text = readFileSync(join(__dirname, "../../examples/treaty_table/treaty_extract.txt"), "utf8");
+const source = `
+defrecord Pair
+  x: String?;
+  y: String?;
+end
 
-type Row = { __type: string; old: string; lisbon: string; newNum: string };
+TTable Pairs
+  row: Pair;
+  cell: '|';
+  header x = 'X';
+  header y = 'Y';
+end
 
-describe("run operation: TTable end-to-end (treaty table)", () => {
-  test("a network propagating TTable/<name> produces the rows", async () => {
-    const result = await run.handle({
-      source,
-      network: "extractTable",
-      cells: { doc: JSON.stringify(text) },
-    });
+defnetwork extractPairs
+  signature: from [doc] to rows;
+  propagate TTable/Pairs from [doc] to rows;
+end
+`;
+
+describe("run operation: TTable/<name> as a propagator", () => {
+  test("located mode — header row matched and consumed, columns mapped by name", async () => {
+    const doc = "X | Y |\na | b |\nc | d |\n";
+    const result = await run.handle({ source, network: "extractPairs", cells: { doc: JSON.stringify(doc) } });
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
 
-    const rows = result.cells["rows"] as Row[];
-    expect(Array.isArray(rows)).toBe(true);
-    expect(rows.every(r => r.__type === "Equivalence")).toBe(true);
-
-    // Columns mapped by header name.
-    const article1 = rows.find(r => r.old === "Article 1")!;
-    expect(article1).toMatchObject({ old: "Article 1", lisbon: "Article 1", newNum: "Article 1" });
-    // Empty cell stays "" (asserted absence).
-    const newArticle = rows.find(r => r.lisbon === "Article 1a")!;
-    expect(newArticle.old).toBe("");
-    expect(newArticle.newNum).toBe("Article 2");
+    expect(result.cells["rows"]).toEqual([
+      { __type: "Pair", x: "a", y: "b" },
+      { __type: "Pair", x: "c", y: "d" },
+    ]);
   });
 });

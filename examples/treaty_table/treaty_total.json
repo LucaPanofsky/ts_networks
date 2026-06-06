@@ -1,14 +1,21 @@
 {
     "__type": "Annex",
     "title": "TABLES OF EQUIVALENCES REFERRED TO IN ARTICLE 5 OF THE TREATY OF LISBON",
+    "section": "A. Treaty on European Union",
+    "columns": [
+        "Old numbering of the Treaty on European Union",
+        "Numbering in the Treaty of Lisbon",
+        "New numbering of the Treaty on European Union"
+    ],
     "groups": [
         {
             "__type": "TitleGroup",
-            "titles": [
-                "TITLE I — COMMON PROVISIONS",
-                "TITLE I — COMMON PROVISIONS",
-                "TITLE I — COMMON PROVISIONS"
-            ],
+            "title": {
+                "__type": "TitleRow",
+                "old": "TITLE I — COMMON PROVISIONS",
+                "lisbon": "TITLE I — COMMON PROVISIONS",
+                "newNum": "TITLE I — COMMON PROVISIONS"
+            },
             "rows": [
                 {
                     "__type": "Equivalence",
@@ -80,11 +87,12 @@
         },
         {
             "__type": "TitleGroup",
-            "titles": [
-                "TITLE II — PROVISIONS AMENDING THE TREATY ESTABLISHING THE EUROPEAN ECONOMIC COMMUNITY WITH A VIEW TO ESTABLISHING THE EUROPEAN COMMUNITY",
-                "TITLE II — PROVISIONS ON DEMOCRATIC PRINCIPLES",
-                "TITLE II — PROVISIONS ON DEMOCRATIC PRINCIPLES"
-            ],
+            "title": {
+                "__type": "TitleRow",
+                "old": "TITLE II — PROVISIONS AMENDING THE TREATY ESTABLISHING THE EUROPEAN ECONOMIC COMMUNITY WITH A VIEW TO ESTABLISHING THE EUROPEAN COMMUNITY",
+                "lisbon": "TITLE II — PROVISIONS ON DEMOCRATIC PRINCIPLES",
+                "newNum": "TITLE II — PROVISIONS ON DEMOCRATIC PRINCIPLES"
+            },
             "rows": [
                 {
                     "__type": "Equivalence",
