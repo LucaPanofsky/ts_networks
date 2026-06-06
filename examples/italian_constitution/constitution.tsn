@@ -1,0 +1,112 @@
+// Italian Constitution (extract: Titoli II–III, Artt. 29–47) — nested structural
+// extraction with `defextract`. A step up from the GDPR example: four levels and a
+// multi-element root.
+//
+//   Document → many Titoli → many Articoli → many Commi
+//
+// Run:
+//   npx tsx scripts/run.ts examples/italian_constitution/constitution.tsn extractCostituzione \
+//     doc="$(jq -Rs . examples/italian_constitution/constitution_extract.txt)"
+
+// ── Shape ───────────────────────────────────────────────────────────────────────
+
+defrecord Comma
+  text: String?;
+end
+
+defrecord Articolo
+  number: String?;
+  commi:  [Comma?];
+end
+
+defrecord Titolo
+  number: String?;      // Roman numeral, e.g. "II"
+  name:   String?;      // e.g. "RAPPORTI ETICO-SOCIALI"
+  articoli: [Articolo?];
+end
+
+defrecord Document
+  titoli: [Titolo?];
+end
+
+// ── Recognisers (one record each; the extract verb scans for many) ──────────────
+
+// The root: matches the whole input, captures nothing. Its titoli are scanned in.
+defgrammar Document
+  signature: from [String?(text)] to Document?;
+  """
+  Document { doc = any* }
+  """
+end
+
+// One TITOLO: a Roman-numeral number, the name on the next line, then its body up to
+// the next "TITOLO" (its match span carries the articles, which `within` recurses into).
+defgrammar Titolo
+  signature: from [String?(text)] to Titolo?;
+  """
+  Titolo {
+    titolo = "TITOLO" sp number nl name rest
+    number = upper+
+    name   = (~nl any)+
+    rest   = (~mark any)*
+    mark   = "TITOLO"
+    sp     = " "+
+    nl     = "\n"
+  }
+  """
+end
+
+// One article: "Art. N." then its body up to the next "Art. N." marker.
+defgrammar Articolo
+  signature: from [String?(text)] to Articolo?;
+  """
+  Articolo {
+    articolo = "Art." sp number "." rest
+    number   = digit+
+    rest     = (~mark any)*
+    mark     = "Art." sp digit+ "."
+    sp       = " "+
+  }
+  """
+end
+
+// One comma (paragraph). A comma starts with a capital letter (Italian sentences do;
+// this also rejects both the "Art. N." header and any mid-header fragment), and its
+// `text` joins soft-wrapped lines: a wrapped line ends in a space before the newline
+// (softWrap, kept inside the comma), while a comma boundary is a bare newline (a line
+// that ends without a trailing space — e.g. the period at the end of a sentence).
+//
+// Note: the island scanner walks the parent's span skipping whitespace, so a comma
+// cannot anchor on a leading newline — the capital-letter start is the anchor instead.
+defgrammar Comma
+  signature: from [String?(text)] to Comma?;
+  """
+  Comma {
+    comma     = ~header text
+    header    = "Art." " "+ digit+ "."
+    text      = upper (softWrap | plainChar)*
+    softWrap  = " " nl
+    plainChar = ~nl any
+    nl        = "\n"
+  }
+  """
+end
+
+// ── The extractor ───────────────────────────────────────────────────────────────
+
+defextract Costituzione
+  within Document using grammar/Document
+    scan Titolo as titoli using grammar/Titolo;
+    within titoli
+      scan Articolo as articoli using grammar/Articolo;
+      within articoli
+        scan Comma as commi using grammar/Comma;
+      end
+    end
+  end
+end
+
+defnetwork extractCostituzione
+  signature: from [doc] to documento;
+  propagate extract/Costituzione from [doc] to documento;
+end

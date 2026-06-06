@@ -1,0 +1,353 @@
+{
+    "__type": "Document",
+    "titoli": [
+        {
+            "__type": "Titolo",
+            "number": "II",
+            "name": "RAPPORTI ETICO-SOCIALI",
+            "articoli": [
+                {
+                    "__type": "Articolo",
+                    "number": "29",
+                    "commi": [
+                        {
+                            "__type": "Comma",
+                            "text": "La Repubblica riconosce i diritti della famiglia come società naturale \nfondata sul matrimonio."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "Il matrimonio è ordinato sull'eguaglianza morale e giuridica dei coniugi, \ncon i limiti stabiliti dalla legge a garanzia dell'unità familiare."
+                        }
+                    ]
+                },
+                {
+                    "__type": "Articolo",
+                    "number": "30",
+                    "commi": [
+                        {
+                            "__type": "Comma",
+                            "text": "È dovere e diritto dei genitori mantenere, istruire ed educare i figli, \nanche se nati fuori del matrimonio."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "Nei casi di incapacità dei genitori, la legge provvede a che siano assolti \ni loro compiti."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "La legge assicura ai figli nati fuori del matrimonio ogni tutela giuridica \ne sociale, compatibile con i diritti dei membri della famiglia legittima."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "La legge detta le norme e i limiti per la ricerca della paternità."
+                        }
+                    ]
+                },
+                {
+                    "__type": "Articolo",
+                    "number": "31",
+                    "commi": [
+                        {
+                            "__type": "Comma",
+                            "text": "La Repubblica agevola con misure economiche e altre provvidenze la \nformazione della famiglia e l'adempimento dei compiti relativi, con \nparticolare riguardo alle famiglie numerose."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "Protegge la maternità, l'infanzia e la gioventù, favorendo gli istituti \nnecessari a tale scopo."
+                        }
+                    ]
+                },
+                {
+                    "__type": "Articolo",
+                    "number": "32",
+                    "commi": [
+                        {
+                            "__type": "Comma",
+                            "text": "La Repubblica tutela la salute come fondamentale diritto dell'individuo e \ninteresse della collettività, e garantisce cure gratuite agli indigenti."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "Nessuno può essere obbligato a un determinato trattamento sanitario se non \nper disposizione di legge. La legge non può in nessun caso violare i \nlimiti imposti dal rispetto della persona umana."
+                        }
+                    ]
+                },
+                {
+                    "__type": "Articolo",
+                    "number": "33",
+                    "commi": [
+                        {
+                            "__type": "Comma",
+                            "text": "L'arte e la scienza sono libere e libero ne è l'insegnamento."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "La Repubblica detta le norme generali sull'istruzione ed istituisce scuole \nstatali per tutti gli ordini e gradi."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "Enti e privati hanno il diritto di istituire scuole ed istituti di \neducazione, senza oneri per lo Stato."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "La legge, nel fissare i diritti e gli obblighi delle scuole non statali \nche chiedono la parità, deve assicurare ad esse piena libertà e ai loro \nalunni un trattamento scolastico equipollente a quello degli alunni di \nscuole statali."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "È prescritto un esame di Stato per l'ammissione ai vari ordini e gradi di \nscuole o per la conclusione di essi e per l'abilitazione all'esercizio \nprofessionale."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "Le istituzioni di alta cultura, università ed accademie, hanno il diritto \ndi darsi ordinamenti autonomi nei limiti stabiliti dalle leggi dello \nStato."
+                        }
+                    ]
+                },
+                {
+                    "__type": "Articolo",
+                    "number": "34",
+                    "commi": [
+                        {
+                            "__type": "Comma",
+                            "text": "La scuola è aperta a tutti."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "L'istruzione inferiore, impartita per almeno otto anni, è obbligatoria e \ngratuita."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "I capaci e meritevoli, anche se privi di mezzi, hanno diritto di \nraggiungere i gradi più alti degli studi."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "La Repubblica rende effettivo questo diritto con borse di studio, assegni \nalle famiglie ed altre provvidenze, che devono essere attribuite per \nconcorso."
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "__type": "Titolo",
+            "number": "III",
+            "name": "RAPPORTI ECONOMICI",
+            "articoli": [
+                {
+                    "__type": "Articolo",
+                    "number": "35",
+                    "commi": [
+                        {
+                            "__type": "Comma",
+                            "text": "La Repubblica tutela il lavoro in tutte le sue forme ed applicazioni."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "Cura la formazione e l'elevazione professionale dei lavoratori."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "Promuove e favorisce gli accordi e le organizzazioni internazionali intesi \nad affermare e regolare i diritti del lavoro."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "Riconosce la libertà di emigrazione, salvo gli obblighi stabiliti dalla \nlegge nell'interesse generale, e tutela il lavoro italiano all'estero."
+                        }
+                    ]
+                },
+                {
+                    "__type": "Articolo",
+                    "number": "36",
+                    "commi": [
+                        {
+                            "__type": "Comma",
+                            "text": "Il lavoratore ha diritto ad una retribuzione proporzionata alla quantità e \nqualità del suo lavoro e in ogni caso sufficiente ad assicurare a sé e \nalla famiglia un'esistenza libera e dignitosa."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "La durata massima della giornata lavorativa è stabilita dalla legge."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "Il lavoratore ha diritto al riposo settimanale e a ferie annuali \nretribuite, e non può rinunziarvi."
+                        }
+                    ]
+                },
+                {
+                    "__type": "Articolo",
+                    "number": "37",
+                    "commi": [
+                        {
+                            "__type": "Comma",
+                            "text": "La donna lavoratrice ha gli stessi diritti e, a parità di lavoro, le \nstesse retribuzioni che spettano al lavoratore. Le condizioni di lavoro \ndevono consentire l'adempimento della sua essenziale funzione familiare e \nassicurare alla madre e al bambino una speciale adeguata protezione."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "La legge stabilisce il limite minimo di età per il lavoro salariato."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "La Repubblica tutela il lavoro dei minori con speciali norme e garantisce \nad essi, a parità di lavoro, il diritto alla parità di retribuzione."
+                        }
+                    ]
+                },
+                {
+                    "__type": "Articolo",
+                    "number": "38",
+                    "commi": [
+                        {
+                            "__type": "Comma",
+                            "text": "Ogni cittadino inabile al lavoro e sprovvisto dei mezzi necessari per \nvivere ha diritto al mantenimento e all'assistenza sociale."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "I lavoratori hanno diritto che siano preveduti ed assicurati mezzi \nadeguati alle loro esigenze di vita in caso di infortunio, malattia, \ninvalidità e vecchiaia, disoccupazione involontaria."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "Gli inabili ed i minorati hanno diritto all'educazione e all'avviamento \nprofessionale."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "Ai compiti previsti in questo articolo provvedono organi ed istituti \npredisposti o integrati dallo Stato."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "L'assistenza privata è libera."
+                        }
+                    ]
+                },
+                {
+                    "__type": "Articolo",
+                    "number": "39",
+                    "commi": [
+                        {
+                            "__type": "Comma",
+                            "text": "L'organizzazione sindacale è libera."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "Ai sindacati non può essere imposto altro obbligo se non la loro \nregistrazione presso uffici locali o centrali, secondo le norme di legge."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "È condizione per la registrazione che gli statuti dei sindacati sanciscano \nun ordinamento interno a base democratica."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "I sindacati registrati hanno personalità giuridica. Possono, rappresentati \nunitariamente in proporzione dei loro iscritti, stipulare contratti \ncollettivi di lavoro con efficacia obbligatoria per tutti gli appartenenti \nalle categorie alle quali il contratto si riferisce."
+                        }
+                    ]
+                },
+                {
+                    "__type": "Articolo",
+                    "number": "40",
+                    "commi": [
+                        {
+                            "__type": "Comma",
+                            "text": "Il diritto di sciopero si esercita nell'ambito delle leggi che lo \nregolano."
+                        }
+                    ]
+                },
+                {
+                    "__type": "Articolo",
+                    "number": "41",
+                    "commi": [
+                        {
+                            "__type": "Comma",
+                            "text": "L'iniziativa economica privata è libera."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "Non può svolgersi in contrasto con l'utilità sociale o in modo da recare \ndanno alla sicurezza, alla libertà, alla dignità umana."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "La legge determina i programmi e i controlli opportuni perché l'attività \neconomica pubblica e privata possa essere indirizzata e coordinata a fini \nsociali."
+                        }
+                    ]
+                },
+                {
+                    "__type": "Articolo",
+                    "number": "42",
+                    "commi": [
+                        {
+                            "__type": "Comma",
+                            "text": "La proprietà è pubblica o privata. I beni economici appartengono allo \nStato, ad enti o a privati."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "La proprietà privata è riconosciuta e garantita dalla legge, che ne \ndetermina i modi di acquisto, di godimento e i limiti allo scopo di \nassicurarne la funzione sociale e di renderla accessibile a tutti."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "La proprietà privata può essere, nei casi preveduti dalla legge, e salvo \nindennizzo, espropriata per motivi d'interesse generale."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "La legge stabilisce le norme ed i limiti della successione legittima e \ntestamentaria e i diritti dello Stato sulle eredità."
+                        }
+                    ]
+                },
+                {
+                    "__type": "Articolo",
+                    "number": "43",
+                    "commi": [
+                        {
+                            "__type": "Comma",
+                            "text": "A fini di utilità generale la legge può riservare originariamente o \ntrasferire, mediante espropriazione e salvo indennizzo, allo Stato, ad \nenti pubblici o a comunità di lavoratori o di utenti determinate imprese o \ncategorie di imprese, che si riferiscano a servizi pubblici essenziali o a \nfonti di energia o a situazioni di monopolio ed abbiano carattere di \npreminente interesse generale."
+                        }
+                    ]
+                },
+                {
+                    "__type": "Articolo",
+                    "number": "44",
+                    "commi": [
+                        {
+                            "__type": "Comma",
+                            "text": "Al fine di conseguire il razionale sfruttamento del suolo e di stabilire \nequi rapporti sociali, la legge impone obblighi e vincoli alla proprietà \nterriera privata, fissa limiti alla sua estensione secondo le regioni e le \nzone agrarie, promuove ed impone la bonifica delle terre, la \ntrasformazione del latifondo e la ricostituzione delle unità produttive; \naiuta la piccola e la media proprietà."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "La legge dispone provvedimenti a favore delle zone montane."
+                        }
+                    ]
+                },
+                {
+                    "__type": "Articolo",
+                    "number": "45",
+                    "commi": [
+                        {
+                            "__type": "Comma",
+                            "text": "La Repubblica riconosce la funzione sociale della cooperazione a carattere \ndi mutualità e senza fini di speculazione privata. La legge ne promuove e \nfavorisce l'incremento con i mezzi più idonei e ne assicura, con gli \nopportuni controlli, il carattere e le finalità."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "La legge provvede alla tutela e allo sviluppo dell'artigianato."
+                        }
+                    ]
+                },
+                {
+                    "__type": "Articolo",
+                    "number": "46",
+                    "commi": [
+                        {
+                            "__type": "Comma",
+                            "text": "Ai fini della elevazione economica e sociale del lavoro in armonia con le \nesigenze della produzione, la Repubblica riconosce il diritto dei \nlavoratori a collaborare, nei modi e nei limiti stabiliti dalle leggi, \nalla gestione delle aziende."
+                        }
+                    ]
+                },
+                {
+                    "__type": "Articolo",
+                    "number": "47",
+                    "commi": [
+                        {
+                            "__type": "Comma",
+                            "text": "La Repubblica incoraggia e tutela il risparmio in tutte le sue forme; \ndisciplina, coordina e controlla l'esercizio del credito."
+                        },
+                        {
+                            "__type": "Comma",
+                            "text": "Favorisce l'accesso del risparmio popolare alla proprietà dell'abitazione, \nalla proprietà diretta coltivatrice e al diretto e indiretto investimento \nazionario nei grandi complessi produttivi del Paese."
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
