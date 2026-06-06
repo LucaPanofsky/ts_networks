@@ -328,14 +328,23 @@ with: model = 'claude-opus-4-7', max_tokens = '4096';
 An LLM function can be given **tools** — host capabilities the model may call mid-generation — through the `tools` key:
 
 ```
-with: model = 'claude-opus-4-7', tools = 'parse';
+with: model = 'claude-opus-4-7', tools = 'parse, typecheck, run-grammar';
 ```
 
 Tools are TypeScript functions, not DSL constructs: a program only *selects* them by name, and an unknown name is an error. When one or more tools are present, the call becomes an **agentic loop** — the model may call the tools repeatedly (bounded, currently 10 rounds) until it stops, after which a final step forces the declared structured output. With no tools the call is a single structured request.
 
-Today the registry exposes a single tool, **`parse`**, which checks that `.tsn` source the model wrote parses without syntax errors and *returns* the error as a value so the model can read it and self-correct.
+Every tool *returns its error as a value* rather than throwing, so the model reads the result and self-corrects. The registry exposes the program-reasoning operations from `src/operations/` — the same capabilities a human uses to author and refine `.tsn` programs:
 
-This is **early and under active development**. The intended direction is to expose the capabilities that let an agent *reason about the program it is writing* — parsing, type-checking, schema compilation, and the other operations in `src/operations/` — so an LLM can author and refine `.tsn` programs against the same tools a human uses.
+| tool | what it gives the model |
+| --- | --- |
+| `parse` | Whether the source parses (syntax only). |
+| `typecheck` | Wiring soundness: located type errors **and** topology warnings — does the program hold together, not just parse. |
+| `compile-schemas` | The JSON Schema for every `defrecord` — the structured-output contract the model is targeting. |
+| `run` | Compiles and **executes** a network with seeded cells — end-to-end ground truth. (It evaluates the program's sandbox; the same trust boundary as the program itself.) |
+| `run-grammar` | Runs **one** named `defgrammar` against a sample string in isolation, returning the parsed record / scanned records / matched span — or a **located** failure (the Ohm position on a mismatch). The tool for authoring a grammar by guess-and-check. |
+| `run-ttable` | The tabular twin of `run-grammar`: runs **one** named `TTable` against a sample, returning the parsed rows (a malformed row appears as a per-row `{ __contradiction, reason }`) — or a located failure (a declared header absent from the input, an unknown record/field). |
+
+This area is still **under active development**; the tool surface will grow as more of the language becomes inspectable from inside a generation loop.
 
 ### Prompt template
 
