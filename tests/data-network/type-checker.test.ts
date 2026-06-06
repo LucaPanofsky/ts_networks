@@ -499,3 +499,110 @@ end
     expect(enriched.cells.get("ys")!.writtenBy).toContain("[Number?]");
   });
 });
+
+// ── Topology warnings ─────────────────────────────────────────────────────────
+// Signature inputs should be sources (never written by a propagator) and the
+// signature output should be a terminal (never read by a propagator). Violations
+// are legal under the merge algebra — a re-written input just merges, disagreement
+// becomes a Contradiction — so they are *warnings*, not errors.
+
+describe("typeCheck: topology warnings", () => {
+  const topoWarnings = (cell: { _errors: { kind: string; severity?: string }[] }) =>
+    cell._errors.filter(e => e.severity === "warning");
+
+  test("a directed network has no topology warnings", () => {
+    const src = `
+defn add
+  signature: from [Number?(a), Number?(b)] to Number?;
+  expression a + b;
+end
+defnetwork sum
+  signature: from [x, y] to z;
+  propagate add from [x, y] to z;
+end
+`;
+    const program = parseProgram(src);
+    const enriched = typeCheck(program.networks[0]!, program);
+    for (const cell of enriched.cells.values()) expect(topoWarnings(cell)).toHaveLength(0);
+  });
+
+  test("signature input written by a propagator → warning on that cell (not a source)", () => {
+    const src = `
+defn double
+  signature: from [Number?(x)] to Number?;
+  expression x * 2;
+end
+defnetwork broken
+  signature: from [x] to y;
+  propagate double from [x] to x;
+end
+`;
+    const program = parseProgram(src);
+    const enriched = typeCheck(program.networks[0]!, program);
+    const x = enriched.cells.get("x")!;
+    expect(x._errors).toContainEqual({
+      kind: "non-source-input",
+      severity: "warning",
+      message: "signature input 'x' is written to by a propagator — it is not a source",
+    });
+  });
+
+  test("signature output read by a propagator → warning on that cell (not a terminal)", () => {
+    const src = `
+defn add
+  signature: from [Number?(a), Number?(b)] to Number?;
+  expression a + b;
+end
+defn negate
+  signature: from [Number?(x)] to Number?;
+  expression x * -1;
+end
+defnetwork broken
+  signature: from [x, y] to z;
+  propagate add from [x, y] to z;
+  propagate negate from [z] to w;
+end
+`;
+    const program = parseProgram(src);
+    const enriched = typeCheck(program.networks[0]!, program);
+    const z = enriched.cells.get("z")!;
+    expect(z._errors).toContainEqual({
+      kind: "non-terminal-output",
+      severity: "warning",
+      message: "signature output 'z' is used as input by a propagator — it is not a terminal",
+    });
+  });
+
+  test("a switch counts as wiring too — its output written / inputs read are checked", () => {
+    const src = `
+defnetwork routing
+  signature: from [cond, payload] to cond;
+  switch from [cond, payload] to cond;
+end
+`;
+    const program = parseProgram(src);
+    const enriched = typeCheck(program.networks[0]!, program);
+    const cond = enriched.cells.get("cond")!;
+    // `cond` is a signature input written by the switch → non-source warning.
+    expect(topoWarnings(cond).some(e => e.kind === "non-source-input")).toBe(true);
+  });
+
+  test("topology findings are warnings, never errors — a smell, not a soundness break", () => {
+    const src = `
+defn double
+  signature: from [Number?(x)] to Number?;
+  expression x * 2;
+end
+defnetwork broken
+  signature: from [x] to y;
+  propagate double from [x] to x;
+end
+`;
+    const program = parseProgram(src);
+    const enriched = typeCheck(program.networks[0]!, program);
+    const all = [...enriched.cells.values()].flatMap(c => c._errors);
+    const topo = all.filter(e => e.kind === "non-source-input" || e.kind === "non-terminal-output");
+    expect(topo.length).toBeGreaterThan(0);
+    expect(topo.every(e => e.severity === "warning")).toBe(true);
+  });
+});

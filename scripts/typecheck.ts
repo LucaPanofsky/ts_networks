@@ -21,19 +21,17 @@ if (!result.ok) {
 }
 
 let hasErrors = false;
+const report = (where: string, err: { kind: string; message: string; severity: "error" | "warning" }) => {
+  const tag = err.severity === "warning" ? "warning" : "error";
+  console.error(`[${tag}] ${where}: [${err.kind}] ${err.message}`);
+  if (err.severity !== "warning") hasErrors = true;
+};
 for (const net of result.networks) {
   for (const [cellName, cell] of Object.entries(net.cells)) {
-    for (const err of cell.errors) {
-      console.error(`[${net.name}] cell '${cellName}': [${err.kind}] ${err.message}`);
-      hasErrors = true;
-    }
+    for (const err of cell.errors) report(`[${net.name}] cell '${cellName}'`, err);
   }
   for (const prop of net.propagators) {
-    for (const err of prop.errors) {
-      const label = prop.fn ?? "switch";
-      console.error(`[${net.name}] propagator '${label}': [${err.kind}] ${err.message}`);
-      hasErrors = true;
-    }
+    for (const err of prop.errors) report(`[${net.name}] propagator '${prop.fn ?? "switch"}'`, err);
   }
 }
 

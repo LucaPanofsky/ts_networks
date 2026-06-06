@@ -18,14 +18,14 @@ function serializeNetwork(enriched: EnrichedNetwork): SerializedEnrichedNetwork 
     cells[name] = {
       writtenBy: [...cell.writtenBy],
       readBy: [...cell.readBy],
-      errors: cell._errors.map((e): SerializedError => ({ kind: e.kind, message: e.message })),
+      errors: cell._errors.map((e): SerializedError => ({ kind: e.kind, message: e.message, severity: e.severity ?? "error" })),
     };
   }
   const propagators = enriched.propagators.map(p => ({
     fn: p.fn,
     from: p.from,
     to: p.to,
-    errors: p._errors.map((e): SerializedError => ({ kind: e.kind, message: e.message })),
+    errors: p._errors.map((e): SerializedError => ({ kind: e.kind, message: e.message, severity: e.severity ?? "error" })),
   }));
   return { name: enriched.name, cells, propagators };
 }

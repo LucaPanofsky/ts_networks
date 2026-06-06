@@ -4,7 +4,17 @@ import { typeRefToString } from "./types.js";
 // ── Public types ──────────────────────────────────────────────────────────────
 
 export type TypeError = {
-  kind: "conflicting-cell-types" | "input-type-mismatch" | "unknown-predicate" | "arity-mismatch";
+  kind:
+    | "conflicting-cell-types"
+    | "input-type-mismatch"
+    | "unknown-predicate"
+    | "arity-mismatch"
+    | "non-source-input"
+    | "non-terminal-output";
+  // Soundness violations are errors (the default when omitted). `non-source-input` /
+  // `non-terminal-output` are *warnings*: legal under the merge algebra (a re-written
+  // input merges; disagreement is a Contradiction value), just usually a wiring smell.
+  severity?: "error" | "warning";
   message: string;
 };
 
@@ -252,6 +262,37 @@ export function typeCheck(network: DataNetworkAST, program: ProgramAST): Enriche
         });
       }
     }
+  }
+
+  // ── Topology warnings ──────────────────────────────────────────────────────
+  // A well-formed network reads its signature inputs and writes its signature
+  // output; the reverse (an input written by a propagator, an output fed back into
+  // one) is legal under the merge algebra but usually a wiring mistake. Walk the
+  // terms directly so untyped sub-network/switch wiring counts too.
+  const writtenCells = new Set<string>();
+  const readCells = new Set<string>();
+  for (const term of network.terms) {
+    if (term.kind === "propagate" || term.kind === "switch") {
+      writtenCells.add(term.to);
+      for (const c of term.from) readCells.add(c);
+    }
+  }
+  for (const name of network.signature.from) {
+    if (writtenCells.has(name)) {
+      getCell(name)._errors.push({
+        kind: "non-source-input",
+        severity: "warning",
+        message: `signature input '${name}' is written to by a propagator — it is not a source`,
+      });
+    }
+  }
+  const out = network.signature.to;
+  if (readCells.has(out)) {
+    getCell(out)._errors.push({
+      kind: "non-terminal-output",
+      severity: "warning",
+      message: `signature output '${out}' is used as input by a propagator — it is not a terminal`,
+    });
   }
 
   return { name: network.name, cells, propagators };

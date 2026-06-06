@@ -51,7 +51,7 @@ npm test
 To run a focused subset during development:
 
 ```bash
-npm test -- --testPathPatterns="validation"
+npm test -- --testPathPatterns="type-checker"
 ```
 
 The script tests (`tests/scripts.test.ts`) are excluded from the default run because each test forks a subprocess and makes the suite slow. Run them explicitly when needed:
