@@ -75,13 +75,16 @@ end
 
 const text = readFileSync(join(__dirname, "../../examples/gdpr_article_33.txt"), "utf8");
 
-// Build the grammars map the way createSandbox does, then compile the extract against it.
+// Build the grammar leaves (impl + span-aware scan) and compile the extract against them.
 function buildExtract() {
   const program = parseProgram(dsl);
   const sandbox = createSandbox(program);
-  const grammars: Record<string, (...args: unknown[]) => unknown> = {};
-  for (const g of program.grammars) grammars[`grammar/${g.name}`] = compileGrammar(g, program, sandbox).impl;
-  return compileExtract(program.extracts[0]!, grammars);
+  const leaves: Record<string, { impl: (...a: unknown[]) => unknown; scan?: ReturnType<typeof compileGrammar>["scan"] }> = {};
+  for (const g of program.grammars) {
+    const { impl, scan } = compileGrammar(g, program, sandbox);
+    leaves[`grammar/${g.name}`] = { impl, scan };
+  }
+  return compileExtract(program.extracts[0]!, leaves);
 }
 
 type Article = {

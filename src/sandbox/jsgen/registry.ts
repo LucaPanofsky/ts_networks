@@ -6,7 +6,7 @@ import type { Sandbox } from "./runtime.js";
 import { callLLMFn } from "../llmfn-client.js";
 import { toolsFromConfig } from "../tools.js";
 import { compileGrammar } from "../grammar-runtime.js";
-import { compileExtract } from "../extract-runtime.js";
+import { compileExtract, type GrammarLeaves } from "../extract-runtime.js";
 import { deriveProtocol } from "../../data-network/schema.js";
 import { Something, Contradiction } from "../../info-structure.js";
 import { Deferred } from "../../information-structures/deferred.js";
@@ -88,10 +88,10 @@ export function buildRegistry(program: ProgramAST, sandbox: Sandbox): Registry {
   // `propagate grammar/<name> from [text] to cell` resolves through the ordinary
   // registry path. compileGrammar throws here on a bad Ohm source or a name mismatch,
   // surfacing at program-compile time.
-  const grammarImpls: Record<string, (...args: unknown[]) => unknown> = {};
+  const grammarLeaves: GrammarLeaves = {};
   for (const grammar of program.grammars) {
-    const { arity, impl } = compileGrammar(grammar, program, sandbox);
-    grammarImpls[`grammar/${grammar.name}`] = impl;
+    const { arity, impl, scan } = compileGrammar(grammar, program, sandbox);
+    grammarLeaves[`grammar/${grammar.name}`] = { impl, scan };
     const sig = grammar.signature;
     registry.register({
       fnName: `grammar/${grammar.name}`,
@@ -109,7 +109,7 @@ export function buildRegistry(program: ProgramAST, sandbox: Sandbox): Registry {
   // impl orchestrates the grammar leaves above and returns the root record. The root
   // `within` names the target record, so the morphism returns `<Root>?`.
   for (const extract of program.extracts) {
-    const { arity, impl } = compileExtract(extract, grammarImpls);
+    const { arity, impl } = compileExtract(extract, grammarLeaves);
     registry.register({
       fnName: `extract/${extract.name}`,
       arity,

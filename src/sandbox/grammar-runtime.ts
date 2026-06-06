@@ -8,9 +8,17 @@ import type { Sandbox } from "./jsgen/runtime.js";
 // directly — naryUnpacking's `I(...)` lifts it (a record/array/string → Something, a
 // Contradiction passes through). Parse vs scan is fixed by the signature's return
 // type: a scalar `to Rec?` parses the whole string, a vector `to [Rec?]` scans.
+// A matched record paired with the exact substring the grammar consumed to produce
+// it (Ohm's `node.sourceString`). defextract uses the span as the region for nested
+// scans (span-based recursion), so a child scans only its parent's matched text.
+export type ScanMatch = { record: unknown; span: string };
+
 export type CompiledGrammar = {
   arity: number;
   impl: (...args: unknown[]) => unknown;
+  // Present for scan-mode (vector) grammars only: the same matches `impl` returns,
+  // but each paired with its consumed span. `impl` is exactly `scan(input).map(record)`.
+  scan?: (input: unknown) => ScanMatch[];
 };
 
 const recordName = (predicate: string): string =>
@@ -161,24 +169,33 @@ export function compileGrammar(ast: GrammarAST, program: ProgramAST, sandbox: Sa
   } catch (e) {
     throw new Error(`defgrammar ${ast.name}: could not build island scanner — ${(e as Error).message}`);
   }
+  // Each match carries its captures AND its consumed span (`node.sourceString`), so a
+  // caller (defextract) can recurse into the exact text a match covered.
+  type RawMatch = { caps: Record<string, unknown>; span: string };
   const sem = island.createSemantics();
   addCaptures(sem, fields);
-  sem.addOperation<Array<Record<string, unknown>>>("scan", {
+  sem.addOperation<RawMatch[]>("scan", {
     Items(items: Node) {
-      return items.children.flatMap(c => (c as unknown as { scan: () => Array<Record<string, unknown>> }).scan());
+      return items.children.flatMap(c => (c as unknown as { scan: () => RawMatch[] }).scan());
     },
     Item(node: Node) {
-      if (node.ctorName === startRule) return [(node as unknown as { captures: () => Record<string, unknown> }).captures()];
+      if (node.ctorName === startRule) {
+        return [{ caps: (node as unknown as { captures: () => Record<string, unknown> }).captures(), span: node.sourceString }];
+      }
       return [];
     },
   });
+  const scan = (input: unknown): ScanMatch[] => {
+    if (typeof input !== "string") return [];
+    const m = island.match(input, "Items");
+    if (m.failed()) return [];
+    const raw = (sem(m) as unknown as { scan: () => RawMatch[] }).scan();
+    return raw.map(({ caps, span }) => ({ record: buildRecord(rec, caps, sandbox), span }));
+  };
   const impl = (...args: unknown[]) => {
     const input = args[0];
     if (typeof input !== "string") return notAString();
-    const m = island.match(input, "Items");
-    if (m.failed()) return [];
-    const capsList = (sem(m) as unknown as { scan: () => Array<Record<string, unknown>> }).scan();
-    return capsList.map(caps => buildRecord(rec, caps, sandbox));
+    return scan(input).map(m => m.record);
   };
-  return { arity, impl };
+  return { arity, impl, scan };
 }
