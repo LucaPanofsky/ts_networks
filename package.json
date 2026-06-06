@@ -13,7 +13,10 @@
     "generate": "lezer-generator src/data-network/grammar.grammar --output src/data-network/parser.js",
     "bundle": "esbuild src/editor/main.ts --bundle --outfile=public/editor.bundle.js --format=iife",
     "build": "npm run generate && npm run bundle && tsc && sed 's|from \"./prompt-tokenizer\"|from \"./prompt-tokenizer.js\"|' src/data-network/parser.js > dist/data-network/parser.js && cp src/data-network/parser.terms.js dist/data-network/parser.terms.js",
+    "typecheck": "tsc -p tsconfig.test.json --noEmit",
+    "pretest": "npm run typecheck",
     "test": "npm run generate && jest",
+    "pretest:all": "npm run typecheck",
     "test:all": "npm run generate && TEST_ALL=1 jest",
     "dev": "concurrently -n server,bundle -c blue,yellow \"npx tsx --watch src/cli.ts\" \"npm run bundle -- --watch\""
   },

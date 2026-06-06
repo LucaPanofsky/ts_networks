@@ -64,11 +64,15 @@ npm run test:all
 
 **All test suites and all tests must pass before every commit.** A red suite is a blocker — do not commit, do not move on to the next task.
 
-When introducing new files or changing types, update all affected test fixtures before considering the work done. Never rely on ts-jest to surface type errors — it runs in transpile-only mode and will silently accept invalid code. Run `tsc --noEmit` whenever types change.
+When introducing new files or changing types, update all affected test fixtures before considering the work done. ts-jest runs in transpile-only mode and will silently accept invalid code, so it cannot be relied on to surface type errors.
+
+`npm test` (and `npm run test:all`) now guard against this automatically: a `pretest` hook runs `npm run typecheck` first, which type-checks **both `src/` and `tests/`** under `tsconfig.test.json`. A stale fixture (e.g. one missing a newly-required `ProgramAST` field) now fails loud, pointing at the fixture line, before any test runs. Run it directly when iterating on types:
 
 ```bash
-npx tsc --noEmit
+npm run typecheck   # tsc -p tsconfig.test.json --noEmit  (src + tests)
 ```
+
+Note the bare `npx tsc --noEmit` checks only `src/` (the root tsconfig's `include`); use `npm run typecheck` to cover the test fixtures too.
 
 ---
 
