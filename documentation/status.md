@@ -5,7 +5,7 @@
 - [x] Runner — sync (constraints + recursion) and async (`invokeAsync`, awaits APromise at recursion gate)
   - [ ] Reasoning runner
   - [ ] Tracing option
-- [x] DSL — `defnetwork`, `defn`, `defpredicate`, `defrecord`, `derive`, `defenum`, `defllmfn`, `defgrammar`; expressions, `match`, vector types; `network/<name>` composition
+- [x] DSL — `defnetwork`, `defn`, `defpredicate`, `defrecord`, `derive`, `defenum`, `defllmfn`, `defgrammar`, `defextract`; expressions, `match`, vector types; `network/<name>` / `grammar/<name>` / `extract/<name>` composition
 - [x] JS code generator — compiles DSL to a self-contained JS module; sandbox evaluation; registry and network wiring
 - [x] JSON schema derivation — `defrecord` → JSON Schema; nested inlining, vector fields, predicate resolution
 - [x] LLM function runtime — Anthropic SDK; structured JSON calls; async propagation via `invokeAsync`

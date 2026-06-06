@@ -186,6 +186,9 @@ That was the whole change for a declaration. A callable would continue: teach
 
 ## Changelog
 
-- `defextract` (parse + AST): a nested `within` / `scan` / `parse` structural
-  extractor. Landed at stage 5 (parse + AST), runtime deferred. Surfaced the
-  alternation-wrapper-node gotcha documented above.
+- `defextract` (full): a nested `within` / `scan` / `parse` structural extractor,
+  callable as `extract/<name>`. Threaded through every stage — parser, AST,
+  collector, runtime (`src/sandbox/extract-runtime.ts`, registered in the registry
+  beside `grammar/`/`network/`), and the type-checker (`validateExtract`, run by the
+  `typecheck` operation). Runs end-to-end (`examples/gdpr_article_extract.tsn`).
+  Surfaced the alternation-wrapper-node gotcha documented above.

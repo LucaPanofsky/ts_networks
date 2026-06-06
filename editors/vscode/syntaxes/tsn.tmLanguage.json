@@ -35,12 +35,12 @@
         {
           "comment": "Definition keywords.",
           "name": "keyword.other.tsn",
-          "match": "\\b(defnetwork|defrecord|defpredicate|defllmfn|defgrammar|defenum|defn|derive)\\b"
+          "match": "\\b(defnetwork|defrecord|defpredicate|defllmfn|defgrammar|defextract|defenum|defn|derive)\\b"
         },
         {
           "comment": "Structural / control keywords.",
           "name": "keyword.control.tsn",
-          "match": "\\b(signature|expression|propagate|constant|switch|match|when|cell|with|from|let|end|as|to)\\b"
+          "match": "\\b(signature|expression|propagate|constant|switch|match|when|cell|with|from|let|end|as|to|within|scan|parse|using)\\b"
         }
       ]
     },

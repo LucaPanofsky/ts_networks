@@ -117,6 +117,27 @@ Scan is the island-parsing pattern (e.g. pulling all citations out of a long leg
 
 See `examples/citations.tsn` for a runnable end-to-end example.
 
+### Structured Extraction (`defextract`)
+
+A `defgrammar` produces a *flat* record; a `defextract` produces a *nested* tree of them — an Article with many Paragraphs, each with many Points. It declares the document's topology directly, instead of hand-chaining grammars with `as mapping`, and is callable as `extract/<name>`:
+
+```
+defextract GdprArticle
+  within Article using grammar/Article
+    scan Paragraph as paragraphs using grammar/Paragraph;
+    within paragraphs
+      scan Point as points using grammar/Point;
+    end
+  end
+end
+```
+
+- **`within <Record> using grammar/<G>`** opens the root: the grammar parses the whole input into one record; the root names what the extractor returns.
+- **`scan`** fills a vector field (many matches); **`parse`** fills a scalar field (one). The **verb decides cardinality** — the grammar is a single-element recognizer (`to <Record>?`) used either way.
+- **`within <field>`** recurses into each scanned element, scoped to the **span that element matched**, so a nested scan sees only its parent's text (points stay inside their paragraph) — no region field to declare.
+
+`typecheck` verifies the wiring: `scan`↔vector / `parse`↔scalar, the bind record == the field's element == the grammar's return, `within` targets a vector-of-record field, and the root grammar returns the root record. The tree is fixed-depth (no self-recursion yet). See `examples/gdpr_article_extract.tsn` for the full Article-33 extractor, runnable end-to-end.
+
 ### LLM Functions (`defllmfn`)
 
 A `defllmfn` is a computation leaf whose body is a **prompt template** instead of code: at runtime it calls the Claude API and returns a value matching its declared return type. It uses the same `from [Pred?(name)] to Type` signature as `defn`/`defgrammar`, so downstream the network treats its result like any other — the only difference is that the leaf is *neural*.
@@ -200,8 +221,9 @@ install it locally from the repo.
 
 **Current state:** syntax highlighting only. It colours definition keywords
 (`defnetwork`, `defrecord`, `defn`, `defpredicate`, `defllmfn`, `defgrammar`,
-`defenum`, `derive`), structural keywords (`signature`, `from`, `to`,
-`propagate`, `switch`, `match`, `when`, `let`, …), single-quoted strings,
+`defextract`, `defenum`, `derive`), structural keywords (`signature`, `from`,
+`to`, `propagate`, `switch`, `match`, `when`, `let`, `within`, `scan`, `parse`,
+`using`, …), single-quoted strings,
 triple-quoted `"""…"""` blocks (prompts and `defgrammar` bodies), `//` comments,
 numbers, booleans, operators, Capitalized types/constructors, and namespaced
 calls (`str/…`, `network/…`). There is **no** error checking, hover,

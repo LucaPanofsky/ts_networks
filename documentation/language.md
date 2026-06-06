@@ -38,7 +38,7 @@ propagate classify from [agentResponse] to decision;
 
 ## Top-level definitions
 
-There are eight kinds of top-level definition:
+There are nine kinds of top-level definition:
 
 | Keyword | Purpose |
 |---|---|
@@ -49,6 +49,7 @@ There are eight kinds of top-level definition:
 | `defpredicate` | A predicate (returns `Boolean?`) |
 | `defllmfn` | An LLM function that returns structured output |
 | `defgrammar` | A grammar (Ohm) that parses or scans text into records |
+| `defextract` | A structural extractor: nests grammars into a tree of records |
 | `derive` | A subtype declaration |
 
 ---
@@ -448,6 +449,63 @@ end
 
 Combined with `as mapping`, this lets a scalar grammar enrich each element of a
 vector produced by another grammar — see [`examples/gdpr_article_structured_extraction.tsn`](../examples/gdpr_article_structured_extraction.tsn).
+
+---
+
+## `defextract`
+
+Defines a **structural extractor** that turns a document into a *nested* tree of
+records — an Article with many Paragraphs, each with many Points. It is the
+declarative counterpart of hand-chaining grammars with `as mapping`, and is callable
+as `extract/<Name>`. Institutional documents (statutes, articles, contracts) have a
+topology — `defextract` declares that topology directly.
+
+```
+defextract GdprArticle
+  within Article using grammar/Article
+    scan Paragraph as paragraphs using grammar/Paragraph;
+    within paragraphs
+      scan Point as points using grammar/Point;
+    end
+  end
+end
+```
+
+### How it reads
+
+- **`within <Record> using grammar/<G>`** opens the **root**: `grammar/<G>` parses the
+  whole input into one `<Record>` (its scalar fields filled, its structural fields left
+  empty). The root names the record the extractor returns.
+- **`scan <Record> as <field> using grammar/<G>`** fills a **vector** field by scanning
+  the current region for `<Record>` matches. **`parse <Record> as <field> …`** fills a
+  **scalar** field with one match. The **verb decides cardinality**; the grammar is a
+  single-element recognizer (`to <Record>?`) usable either way.
+- **`within <field>`** recurses into each element a prior `scan` produced, scoped to the
+  **exact span that element matched** — so a nested scan sees only its parent's text (the
+  points of paragraph 3 never bleed into paragraph 4), with no region field to declare.
+
+Records are built by the same field-name capture as `defgrammar` (above); the extractor
+only adds the nesting a single grammar cannot express. The tree is **fixed-depth** —
+self-recursion (a section inside a section) is not yet supported.
+
+### Using an extractor
+
+```
+defnetwork extractArticle
+  signature: from [doc] to article;
+  propagate extract/GdprArticle from [doc] to article;
+end
+```
+
+### Type-checking
+
+`typecheck` checks an extractor against its records and grammars: `scan` must fill a
+vector field and `parse` a scalar one; the bind's record, the field's element record,
+and the grammar's return record must agree; a `within` must target a vector-of-record
+field; and the root grammar must return the root record.
+
+See [`examples/gdpr_article_extract.tsn`](../examples/gdpr_article_extract.tsn) for the
+full Article-33 extractor, runnable end-to-end.
 
 ---
 

@@ -4,11 +4,12 @@ A minimal, highlighting-only VS Code extension for `.tsn` files. It is purely
 declarative (a TextMate grammar) — no language server, no compiled code.
 
 It colours: definition keywords (`defnetwork`, `defrecord`, `defn`,
-`defpredicate`, `defllmfn`, `defgrammar`, `defenum`, `derive`), structural
-keywords (`signature`, `from`, `to`, `propagate`, `switch`, `match`, `when`,
-`let`, …), single-quoted strings, triple-quoted blocks (prompts and
-`defgrammar` bodies), `//` comments, numbers, booleans, operators, Capitalized
-types/constructors, and namespaced calls (`str/…`, `network/…`).
+`defpredicate`, `defllmfn`, `defgrammar`, `defextract`, `defenum`, `derive`),
+structural keywords (`signature`, `from`, `to`, `propagate`, `switch`, `match`,
+`when`, `let`, `within`, `scan`, `parse`, `using`, …), single-quoted strings,
+triple-quoted blocks (prompts and `defgrammar` bodies), `//` comments, numbers,
+booleans, operators, Capitalized types/constructors, and namespaced calls
+(`str/…`, `network/…`, `extract/…`).
 
 > Note: this is a separate TextMate grammar, independent of the Lezer grammar
 > in `src/data-network/grammar.grammar` (VS Code cannot consume Lezer). The one
