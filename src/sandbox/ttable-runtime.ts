@@ -23,6 +23,9 @@ export function compileTTable(ast: TTableAST, program: ProgramAST, sandbox: Sand
   const rec = program.records.find(r => r.name === ast.row);
   const fieldNames = rec ? rec.fields.map(f => f.name) : [];
   const delim = ast.cell;
+  // No header text on any column ⇒ declared (headerless) mode. validateTTable rejects
+  // mixing texted and text-less headers, so the two cases are exhaustive.
+  const declared = ast.headers.length > 0 && ast.headers.every(h => h.text === undefined);
 
   // Split a row on the delimiter, trim cells, and drop the one trailing empty cell a
   // closing delimiter produces (so `a | b |` is two cells, `a | b | |` is three).
@@ -41,24 +44,38 @@ export function compileTTable(ast: TTableAST, program: ProgramAST, sandbox: Sand
     }
 
     const rowLines = input.split("\n").filter(l => l.includes(delim));
-    if (rowLines.length === 0) {
-      return new Contradiction("ttable/no-header", new Set(), new Error("no line contains the cell delimiter"));
-    }
 
-    const headerCells = splitRow(rowLines[0]!);
-    const indexByField = new Map<string, number>();
-    for (const h of ast.headers) {
-      const idx = headerCells.findIndex(c => c === h.text);
-      if (idx < 0) {
-        return new Contradiction("ttable/header-mismatch", new Set(),
-          new Error(`header "${h.text}" (field "${h.field}") not found in: ${rowLines[0]}`));
+    let indexByField: Map<string, number>;
+    let columnCount: number;
+    let dataLines: string[];
+
+    if (declared) {
+      // Declared mode: no header in the text; columns are positional by declaration
+      // order, and every delimiter-line is a data row.
+      indexByField = new Map(ast.headers.map((h, i) => [h.field, i]));
+      columnCount = ast.headers.length;
+      dataLines = rowLines;
+    } else {
+      // Located mode: the first delimiter-line is the header; match by text and consume it.
+      if (rowLines.length === 0) {
+        return new Contradiction("ttable/no-header", new Set(), new Error("no line contains the cell delimiter"));
       }
-      indexByField.set(h.field, idx);
+      const headerCells = splitRow(rowLines[0]!);
+      indexByField = new Map<string, number>();
+      for (const h of ast.headers) {
+        const idx = headerCells.findIndex(c => c === h.text);
+        if (idx < 0) {
+          return new Contradiction("ttable/header-mismatch", new Set(),
+            new Error(`header "${h.text}" (field "${h.field}") not found in: ${rowLines[0]}`));
+        }
+        indexByField.set(h.field, idx);
+      }
+      columnCount = headerCells.length;
+      dataLines = rowLines.slice(1);
     }
-    const columnCount = headerCells.length;
 
     const rows: unknown[] = [];
-    for (const line of rowLines.slice(1)) {
+    for (const line of dataLines) {
       const cells = splitRow(line);
       if (cells.length !== columnCount) {
         rows.push(new Contradiction("ttable/malformed-row", new Set(),
@@ -94,15 +111,22 @@ export function validateTTable(ast: TTableAST, program: ProgramAST): string[] {
   }
   if (ast.cell === "") errors.push(`${here}: the cell delimiter must not be empty`);
 
+  // A table is one mode or the other: every header has a text (located) or none do
+  // (declared/headerless). Mixing is ambiguous.
+  const withText = ast.headers.filter(h => h.text !== undefined).length;
+  if (withText !== 0 && withText !== ast.headers.length) {
+    errors.push(`${here}: mix of located (header = '…') and declared (header …) columns — use one mode`);
+  }
+
   const recordFields = new Set(rec.fields.map(f => f.name));
-  const declared = new Set<string>();
+  const seen = new Set<string>();
   for (const h of ast.headers) {
     if (!recordFields.has(h.field)) errors.push(`${here}: header field "${h.field}" is not a field of ${ast.row}`);
-    if (declared.has(h.field)) errors.push(`${here}: duplicate header for field "${h.field}"`);
-    declared.add(h.field);
+    if (seen.has(h.field)) errors.push(`${here}: duplicate header for field "${h.field}"`);
+    seen.add(h.field);
   }
   for (const f of rec.fields) {
-    if (!declared.has(f.name)) errors.push(`${here}: field "${f.name}" of ${ast.row} has no header (every column must be declared)`);
+    if (!seen.has(f.name)) errors.push(`${here}: field "${f.name}" of ${ast.row} has no header (every column must be declared)`);
   }
   return errors;
 }

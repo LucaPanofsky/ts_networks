@@ -69,6 +69,38 @@ describe("compileTTable: treaty table of equivalences", () => {
   });
 });
 
+describe("compileTTable: declared (headerless) mode", () => {
+  const program = parseProgram(`
+defrecord Row a: String?; b: String?; c: String?; end
+TTable Headerless
+  row: Row;
+  cell: '|';
+  header a;
+  header b;
+  header c;
+end
+`);
+  const sandbox = createSandbox(program);
+  const impl = compileTTable(program.ttables[0]!, program, sandbox).impl;
+
+  test("no header line: every delimiter-line is a row, columns positional by declaration", () => {
+    const out = impl("x | y | z |\np | q | r |\n") as Array<{ __type: string; a: string; b: string; c: string }>;
+    expect(out).toHaveLength(2);
+    expect(out[0]).toMatchObject({ __type: "Row", a: "x", b: "y", c: "z" });
+    expect(out[1]).toMatchObject({ a: "p", b: "q", c: "r" });
+  });
+
+  test("an empty cell is still \"\"", () => {
+    const out = impl("x |  | z |\n") as Array<{ b: string }>;
+    expect(out[0]!.b).toBe("");
+  });
+
+  test("a wrong-cell-count row is still a Contradiction", () => {
+    const out = impl("x | y | z |\np | q |\n") as unknown[];
+    expect(out[1]).toBeInstanceOf(Contradiction);
+  });
+});
+
 describe("compileTTable: self-validation and malformed rows", () => {
   test("a declared header not present in the table is a Contradiction", () => {
     const badDsl = dsl.replace(

@@ -65,6 +65,31 @@ end
     expect(errs.some(e => /field "lisbon" of R has no header/.test(e))).toBe(true);
   });
 
+  test("a declared (headerless) table validates clean", () => {
+    expect(validate(`
+defrecord R a: String?; b: String?; end
+TTable T
+  row: R;
+  cell: '|';
+  header a;
+  header b;
+end
+`)).toEqual([]);
+  });
+
+  test("mixing located and declared headers is rejected", () => {
+    const errs = validate(`
+defrecord R a: String?; b: String?; end
+TTable T
+  row: R;
+  cell: '|';
+  header a = 'A';
+  header b;
+end
+`);
+    expect(errs.some(e => /use one mode/.test(e))).toBe(true);
+  });
+
   test("an empty cell delimiter is rejected", () => {
     const errs = validate(`
 defrecord R old: String?; end

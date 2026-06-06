@@ -571,7 +571,7 @@ export function parseProgram(input: string): ProgramAST {
     let name = "";
     let row = "";
     let cell = "";
-    const headers: { field: string; text: string }[] = [];
+    const headers: { field: string; text?: string }[] = [];
     cursor.firstChild(); // Ttable keyword
     do {
       const n = cursor.name;
@@ -586,12 +586,16 @@ export function parseProgram(input: string): ProgramAST {
         cell = slice(cursor.from, cursor.to).slice(1, -1);
         cursor.parent();
       } else if (n === "HeaderClause") {
-        cursor.firstChild(); cursor.nextSibling(); // Header, Name (field)
-        const field = slice(cursor.from, cursor.to);
-        cursor.nextSibling(); cursor.nextSibling(); // "=", String
-        const text = slice(cursor.from, cursor.to).slice(1, -1);
-        headers.push({ field, text });
+        // `header field;` (declared) or `header field = 'text';` (located).
+        let field = "";
+        let text: string | undefined;
+        cursor.firstChild();
+        do {
+          if (cursor.name === "Name" && !field) field = slice(cursor.from, cursor.to);
+          else if (cursor.name === "String") text = slice(cursor.from, cursor.to).slice(1, -1);
+        } while (cursor.nextSibling());
         cursor.parent();
+        headers.push(text !== undefined ? { field, text } : { field });
       }
     } while (cursor.nextSibling());
     cursor.parent();
