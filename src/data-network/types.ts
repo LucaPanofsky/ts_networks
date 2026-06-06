@@ -225,10 +225,11 @@ export type ExtractAST = {
 
 // ── Text-table definitions (TTable) ────────────────────────────────────────────
 
-// One column's header binding. With `text`, the header is LOCATED: the declared text
-// identifies the column in the data (order-independent, self-validating). Without
-// `text`, the header is DECLARED: the column is positional by declaration order, and
-// the data region carries no header row (a "headerless" table).
+// One column's header binding. The data's first row is always the header (consumed).
+// With `text`, the header is LOCATED: the declared text identifies the column in that
+// header row (order-independent, self-validating). Without `text`, the column is
+// POSITIONAL: mapped by declaration order, the header row's content ignored (e.g. a
+// section sub-header to discard).
 export type TTableHeader = { field: string; text?: string };
 
 // A flat text-table extractor, callable as `TTable/<name>` (text → [Row?]). It

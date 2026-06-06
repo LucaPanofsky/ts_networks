@@ -4,13 +4,8 @@
     "groups": [
         {
             "__type": "TitleGroup",
+            "name": "TITLE I — COMMON PROVISIONS | TITLE I — COMMON PROVISIONS | TITLE I — COMMON PROVISIONS |",
             "rows": [
-                {
-                    "__type": "Equivalence",
-                    "old": "TITLE I — COMMON PROVISIONS",
-                    "lisbon": "TITLE I — COMMON PROVISIONS",
-                    "newNum": "TITLE I — COMMON PROVISIONS"
-                },
                 {
                     "__type": "Equivalence",
                     "old": "Article 1",
@@ -81,13 +76,8 @@
         },
         {
             "__type": "TitleGroup",
+            "name": "TITLE II — PROVISIONS AMENDING THE TREATY ESTABLISHING THE EUROPEAN ECONOMIC COMMUNITY WITH A VIEW TO ESTABLISHING THE EUROPEAN COMMUNITY | TITLE II — PROVISIONS ON DEMOCRATIC PRINCIPLES | TITLE II — PROVISIONS ON DEMOCRATIC PRINCIPLES |",
             "rows": [
-                {
-                    "__type": "Equivalence",
-                    "old": "TITLE II — PROVISIONS AMENDING THE TREATY ESTABLISHING THE EUROPEAN ECONOMIC COMMUNITY WITH A VIEW TO ESTABLISHING THE EUROPEAN COMMUNITY",
-                    "lisbon": "TITLE II — PROVISIONS ON DEMOCRATIC PRINCIPLES",
-                    "newNum": "TITLE II — PROVISIONS ON DEMOCRATIC PRINCIPLES"
-                },
                 {
                     "__type": "Equivalence",
                     "old": "Article 8 (repealed) [5]",

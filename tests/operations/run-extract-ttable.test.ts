@@ -42,13 +42,13 @@ describe("defextract + TTable: treaty annex", () => {
 });
 
 describe("defextract + declared TTable: treaty grouped by TITLE (Route B, no fold)", () => {
-  type Total = { __type: string; title: string; groups: Array<{ rows: Array<{ old: string; lisbon: string; newNum: string }> }> };
+  type Total = { __type: string; title: string; groups: Array<{ name: string; rows: Array<{ old: string; lisbon: string; newNum: string }> }> };
 
   test("the grouped parse type-checks", () => {
     expect(typecheck.handle({ source: totalSource }).ok).toBe(true);
   });
 
-  test("rows are grouped under their TITLE block via span recursion", async () => {
+  test("rows are grouped under their TITLE block; the title is the block header", async () => {
     const result = await run.handle({ source: totalSource, network: "extractTotal", cells: { doc: JSON.stringify(text) } });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -56,14 +56,15 @@ describe("defextract + declared TTable: treaty grouped by TITLE (Route B, no fol
     const total = result.cells["annex"] as Total;
     expect(total.groups).toHaveLength(2);
 
-    // Each group's first row is its TITLE row; the rest are article rows.
     const [g1, g2] = total.groups;
-    expect(g1!.rows[0]!.old).toContain("TITLE I");
-    expect(g2!.rows[0]!.old).toContain("TITLE II");
-    expect(g1!.rows).toHaveLength(12); // TITLE I row + 11 articles
-    expect(g2!.rows).toHaveLength(5);  // TITLE II row + 4 articles
+    // The title is in `name` (consumed as the block's header), NOT in the rows.
+    expect(g1!.name).toContain("TITLE I");
+    expect(g2!.name).toContain("TITLE II");
+    expect(g1!.rows).toHaveLength(11); // article rows only
+    expect(g2!.rows).toHaveLength(4);
+    expect(g1!.rows.some(r => r.old.includes("TITLE"))).toBe(false);
 
-    // A data row inside the first group, columns positional (declared mode).
+    // A data row inside the first group, columns positional.
     const a1 = g1!.rows.find(r => r.old === "Article 1")!;
     expect(a1).toMatchObject({ old: "Article 1", lisbon: "Article 1", newNum: "Article 1" });
   });

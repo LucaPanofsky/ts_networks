@@ -23,9 +23,11 @@ export function compileTTable(ast: TTableAST, program: ProgramAST, sandbox: Sand
   const rec = program.records.find(r => r.name === ast.row);
   const fieldNames = rec ? rec.fields.map(f => f.name) : [];
   const delim = ast.cell;
-  // No header text on any column ⇒ declared (headerless) mode. validateTTable rejects
-  // mixing texted and text-less headers, so the two cases are exhaustive.
-  const declared = ast.headers.length > 0 && ast.headers.every(h => h.text === undefined);
+  // No header text on any column ⇒ POSITIONAL mode (columns map by declaration order).
+  // With texts ⇒ LOCATED mode (map by name). Either way the FIRST delimiter-line is the
+  // header and is consumed; located validates it, positional ignores its content.
+  // validateTTable rejects mixing texted and text-less headers, so this is exhaustive.
+  const positional = ast.headers.length > 0 && ast.headers.every(h => h.text === undefined);
 
   // Split a row on the delimiter, trim cells, and drop the one trailing empty cell a
   // closing delimiter produces (so `a | b |` is two cells, `a | b | |` is three).
@@ -44,22 +46,21 @@ export function compileTTable(ast: TTableAST, program: ProgramAST, sandbox: Sand
     }
 
     const rowLines = input.split("\n").filter(l => l.includes(delim));
+    // The first delimiter-line is always the header — consumed, never a data row.
+    if (rowLines.length === 0) {
+      return new Contradiction("ttable/no-header", new Set(), new Error("no line contains the cell delimiter"));
+    }
+    const dataLines = rowLines.slice(1);
 
     let indexByField: Map<string, number>;
     let columnCount: number;
-    let dataLines: string[];
 
-    if (declared) {
-      // Declared mode: no header in the text; columns are positional by declaration
-      // order, and every delimiter-line is a data row.
+    if (positional) {
+      // Positional mode: the header's content is ignored; columns map by declaration order.
       indexByField = new Map(ast.headers.map((h, i) => [h.field, i]));
       columnCount = ast.headers.length;
-      dataLines = rowLines;
     } else {
-      // Located mode: the first delimiter-line is the header; match by text and consume it.
-      if (rowLines.length === 0) {
-        return new Contradiction("ttable/no-header", new Set(), new Error("no line contains the cell delimiter"));
-      }
+      // Located mode: match each declared header text against a column in the header row.
       const headerCells = splitRow(rowLines[0]!);
       indexByField = new Map<string, number>();
       for (const h of ast.headers) {
@@ -71,7 +72,6 @@ export function compileTTable(ast: TTableAST, program: ProgramAST, sandbox: Sand
         indexByField.set(h.field, idx);
       }
       columnCount = headerCells.length;
-      dataLines = rowLines.slice(1);
     }
 
     const rows: unknown[] = [];
