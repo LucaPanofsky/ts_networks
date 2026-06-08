@@ -128,7 +128,19 @@ export type MatchExpr = {
   arms: MatchArm[];
 };
 
-export type Expr = LiteralExpr | VarExpr | CallExpr | BinaryExpr | UnaryExpr | FieldExpr | LetExpr | MatchExpr;
+// The body of a `defn ... interpolate """..."""`. Produces a String by substituting
+// `{{path}}` placeholders against the function's arguments, via the same renderer
+// (`renderPrompt`) that backs `defllmfn` prompts. `template` is the raw text between
+// the triple quotes; the referenced argument roots are derived from it at codegen
+// time (kept out of the AST so parse-time data-network code needs no placeholder
+// analysis). Only produced in function-body position by the grammar, but it is an
+// Expr (a value-producing form) like `let` and `match`.
+export type InterpolateExpr = {
+  kind: "interpolate";
+  template: string;
+};
+
+export type Expr = LiteralExpr | VarExpr | CallExpr | BinaryExpr | UnaryExpr | FieldExpr | LetExpr | MatchExpr | InterpolateExpr;
 
 // ── Function definitions ──────────────────────────────────────────────────────
 

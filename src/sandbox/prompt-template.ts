@@ -1,11 +1,31 @@
-// Pure templating core for LLM function prompts.
+// Pure templating core for LLM function prompts (the *runtime* half of the placeholder
+// machinery). The PLACEHOLDER grammar and compile-time path extraction live in
+// data-network/placeholders.ts; this module imports the regex so the runtime renderer
+// and the static analysis never drift.
 //
 // Kept separate from llmfn-client.ts (the effectful SDK boundary) so it can be
 // unit-tested in isolation. Two responsibilities, each a pure total function:
 //   - serializeArg: turn any argument value into prompt text, explicitly.
 //   - renderPrompt: substitute {{placeholders}}, surfacing missing keys as a value.
 
-const PLACEHOLDER = /\{\{\s*(\w+)\s*\}\}/g;
+import { PLACEHOLDER } from "../data-network/placeholders.js";
+
+/**
+ * Resolve a dotted path against `args`, one segment at a time. Presence is tested
+ * with `in` at every level (so a present-null leaf is found, not missing), and
+ * descent stops safely at any non-object intermediate — `"x" in null` would
+ * throw, so a path that runs into a scalar or null resolves to not-found rather
+ * than crashing. The leaf value is returned verbatim for the caller to serialize.
+ */
+function resolvePath(args: Record<string, unknown>, path: string): { found: boolean; value?: unknown } {
+  let current: unknown = args;
+  for (const segment of path.split(".")) {
+    if (current === null || typeof current !== "object") return { found: false };
+    if (!(segment in current)) return { found: false };
+    current = (current as Record<string, unknown>)[segment];
+  }
+  return { found: true, value: current };
+}
 
 /**
  * Render an argument value as prompt text. Total and explicit — no reliance on
@@ -52,10 +72,10 @@ export function renderPrompt(
   const missing: string[] = [];
   for (const match of template.matchAll(PLACEHOLDER)) {
     const key = match[1]!;
-    if (!(key in args) && !missing.includes(key)) missing.push(key);
+    if (!resolvePath(args, key).found && !missing.includes(key)) missing.push(key);
   }
   if (missing.length > 0) return { ok: false, missing };
 
-  const prompt = template.replace(PLACEHOLDER, (_, key) => serializeArg(args[key]));
+  const prompt = template.replace(PLACEHOLDER, (_, key) => serializeArg(resolvePath(args, key).value));
   return { ok: true, prompt };
 }

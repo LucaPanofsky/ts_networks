@@ -70,6 +70,31 @@ describe("parseProgram: defn", () => {
   test("no error nodes", () => noErrorNodes(fnSimple));
 });
 
+// ── defn — interpolate body ──────────────────────────────────────────────────
+
+const fnInterpolate = `
+defn render
+  signature: from [String?(name)] to String?;
+  interpolate """Hi {{name}}, welcome { home }""";
+end
+`;
+
+describe("parseProgram: defn interpolate body", () => {
+  const fn = parseProgram(fnInterpolate).fns[0]! as FnAST;
+
+  test("body is an interpolate node carrying the trimmed template verbatim", () => {
+    // The triple quotes are stripped; the inner text (including the literal single
+    // braces of `{ home }`) is preserved. Referenced roots are NOT stored — they are
+    // derived at codegen time.
+    expect(fn.body).toEqual({
+      kind: "interpolate",
+      template: "Hi {{name}}, welcome { home }",
+    });
+  });
+
+  test("no error nodes", () => noErrorNodes(fnInterpolate));
+});
+
 // ── defn — no params ─────────────────────────────────────────────────────────
 
 const fnNoParams = `

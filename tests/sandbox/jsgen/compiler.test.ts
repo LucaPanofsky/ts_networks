@@ -67,6 +67,25 @@ describe("invariants", () => {
   });
 });
 
+describe("interpolate codegen", () => {
+  test("lowers to an __interp call passing the referenced roots", () => {
+    const out = compileExpr({ kind: "interpolate", template: "Hi {{name}}!" });
+    expect(out).toBe('__interp("Hi {{name}}!", { name: name })');
+  });
+
+  test("passes the root once per distinct root, derived from dotted paths", () => {
+    // `rec.point` and `rec.body` share the root `rec`; `n` is a second root. The
+    // arg object names each root exactly once, in first-appearance order.
+    const out = compileExpr({ kind: "interpolate", template: "{{rec.point}} {{n}} {{rec.body}}" });
+    expect(out).toBe('__interp("{{rec.point}} {{n}} {{rec.body}}", { rec: rec, n: n })');
+  });
+
+  test("emits an empty arg object when there are no placeholders", () => {
+    const out = compileExpr({ kind: "interpolate", template: "no holes" });
+    expect(out).toBe('__interp("no holes", {  })');
+  });
+});
+
 // ── Units ─────────────────────────────────────────────────────────────────────
 
 describe("compileProgram", () => {

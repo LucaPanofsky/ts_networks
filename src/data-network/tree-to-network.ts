@@ -427,6 +427,15 @@ export function parseProgram(input: string): ProgramAST {
         name = slice(cursor.from, cursor.to);
       } else if (cursor.name === "FnSignature") {
         ({ params, returnType } = collectFnSignature());
+      } else if (cursor.name === "InterpolateBody") {
+        // `interpolate """..."""` — read the triple-quoted template like defllmfn
+        // does its prompt. The body is the interpolate Expr; the referenced argument
+        // roots are derived from the template at codegen time, not stored here.
+        cursor.firstChild(); // Interpolate_
+        cursor.nextSibling(); // PromptString
+        const raw = slice(cursor.from, cursor.to);
+        body = { kind: "interpolate", template: raw.slice(3, -3).trim() };
+        cursor.parent(); // exit InterpolateBody
       } else if (cursor.name === "ExpressionBody") {
         cursor.firstChild(); // Expression_
         cursor.nextSibling(); // LetBody

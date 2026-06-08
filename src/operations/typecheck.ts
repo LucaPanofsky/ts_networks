@@ -1,5 +1,5 @@
 import { parseProgram } from "../data-network/tree-to-network.js";
-import { typeCheckProgram } from "../data-network/type-checker.js";
+import { typeCheckProgram, validateInterpolate } from "../data-network/type-checker.js";
 import { validateGrammarSyntax, validateGrammarSignature } from "../sandbox/grammar-runtime.js";
 import { validateExtract } from "../sandbox/extract-runtime.js";
 import { validateTTable } from "../sandbox/ttable-runtime.js";
@@ -65,6 +65,10 @@ export const typecheck: Operation<TypecheckInput, TypecheckOutput> = {
       // here so the failure is an early, located diagnostic, not a cryptic SyntaxError.
       const [reservedError] = reservedFieldErrors(program);
       if (reservedError) return { ok: false, error: reservedError };
+      // An `interpolate` body's {{path}} placeholders must resolve against the
+      // function's parameter types — otherwise the gap only surfaces at run time.
+      const [interpolateError] = validateInterpolate(program);
+      if (interpolateError) return { ok: false, error: interpolateError };
       const enrichedMap = typeCheckProgram(program);
       const networks = [...enrichedMap.values()].map(serializeNetwork);
       return { ok: true, networks };

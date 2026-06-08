@@ -1,5 +1,6 @@
 import type { ProgramAST, DataNetworkAST } from "./types.js";
 import { typeRefToString } from "./types.js";
+import { placeholderPaths } from "./placeholders.js";
 
 // ── Public types ──────────────────────────────────────────────────────────────
 
@@ -81,6 +82,66 @@ function buildKnownPredicates(program: ProgramAST): Set<string> {
   for (const e of program.enums) known.add(`${e.name}?`);
   for (const f of program.fns) if (f.isPredicate) known.add(f.name);
   return known;
+}
+
+// ── Interpolate body validation ─────────────────────────────────────────────
+//
+// A pure, program-level check (like the grammar/extract/ttable validators): every
+// `{{path}}` in a `defn ... interpolate` body must resolve against the function's
+// parameters. The root segment must name a parameter; each further segment must be a
+// field of the prior segment's record type. Without this, an unresolved path is only
+// caught at run time — an unknown root as a JS ReferenceError, a bad sub-path as a
+// renderer error. This turns both into a located, compile-time message. Leaf type is
+// unconstrained: any resolvable value is stringified by the renderer.
+//
+// Sandbox-independent (AST + record shapes only), so the typecheck operation calls it
+// statically. Returns one message per unresolved path (empty = clean).
+export function validateInterpolate(program: ProgramAST): string[] {
+  const errors: string[] = [];
+  const recordIndex = new Map(program.records.map(r => [r.name, r]));
+  // The record an interpolate path can descend into: a scalar record type like `GF?`
+  // (or `GF`). A primitive (`String?`), an enum, or a list (`[GF?]`) has no fields.
+  const recordOf = (typeStr: string) => {
+    if (typeStr.startsWith("[")) return null;
+    const name = typeStr.endsWith("?") ? typeStr.slice(0, -1) : typeStr;
+    return recordIndex.get(name) ?? null;
+  };
+
+  for (const fn of program.fns) {
+    if (fn.body.kind !== "interpolate") continue;
+    const paramType = new Map(fn.params.map(p => [p.name, p.predicate]));
+
+    for (const path of placeholderPaths(fn.body.template)) {
+      const segments = path.split(".");
+      const root = segments[0]!;
+      if (!paramType.has(root)) {
+        errors.push(`defn ${fn.name}: interpolate references {{${path}}} but there is no parameter named "${root}"`);
+        continue;
+      }
+
+      let currentType = paramType.get(root)!;
+      for (let i = 1; i < segments.length; i++) {
+        const segment = segments[i]!;
+        const prefix = segments.slice(0, i).join(".");
+        if (currentType.startsWith("[")) {
+          errors.push(`defn ${fn.name}: interpolate path {{${path}}} descends into "${segment}", but "${prefix}" is a list (${currentType})`);
+          break;
+        }
+        const rec = recordOf(currentType);
+        if (!rec) {
+          errors.push(`defn ${fn.name}: interpolate path {{${path}}} descends into "${segment}", but "${prefix}" has non-record type "${currentType}"`);
+          break;
+        }
+        const field = rec.fields.find(f => f.name === segment);
+        if (!field) {
+          errors.push(`defn ${fn.name}: interpolate path {{${path}}} — record "${rec.name}" has no field "${segment}"`);
+          break;
+        }
+        currentType = typeRefToString(field.type);
+      }
+    }
+  }
+  return errors;
 }
 
 // ── Core pass ─────────────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-import { typeCheck, typeCheckProgram } from "../../src/data-network/type-checker.js";
+import { typeCheck, typeCheckProgram, validateInterpolate } from "../../src/data-network/type-checker.js";
 import { parseProgram } from "../../src/data-network/tree-to-network.js";
 import { readFileSync } from "fs";
 
@@ -604,5 +604,119 @@ end
     const topo = all.filter(e => e.kind === "non-source-input" || e.kind === "non-terminal-output");
     expect(topo.length).toBeGreaterThan(0);
     expect(topo.every(e => e.severity === "warning")).toBe(true);
+  });
+});
+
+// ── validateInterpolate ─────────────────────────────────────────────────────
+// Static validation that every {{path}} in an `interpolate` body resolves: the root
+// is a parameter, and each further segment is a field of the prior segment's record
+// type. This converts the runtime "references undefined variable" crash into a
+// located, compile-time error.
+
+describe("validateInterpolate", () => {
+  const check = (src: string) => validateInterpolate(parseProgram(src));
+
+  // Capability — a body whose bare and dotted paths all resolve is clean.
+  it("accepts bare params and dotted record-field paths", () => {
+    const src = `
+defrecord GF
+  point: String?;
+  body:  String?;
+end
+defn make
+  signature: from [GF?(rec), String?(name)] to String?;
+  interpolate """{{rec.point}} / {{rec.body}} / {{name}}""";
+end
+`;
+    expect(check(src)).toEqual([]);
+  });
+
+  // Capability — descent through nested records of arbitrary depth.
+  it("accepts a deeply nested record path", () => {
+    const src = `
+defrecord Leaf
+  v: String?;
+end
+defrecord Mid
+  leaf: Leaf?;
+end
+defn f
+  signature: from [Mid?(m)] to String?;
+  interpolate """{{m.leaf.v}}""";
+end
+`;
+    expect(check(src)).toEqual([]);
+  });
+
+  // Negative — the root is not a parameter.
+  it("rejects a placeholder whose root is not a parameter", () => {
+    const src = `
+defn f
+  signature: from [String?(name)] to String?;
+  interpolate """Hi {{missing}}""";
+end
+`;
+    const errors = check(src);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("no parameter named \"missing\"");
+  });
+
+  // Negative — descending into a scalar (a String has no fields).
+  it("rejects descent into a scalar parameter", () => {
+    const src = `
+defn f
+  signature: from [String?(name)] to String?;
+  interpolate """{{name.first}}""";
+end
+`;
+    const errors = check(src);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("non-record type");
+  });
+
+  // Negative — a real record but an unknown field on it.
+  it("rejects an unknown field on a record parameter", () => {
+    const src = `
+defrecord GF
+  point: String?;
+end
+defn f
+  signature: from [GF?(rec)] to String?;
+  interpolate """{{rec.nope}}""";
+end
+`;
+    const errors = check(src);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("has no field \"nope\"");
+  });
+
+  // Negative — descending into a list field (a vector is not a record).
+  it("rejects descent into a list-valued field", () => {
+    const src = `
+defrecord Item
+  label: String?;
+end
+defrecord Doc
+  items: [Item?];
+end
+defn f
+  signature: from [Doc?(d)] to String?;
+  interpolate """{{d.items.label}}""";
+end
+`;
+    const errors = check(src);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("list");
+  });
+
+  // Invariant — an expression-bodied defn is untouched (no false positives).
+  it("ignores functions without an interpolate body", () => {
+    const src = `
+defn add
+  signature: from [Number?(a), Number?(b)] to Number?;
+  expression a + b;
+end
+`;
+    expect(check(src)).toEqual([]);
   });
 });

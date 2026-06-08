@@ -1,4 +1,5 @@
 import type { RecordAST, FnAST, EnumAST, ProgramAST, Expr, RecordPattern } from "../../data-network/types.js";
+import { placeholderPaths } from "../../data-network/placeholders.js";
 
 function mangle(name: string): string {
   // DSL names may contain `?`, `!`, and `/` (the last for qualified names like
@@ -54,6 +55,16 @@ const args = expr.args.map(compileExpr).join(", ");
         compileExpr(expr.body),
       );
       return inner;
+    }
+    case "interpolate": {
+      // Lower to the injected `__interp(template, args)` helper (mirrors how a
+      // grammar lowers to `__g`), so interpolation runs through the same renderer
+      // as `defllmfn` prompts. The arg object passes exactly the referenced roots
+      // — the part of each `{{path}}` before the first `.`. Roots are `\w+`, hence
+      // valid JS identifiers matching the (unmangled) parameter names: `{ rec: rec }`.
+      const roots = [...new Set(placeholderPaths(expr.template).map(p => p.split(".")[0]))];
+      const args = roots.map(r => `${r}: ${r}`).join(", ");
+      return `__interp(${JSON.stringify(expr.template)}, { ${args} })`;
     }
   }
 }

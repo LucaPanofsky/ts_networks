@@ -147,7 +147,7 @@ VectorTypeRef {
 // ── def fn ────────────────────────────────────────────────────────────────────
 
 FnDef {
-  Defn Name FnSignature ExpressionBody End
+  Defn Name FnSignature (ExpressionBody | InterpolateBody) End
 }
 
 PredicateDef {
@@ -164,6 +164,10 @@ TypedParam {
 
 ExpressionBody {
   Expression_ LetBody
+}
+
+InterpolateBody {
+  Interpolate_ PromptString ";"
 }
 
 LetBody {
@@ -264,6 +268,7 @@ Let          { kw<"let"> }
 End          { kw<"end"> }
 Signature_   { kw<"signature"> }
 Expression_  { kw<"expression"> }
+Interpolate_ { kw<"interpolate"> }
 From         { kw<"from"> }
 To           { kw<"to"> }
 Propagate    { kw<"propagate"> }
