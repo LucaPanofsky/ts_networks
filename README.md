@@ -177,17 +177,17 @@ The **return type drives the response protocol**, and the JSON schema sent to th
 
 Because an llmfn leaf is **async**, it returns an `APromise` into its cell. `run` drives the async runtime (`invokeAsync`) and awaits terminal leaves, so the cell resolves to the real value rather than `∅`; an API or parse failure surfaces as a `Contradiction`, not a silent empty.
 
-#### Tools (under development)
+#### Tools
 
-An llmfn can be given **tools** — host capabilities the model may call mid-generation — via the `with:` clause:
+An llmfn can be given **tools** — host capabilities the model may call mid-generation — via the `with:` clause. Tools are selected by name, as a comma-separated string:
 
 ```
-with: tools = 'parse';
+with: tools = 'parse, typecheck, run';
 ```
 
-Tools are TypeScript functions, not DSL constructs; the program only *selects* them by name. When tools are present the call runs as an agentic loop (the model calls tools until it stops, then a final step coerces the declared structured output); without them it is a single structured call. Today the registry exposes one tool, `parse`, which checks that `.tsn` source the model wrote is syntactically valid and **returns** the error as a value so the model can self-correct.
+Tools are TypeScript functions, not DSL constructs; the program only *selects* them by name. When tools are present the call runs as an agentic loop (the model calls tools until it stops, then a final step coerces the declared structured output); without them it is a single structured call. Each tool **returns** its result — including any error — as a value, so the model reads the outcome and self-corrects.
 
-This is **early and under active development**. The goal is to expose the full set of capabilities that let an agent *reason about the program it is writing* — parsing, type-checking, schema compilation, and the other operations in `src/operations/` — so an LLM can author and refine `.tsn` programs against the same tools a human uses.
+The in-language registry exposes the operations an agent needs to *reason about the program it is writing*: `parse`, `typecheck`, `compile-schemas`, `run-grammar`, `run-ttable`, and `run`. These come straight from `src/operations/` (wired in `src/operations/tools.ts`) — the very same operations the CLI scripts and the MCP server expose to a human, so the human toolchain and the LLM's are literally the same code.
 
 ---
 
@@ -208,7 +208,7 @@ given-and-correct and changed only deliberately.
 | `data-network/` | runtime | DSL frontend: Lezer parser, AST→`DataNetwork`, the static type-checker, JSON-schema derivation |
 | `network-impl/` | runtime | the propagator engine: cells, propagators, the sync + async runners |
 | `sandbox/` | runtime | compiles a program to a self-contained JS module; grammar / TTable / extract runtimes; the llmfn client + in-language tools |
-| `operations/` | runtime | the uniform `Operation` interface — `parse`, `check`, `typecheck`, `run`, `compile-schemas`, `run-grammar`, `run-ttable` |
+| `operations/` | runtime | the uniform `Operation` interface — `parse`, `check`, `typecheck`, `run`, `compile-schemas`, `run-grammar`, `run-ttable`, `diagram` |
 | `cli.ts` | tooling | command-line entrypoint |
 | `mcp/` | tooling | an MCP server fronting every operation as a tool over stdio (`npm run mcp`) |
 | `editor/`, `ui-server/` | stale | an abandoned browser UI — kept for reference, excluded from analysis |

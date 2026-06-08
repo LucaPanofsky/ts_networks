@@ -34,6 +34,16 @@ Cell values are evaluated as JavaScript expressions in the program's sandbox, so
 npx tsx scripts/run.ts examples/geometry.tsn rectangleMetrics 'rect={width:3,height:4}'
 ```
 
+**Render a network as a Mermaid diagram (cells, operations, switch cond/value labels, explicit recursion):**
+```bash
+npx tsx scripts/diagram.ts <file.tsn> [networkName] [live]
+```
+
+`networkName` is optional when the program defines exactly one network. Pass the literal word `live` to get a `mermaid.live` editor link instead of the raw diagram string. Only requires the source to *parse* (and contain the network) — it reads structure, not types, so the referenced functions need not be defined:
+```bash
+npx tsx scripts/diagram.ts examples/search.tsn live
+```
+
 All scripts print `ok` (or a JSON result) on success and exit with code 1 on failure.
 
 ---

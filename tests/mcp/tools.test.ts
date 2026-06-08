@@ -17,7 +17,7 @@ describe("mcpTools", () => {
     const tools = mcpTools();
     const names = tools.map(t => t.name);
     expect(names).toEqual(
-      expect.arrayContaining(["parse", "check", "typecheck", "run", "compile-schemas", "run-grammar", "run-ttable"]),
+      expect.arrayContaining(["parse", "check", "typecheck", "run", "compile-schemas", "run-grammar", "run-ttable", "diagram"]),
     );
     for (const t of tools) {
       expect(typeof t.description).toBe("string");
