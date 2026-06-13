@@ -52,9 +52,18 @@ FunctionName {
 
 // ── defllmfn ──────────────────────────────────────────────────────────────────
 
+// The body is one or more prompt clauses: an optional `system` block (stable task
+// framing — no inputs), and the `user` block carrying the `{{placeholders}}`. A bare
+// triple-quoted block (no label) is back-compat shorthand for the user prompt.
+// `system`/`user` are contextual keywords (@extend), so they remain usable as ordinary
+// identifiers (record fields, cell names) everywhere else.
 LLMFnDef {
-  Defllmfn Name FnSignature WithClause? PromptString ";" End
+  Defllmfn Name FnSignature WithClause? (SystemClause | UserClause | BarePrompt)+ End
 }
+
+SystemClause { System PromptString ";" }
+UserClause   { User PromptString ";" }
+BarePrompt   { PromptString ";" }
 
 @external tokens promptString from "./prompt-tokenizer" { PromptString }
 
@@ -263,6 +272,8 @@ Header       { ckw<"header"> }
 Defparameter { kw<"defparameter"> }
 Type         { ckw<"type"> }
 Value        { ckw<"value"> }
+System       { ckw<"system"> }
+User         { ckw<"user"> }
 Derive       { kw<"derive"> }
 Let          { kw<"let"> }
 End          { kw<"end"> }

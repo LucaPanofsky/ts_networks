@@ -24,7 +24,20 @@ export type LLMFnCallConfig = {
   // Tools the LLM function may call, resolved from the program's `with: tools`
   // clause and driven by the tool loop in callLLMFn.
   tools?: LLMFnTool[];
+  // The optional `system` prompt — stable task framing. Sent on the `system` channel
+  // (a trust boundary: instructions here, untrusted data in the user turn) and marked
+  // cacheable, so it caches across calls instead of riding the volatile user turn.
+  system?: string;
 };
+
+// The `system` request field, when a system prompt is present: a single cacheable text
+// block. Below the model's min-cacheable-prefix it simply won't cache (harmless).
+function systemField(
+  system: string | undefined,
+): Pick<Anthropic.MessageCreateParams, "system"> {
+  if (!system) return {};
+  return { system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }] };
+}
 
 const DEFAULT_MODEL = "claude-opus-4-7";
 // Structured outputs (e.g. a full classification record) are large; a low ceiling
@@ -46,14 +59,9 @@ export function buildRequestParams(
   const params: Anthropic.MessageCreateParamsNonStreaming = {
     model: config.model ?? DEFAULT_MODEL,
     max_tokens: config.maxTokens ?? DEFAULT_MAX_TOKENS,
+    ...systemField(config.system),
     messages: [{ role: "user", content: prompt }],
-    tools: [
-      {
-        name: "respond",
-        description: "Return the structured response",
-        input_schema: protocol.schema as Anthropic.Tool["input_schema"],
-      },
-    ],
+    tools: [respondToolDef(protocol)],
     tool_choice: { type: "any" },
   };
   return params;
@@ -65,7 +73,9 @@ const MAX_TOOL_ROUNDS = 10;
 
 const respondToolDef = (protocol: ResponseProtocol): Anthropic.Tool => ({
   name: "respond",
-  description: "Return the structured response",
+  description:
+    "Return the final structured response. Call this only when you have the complete " +
+    "answer and need no further tools.",
   input_schema: protocol.schema as Anthropic.Tool["input_schema"],
 });
 
@@ -122,9 +132,14 @@ async function runToolBatch(
 }
 
 /**
- * Agentic tool loop (Option B): let the model call the LLM function's tools with
- * tool_choice "auto" until it stops requesting them, then make one final call
- * that forces the `respond` tool to coerce the declared structured output.
+ * Agentic tool loop: `respond` is offered as a first-class tool alongside the LLM
+ * function's own tools, under tool_choice "auto". The model calls real tools until
+ * it has the answer, then calls `respond` — whose input IS the structured output,
+ * returned IN-BAND with no extra round trip. A run needing k tool rounds therefore
+ * costs k+1 calls, not k+2.
+ *
+ * Fallback: if the model instead ends with text (stop_reason != "tool_use") without
+ * calling `respond`, one final forced-`respond` call coerces the structured output.
  *
  * Exceeding MAX_TOOL_ROUNDS without finishing is an error (mapped upstream to a
  * Contradiction): a model stuck in a tool loop should fail loudly, not return a
@@ -138,28 +153,40 @@ async function runToolLoop(
 ): Promise<unknown> {
   const model = config.model ?? DEFAULT_MODEL;
   const max_tokens = config.maxTokens ?? DEFAULT_MAX_TOKENS;
-  const defs = toolDefs(tools);
+  // `respond` is offered from the start so the model can terminate the loop in-band.
+  const defs = [...toolDefs(tools), respondToolDef(protocol)];
   const byName = new Map(tools.map(t => [t.name, t]));
   const messages: Anthropic.MessageParam[] = [{ role: "user", content: prompt }];
-  debug(`loop start — tools: [${tools.map(t => t.name).join(", ")}]`);
+  debug(`loop start — tools: [${tools.map(t => t.name).join(", ")}, respond]`);
 
-  let finished = false;
+  let endedWithoutRespond = false;
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     const response = await getClient().messages.create({
       model,
       max_tokens,
+      ...systemField(config.system),
       messages,
       tools: defs,
       tool_choice: { type: "auto" },
     });
-    if (response.stop_reason !== "tool_use") {
-      debug(`round ${round}: model finished (stop_reason=${response.stop_reason})`);
-      finished = true;
-      break;
-    }
     const toolUses = response.content.filter(
       (b): b is Anthropic.ToolUseBlock => b.type === "tool_use",
     );
+
+    // In-band structured output: a `respond` call ends the loop immediately — no
+    // extra forced call. It is terminal, so any co-requested real tools are ignored.
+    const respondUse = toolUses.find(b => b.name === "respond");
+    if (respondUse) {
+      debug(`round ${round}: respond called in-band`);
+      return protocol.extract(respondUse.input as Record<string, unknown>);
+    }
+
+    if (response.stop_reason !== "tool_use") {
+      debug(`round ${round}: ended without respond (stop_reason=${response.stop_reason})`);
+      endedWithoutRespond = true;
+      break;
+    }
+
     debug(
       `round ${round}: ${toolUses.length} tool call(s): ${toolUses.map(t => t.name).join(", ")}`,
     );
@@ -169,19 +196,20 @@ async function runToolLoop(
     messages.push({ role: "user", content: await runToolBatch(toolUses, byName) });
   }
 
-  if (!finished) {
+  if (!endedWithoutRespond) {
     throw new Error(
       `LLM function exceeded ${MAX_TOOL_ROUNDS} tool rounds without finishing`,
     );
   }
 
-  // Tool use is done — force the structured response.
-  debug("forcing respond to coerce the structured output");
+  // Fallback: the model ended with text instead of calling respond. Force it.
+  debug("fallback: forcing respond to coerce the structured output");
   const final = await getClient().messages.create({
     model,
     max_tokens,
+    ...systemField(config.system),
     messages,
-    tools: [...defs, respondToolDef(protocol)],
+    tools: defs,
     tool_choice: { type: "tool", name: "respond" },
   });
   const respondUse = final.content.find(

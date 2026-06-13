@@ -1,4 +1,14 @@
-import { isInfoStructure, type InfoStructure, Contradiction, Nothing } from "../info-structure.js";
+import { isInfoStructure, valueEquals, type InfoStructure, Contradiction, Nothing } from "../info-structure.js";
+
+// Distinct-by-value collection: drop any element value-equal to one already kept. O(n²),
+// fine for the small domains constraint sets hold; a hash index is a future optimization.
+function distinctByValue(elements: Iterable<unknown>): unknown[] {
+  const out: unknown[] = [];
+  for (const e of elements) {
+    if (!out.some(x => valueEquals(x, e))) out.push(e);
+  }
+  return out;
+}
 
 // A set-valued information structure for constraint propagation. A cell holds the
 // set of still-possible values; `merge` is set intersection, so two propagators
@@ -15,8 +25,9 @@ export class MergeSet implements InfoStructure<unknown> {
   private readonly _elements: unknown[];
 
   constructor(elements: Iterable<unknown>) {
-    // SameValueZero dedup; correct for primitives, by-reference for objects.
-    this._elements = [...new Set(elements)];
+    // Dedup by structural value equality, so equal-but-distinct records collapse (not
+    // by-reference). Consistent with `Something.equals` — one equality definition.
+    this._elements = distinctByValue(elements);
   }
 
   static lift(values: Iterable<unknown>): MergeSet {
@@ -34,8 +45,8 @@ export class MergeSet implements InfoStructure<unknown> {
   equals(other: InfoStructure<unknown>): boolean {
     if (!(other instanceof MergeSet)) return false;
     if (this._elements.length !== other._elements.length) return false;
-    const o = new Set(other._elements);
-    return this._elements.every(e => o.has(e));
+    // Both sides are already value-deduped, so equal length + this ⊆ other ⇒ equal.
+    return this._elements.every(e => other._elements.some(x => valueEquals(x, e)));
   }
 
   unpack(f: (a: unknown) => unknown): InfoStructure<unknown> {
@@ -83,8 +94,7 @@ export class MergeSet implements InfoStructure<unknown> {
     if (other === Nothing) return this;
     if (other instanceof Contradiction) return other;
     if (other instanceof MergeSet) {
-      const o = new Set(other._elements);
-      const common = this._elements.filter(e => o.has(e));
+      const common = this._elements.filter(e => other._elements.some(x => valueEquals(x, e)));
       if (common.length === 0) {
         return new Contradiction("merge/empty-intersection", new Set([this, other]));
       }

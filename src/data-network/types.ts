@@ -181,7 +181,13 @@ export type LLMFnAST = {
   name: string;
   params: TypedParam[];
   returnType: TypeRef;
-  prompt: string;
+  // The user prompt — the data-bearing turn, where `{{placeholders}}` are substituted.
+  // A bare (unlabeled) prompt block populates this too (back-compat).
+  user: string;
+  // The optional system prompt — stable task framing, sent on the `system` channel.
+  // Must contain no `{{placeholders}}` (enforced by the type-checker), so it stays
+  // cacheable and keeps untrusted input out of the authority channel.
+  system?: string;
   config: Record<string, string>;
 };
 

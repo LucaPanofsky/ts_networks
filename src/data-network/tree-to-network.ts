@@ -466,14 +466,30 @@ export function parseProgram(input: string): ProgramAST {
 
   // ── LLMFnDef ───────────────────────────────────────────────────────────────
 
+  // Read the triple-quoted PromptString nested inside the cursor's current node
+  // (a SystemClause / UserClause / BarePrompt), stripping the `"""` delimiters.
+  const readClausePrompt = (): string => {
+    let text = "";
+    if (cursor.firstChild()) {
+      do {
+        if (cursor.name === "PromptString") {
+          text = slice(cursor.from, cursor.to).slice(3, -3).trim();
+        }
+      } while (cursor.nextSibling());
+      cursor.parent();
+    }
+    return text;
+  };
+
   const collectLLMFnDef = (): LLMFnAST => {
     let name = "";
     let params: TypedParam[] = [];
     let returnType: TypeRef = { kind: "scalar", predicate: "" };
     let config: Record<string, string> = {};
-    let prompt = "";
+    let user = "";
+    let system: string | undefined;
 
-    if (!cursor.firstChild()) return { kind: "llmfn", name, params, returnType, prompt, config };
+    if (!cursor.firstChild()) return { kind: "llmfn", name, params, returnType, user, config };
     do {
       if (cursor.name === "Name" && !name) {
         name = slice(cursor.from, cursor.to);
@@ -481,13 +497,15 @@ export function parseProgram(input: string): ProgramAST {
         ({ params, returnType } = collectFnSignature());
       } else if (cursor.name === "WithClause") {
         config = collectParams();
-      } else if (cursor.name === "PromptString") {
-        const raw = slice(cursor.from, cursor.to);
-        prompt = raw.slice(3, -3).trim();
+      } else if (cursor.name === "SystemClause") {
+        system = readClausePrompt();
+      } else if (cursor.name === "UserClause" || cursor.name === "BarePrompt") {
+        // A bare (unlabeled) block is the user prompt — back-compat shorthand.
+        user = readClausePrompt();
       }
     } while (cursor.nextSibling());
     cursor.parent();
-    return { kind: "llmfn", name, params, returnType, prompt, config };
+    return { kind: "llmfn", name, params, returnType, user, system, config };
   };
 
   // ── GrammarDef ───────────────────────────────────────────────────────────────

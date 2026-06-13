@@ -144,6 +144,31 @@ export function validateInterpolate(program: ProgramAST): string[] {
   return errors;
 }
 
+// A pure, program-level check for `defllmfn` prompt clauses:
+//   - the `system` prompt must be STABLE — no `{{placeholders}}`. A placeholder there
+//     would silently break prompt caching AND the trust boundary (it would splice
+//     per-call, often untrusted, input into the authority channel). This is an ERROR,
+//     not a warning: a placeholder in `system` makes the program mean something other
+//     than what it says.
+//   - a `user` prompt is required (a bare unlabeled block satisfies it).
+// Returns one message per violation (empty = clean).
+export function validateLLMFn(program: ProgramAST): string[] {
+  const errors: string[] = [];
+  for (const fn of program.llmFns) {
+    if (fn.system !== undefined) {
+      for (const path of placeholderPaths(fn.system)) {
+        errors.push(
+          `defllmfn ${fn.name}: the system prompt must be stable and cannot reference inputs, but found {{${path}}} — put input-bearing placeholders in the user prompt`,
+        );
+      }
+    }
+    if (!fn.user.trim()) {
+      errors.push(`defllmfn ${fn.name}: a user prompt is required (an unlabeled """…""" block, or a 'user """…""";' clause)`);
+    }
+  }
+  return errors;
+}
+
 // ── Core pass ─────────────────────────────────────────────────────────────────
 
 export function typeCheck(network: DataNetworkAST, program: ProgramAST): EnrichedNetwork {
