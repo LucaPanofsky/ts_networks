@@ -58,6 +58,8 @@ Reads `<file.pdf>` from the `WORKSPACE/` directory, decodes it to text, and writ
 
 All scripts print `ok` (or a JSON result) on success and exit with code 1 on failure.
 
+**Extracting structured data from a PDF?** Read [`documentation/how_to/programmatic_agent_extraction.md`](documentation/how_to/programmatic_agent_extraction.md) first — the agent playbook for taking a raw PDF request from zero to a working `.tsn` extractor (the two-read authoring loop, the verify loop, and the design heuristics). It links down to the construct-level how-tos in `documentation/how_to/`.
+
 ---
 
 ## Testing
