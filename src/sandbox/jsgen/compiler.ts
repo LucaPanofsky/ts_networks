@@ -162,6 +162,18 @@ const BUILTIN_DEFS: Record<string, string> = {
   "str/startsWith?": `function(s, p) { return s.startsWith(p); }`,
   "str/endsWith?":   `function(s, p) { return s.endsWith(p); }`,
   "str/blank?":      `function(s) { return s.trim().length === 0; }`,
+  // Host-only numeric primitives the language cannot express. Namespaced under `math/`
+  // like `str/...`. The prelude (`src/prelude.tsn`) wraps the propagatable-useful ones
+  // as `defn`s (`sqrt`, `abs`, `max`, …); call the rest directly as `math/floor(x)`.
+  "math/sqrt":  `function(n) { return Math.sqrt(n); }`,
+  "math/abs":   `function(n) { return Math.abs(n); }`,
+  "math/round": `function(n) { return Math.round(n); }`,
+  "math/floor": `function(n) { return Math.floor(n); }`,
+  "math/ceil":  `function(n) { return Math.ceil(n); }`,
+  "math/mod":   `function(a, b) { return a % b; }`,
+  "math/pow":   `function(a, b) { return Math.pow(a, b); }`,
+  "math/max":   `function(a, b) { return Math.max(a, b); }`,
+  "math/min":   `function(a, b) { return Math.min(a, b); }`,
 };
 
 export function compileProgram(program: ProgramAST): string {

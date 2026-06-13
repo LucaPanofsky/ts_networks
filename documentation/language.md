@@ -711,6 +711,47 @@ Cell values that are still `Nothing` after propagation are displayed as `∅`.
 
 ---
 
+## Standard library (the prelude)
+
+A small standard library — the **prelude** — is supplied to every program
+automatically, so you never have to define common helpers or hit "unknown function" for
+them. Each entry is an ordinary function, so it is both **propagatable**
+(`propagate not from …`) and callable inside an `expression`. A `defn` of the same name
+in your program **shadows** the prelude entry (your definition wins).
+
+| Group | Functions |
+|---|---|
+| Booleans | `not`, `and`, `or` |
+| Arithmetic | `add`, `sub`, `mul`, `div` |
+| Comparisons | `eq`, `gt`, `lt`, `gte`, `lte` |
+| Math | `sqrt`, `abs`, `round`, `floor`, `ceil`, `mod`, `pow`, `max`, `min` |
+
+These wrap the operators and a host `math/` namespace; calling `add(a, b)` is the same as
+writing `a + b`, but as a *named function* it can be wired straight into a network without
+a one-line `defn`:
+
+```
+propagate add from [a, b] to c;     // no `defn add` needed
+```
+
+### The `math/` namespace
+
+Numeric primitives the language cannot express itself live under `math/` as expression
+builtins (alongside the `str/` string builtins): `math/sqrt`, `math/abs`, `math/round`,
+`math/floor`, `math/ceil`, `math/mod`, `math/pow`, `math/max`, `math/min`. The prelude's
+`sqrt`/`abs`/… are thin propagatable wrappers over these; call the rest directly inside an
+expression:
+
+```
+expression math/floor(div(total, count));
+```
+
+The prelude is written in the language itself and lives in `src/sandbox/prelude.ts`
+(`PRELUDE_SOURCE`); extend it there. The `math/` builtins live in
+`src/sandbox/jsgen/compiler.ts`.
+
+---
+
 ## Expressions
 
 Expressions appear in `defn` and `defpredicate` bodies.

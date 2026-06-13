@@ -1,17 +1,31 @@
+// TEMPLATE — not runnable as-is.
+//
+// This is a structural skeleton showing the SHAPE of a recursive network: a network
+// that calls ITSELF (`propagate exampleSearch from [betterInput] to done`) to express
+// iterative-improvement search. It deliberately leaves the domain pieces as undefined
+// placeholders for you to fill in:
+//
+//   - `goodEnough?` — a `defpredicate` deciding when the input is acceptable
+//   - `improve`     — a `defn` that produces a better candidate from the current one
+//
+// `not` is supplied by the standard library (the prelude), so it needs no definition.
+// Define the two placeholders (and seed `input`) to turn this template into a runnable
+// search. (`check`/`typecheck` pass even now — the checker skips the undefined names —
+// but `run` cannot resolve them until you supply them.)
+
 defnetwork exampleSearch
   signature: from [input] to done;
 
-
   switch goodEnough? from [input] to inputIsGood;
-  
+
   propagate not from [inputIsGood] to inputIsNotGood;
-  
-  switch from [inputIsGood, input] to done; 
-  
+
+  switch from [inputIsGood, input] to done;
+
   switch from [inputIsNotGood, input] to inputIfNotGood;
-  
+
   propagate improve from [inputIfNotGood] to betterInput;
-  
+
   propagate exampleSearch from [betterInput] to done;
 
 end

@@ -7,6 +7,7 @@
   - [ ] Tracing option
 - [x] DSL — `defnetwork`, `defn`, `defpredicate`, `defrecord`, `derive`, `defenum`, `defllmfn`, `defgrammar`, `defextract`; expressions, `match`, vector types; `network/<name>` / `grammar/<name>` / `extract/<name>` composition
 - [x] JS code generator — compiles DSL to a self-contained JS module; sandbox evaluation; registry and network wiring
+- [x] Standard library (the prelude) — booleans/arithmetic/comparisons/math auto-supplied to every program (propagatable + expression-usable, user-shadowable); host `math/` intrinsics
 - [x] JSON schema derivation — `defrecord` → JSON Schema; nested inlining, vector fields, predicate resolution
 - [x] LLM function runtime — Anthropic SDK; structured JSON calls; async propagation via `invokeAsync`
   - [x] Tool loop — agentic `with: tools` (bounded rounds, forced final `respond`)

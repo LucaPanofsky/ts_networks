@@ -1,4 +1,5 @@
 import { parseProgram } from "../../data-network/tree-to-network.js";
+import { withPrelude } from "../prelude.js";
 import { createSandbox, type Sandbox } from "./runtime.js";
 import { buildRegistry } from "./registry.js";
 import { buildNetworks } from "./networks.js";
@@ -17,7 +18,10 @@ export type CompiledProgram = {
 // operation passes the full program-reasoning resolver (operations/tools.ts). This
 // keeps the sandbox decoupled from the operations layer (no import cycle).
 export function compile(dsl: string, toolsFromConfig?: ToolResolver): CompiledProgram {
-  const program  = parseProgram(dsl);
+  // Merge the standard library in before anything compiles: prelude entries become both
+  // sandbox consts (expression-usable) and registry entries (propagatable), shadowed by
+  // any same-named user definition. Supplied here, so the user's parsed AST stays clean.
+  const program  = withPrelude(parseProgram(dsl));
   const sandbox  = createSandbox(program);
   const registry = buildRegistry(program, sandbox, toolsFromConfig);
   const networks = buildNetworks(program, registry);
