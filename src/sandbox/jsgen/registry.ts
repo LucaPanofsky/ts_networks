@@ -16,6 +16,18 @@ import { defaultExecutor } from "../../network-impl/executor.js";
 
 const trueP = (v: unknown): boolean => v === true;
 
+// A deterministic cache key for an arg tuple: object keys are sorted recursively so two
+// structurally-equal records (in any key order) map to the same entry — consistent with
+// the value-equality the merge protocol uses. JSON limits (NaN/Infinity collapse to
+// null) are immaterial for the string/record inputs an llmfn leaf takes.
+function canonicalKey(args: unknown[]): string {
+  return JSON.stringify(args, (_k, v) =>
+    v && typeof v === "object" && !Array.isArray(v)
+      ? Object.fromEntries(Object.keys(v).sort().map(k => [k, (v as Record<string, unknown>)[k]]))
+      : v,
+  );
+}
+
 function registerBuiltins(registry: Registry): void {
   registry.register({
     fnName: "true?",
@@ -77,19 +89,31 @@ export function buildRegistry(
       system:      llmFn.system,
     };
     const paramNames = llmFn.params.map(p => p.name);
+    // Memoize the impure leaf on its inputs for the lifetime of this compiled program
+    // (per-run: the `run` op compiles per invocation). A propagator may fire more than
+    // once over the same inputs — the async runner does no coalescing — and the model
+    // assumes propagators are pure, so re-firing must be a no-op. Keying the APromise at
+    // submission makes a re-fire share the in-flight call (one API call, not a duplicate)
+    // AND return the same reference, so re-merging the result can't self-contradict. The
+    // shared APromise resolves once for all observers — to a value or a Contradiction.
+    const memo = new Map<string, APromise<unknown>>();
     registry.register({
       fnName: llmFn.name,
       arity: llmFn.params.length,
       impl: (...args: unknown[]) => {
+        const cached = memo.get(canonicalKey(args));
+        if (cached) return cached;
         const namedArgs = Object.fromEntries(paramNames.map((n, i) => [n, args[i]]));
         const d = new Deferred<unknown>();
+        const ap = new APromise(d);
+        memo.set(canonicalKey(args), ap);
         // Submit the leaf model call to the bounded executor: it runs now if a slot
         // is free, otherwise it parks until one opens. The APromise handle returns
         // immediately either way, so map's eager fan-out becomes eager *scheduling*.
         defaultExecutor.submit(() => callLLMFn(llmFn.user, namedArgs, protocol, config))
           .then(v => d.resolve(new Something(v)))
           .catch(e => d.resolve(new Contradiction("llmfn/error", new Set(), e)));
-        return new APromise(d);
+        return ap;
       },
       morphism: { from: llmFn.params.map(p => p.predicate), to: typeRefToString(llmFn.returnType) },
     });
