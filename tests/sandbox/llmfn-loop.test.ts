@@ -146,6 +146,36 @@ describe("callLLMFn — tool loop: respond is in-band (k+1 calls)", () => {
   });
 });
 
+describe("callLLMFn — system prompt", () => {
+  it("sends no system field when none is configured", async () => {
+    mockCreate.mockResolvedValueOnce(respondResp({ value: "x" }));
+    await callLLMFn("p", {}, protocol, {});
+    expect("system" in mockCreate.mock.calls[0]![0]).toBe(false);
+  });
+
+  it("attaches the system prompt as a cacheable block (no-tools path)", async () => {
+    mockCreate.mockResolvedValueOnce(respondResp({ value: "x" }));
+    await callLLMFn("p", {}, protocol, { system: "Be terse." });
+    expect(mockCreate.mock.calls[0]![0].system).toEqual([
+      { type: "text", text: "Be terse.", cache_control: { type: "ephemeral" } },
+    ]);
+  });
+
+  it("carries the system prompt on every call of the tool loop", async () => {
+    mockCreate
+      .mockResolvedValueOnce(toolUseResp([{ id: "t1", name: "echo", input: { x: "a" } }]))
+      .mockResolvedValueOnce(respondResp({ value: "ok" }));
+    await callLLMFn("p", {}, protocol, { tools: [echoTool], system: "Be terse." });
+
+    expect(mockCreate).toHaveBeenCalledTimes(2);
+    for (const call of mockCreate.mock.calls) {
+      expect(call[0].system).toEqual([
+        { type: "text", text: "Be terse.", cache_control: { type: "ephemeral" } },
+      ]);
+    }
+  });
+});
+
 describe("callLLMFn — tool loop: fallback + failure modes", () => {
   // Fallback — the model ends with text instead of calling respond; a forced
   // respond call still coerces the structured output.

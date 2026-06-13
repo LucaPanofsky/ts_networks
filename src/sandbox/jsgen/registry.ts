@@ -73,6 +73,8 @@ export function buildRegistry(
         ? parseInt(llmFn.config["max_tokens"], 10)
         : undefined,
       tools:       toolsFromConfig(llmFn.config["tools"]),
+      // The stable system prompt (if any), sent on the `system` channel.
+      system:      llmFn.system,
     };
     const paramNames = llmFn.params.map(p => p.name);
     registry.register({
@@ -84,7 +86,7 @@ export function buildRegistry(
         // Submit the leaf model call to the bounded executor: it runs now if a slot
         // is free, otherwise it parks until one opens. The APromise handle returns
         // immediately either way, so map's eager fan-out becomes eager *scheduling*.
-        defaultExecutor.submit(() => callLLMFn(llmFn.prompt, namedArgs, protocol, config))
+        defaultExecutor.submit(() => callLLMFn(llmFn.user, namedArgs, protocol, config))
           .then(v => d.resolve(new Something(v)))
           .catch(e => d.resolve(new Contradiction("llmfn/error", new Set(), e)));
         return new APromise(d);

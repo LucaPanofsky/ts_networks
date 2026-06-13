@@ -24,7 +24,20 @@ export type LLMFnCallConfig = {
   // Tools the LLM function may call, resolved from the program's `with: tools`
   // clause and driven by the tool loop in callLLMFn.
   tools?: LLMFnTool[];
+  // The optional `system` prompt — stable task framing. Sent on the `system` channel
+  // (a trust boundary: instructions here, untrusted data in the user turn) and marked
+  // cacheable, so it caches across calls instead of riding the volatile user turn.
+  system?: string;
 };
+
+// The `system` request field, when a system prompt is present: a single cacheable text
+// block. Below the model's min-cacheable-prefix it simply won't cache (harmless).
+function systemField(
+  system: string | undefined,
+): Pick<Anthropic.MessageCreateParams, "system"> {
+  if (!system) return {};
+  return { system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }] };
+}
 
 const DEFAULT_MODEL = "claude-opus-4-7";
 // Structured outputs (e.g. a full classification record) are large; a low ceiling
@@ -46,14 +59,9 @@ export function buildRequestParams(
   const params: Anthropic.MessageCreateParamsNonStreaming = {
     model: config.model ?? DEFAULT_MODEL,
     max_tokens: config.maxTokens ?? DEFAULT_MAX_TOKENS,
+    ...systemField(config.system),
     messages: [{ role: "user", content: prompt }],
-    tools: [
-      {
-        name: "respond",
-        description: "Return the structured response",
-        input_schema: protocol.schema as Anthropic.Tool["input_schema"],
-      },
-    ],
+    tools: [respondToolDef(protocol)],
     tool_choice: { type: "any" },
   };
   return params;
@@ -156,6 +164,7 @@ async function runToolLoop(
     const response = await getClient().messages.create({
       model,
       max_tokens,
+      ...systemField(config.system),
       messages,
       tools: defs,
       tool_choice: { type: "auto" },
@@ -198,6 +207,7 @@ async function runToolLoop(
   const final = await getClient().messages.create({
     model,
     max_tokens,
+    ...systemField(config.system),
     messages,
     tools: defs,
     tool_choice: { type: "tool", name: "respond" },

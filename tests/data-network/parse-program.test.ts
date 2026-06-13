@@ -397,15 +397,16 @@ describe("parseProgram: defllmfn", () => {
     expect(llmFn.config).toEqual({ model: "claude-opus-4-7", max_tokens: "4096" });
   });
 
-  test("prompt contains expected content", () => {
-    expect(llmFn.prompt).toContain("# Task");
-    expect(llmFn.prompt).toContain("{{text}}");
-    expect(llmFn.prompt).toContain('"neutral"');
+  test("a bare (unlabeled) prompt block populates the user prompt", () => {
+    expect(llmFn.user).toContain("# Task");
+    expect(llmFn.user).toContain("{{text}}");
+    expect(llmFn.user).toContain('"neutral"');
+    expect(llmFn.system).toBeUndefined();
   });
 
   test("prompt strips surrounding triple-quotes", () => {
-    expect(llmFn.prompt.startsWith('"""')).toBe(false);
-    expect(llmFn.prompt.endsWith('"""')).toBe(false);
+    expect(llmFn.user.startsWith('"""')).toBe(false);
+    expect(llmFn.user.endsWith('"""')).toBe(false);
   });
 });
 
