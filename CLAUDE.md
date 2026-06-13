@@ -44,6 +44,13 @@ npx tsx scripts/diagram.ts <file.tsn> [networkName] [live]
 npx tsx scripts/diagram.ts examples/search.tsn live
 ```
 
+**Extract text from a PDF in the workspace:**
+```bash
+npx tsx scripts/pdf.ts <file.pdf>
+```
+
+Reads `<file.pdf>` from the `WORKSPACE/` directory, decodes it to text, and writes `<file>.txt` alongside it (pages separated by `--- page N ---`). Set `TSN_WORKSPACE` to point at a different workspace root. Unlike the other scripts, the argument is a PDF filename *in the workspace*, not a `.tsn` source file. Also available as the `pdf-to-text` MCP tool.
+
 All scripts print `ok` (or a JSON result) on success and exit with code 1 on failure.
 
 ---
@@ -57,6 +64,8 @@ npm test
 ```
 
 `npm test` regenerates the lezer grammar parser before running jest. Running `npx jest` raw skips this step and produces false failures.
+
+`npm test` runs **two jest passes**: the default CJS pass for most tests, then an ESM pass (`npm run test:esm`, with `--experimental-vm-modules`) for tests that depend on ESM-only packages — currently anything touching `unpdf`/pdf.js, which uses `import.meta` and cannot run in jest's CJS mode. **Tests that transitively import `unpdf` must live under `tests/pdf/`** (the ESM pass's match glob); placing such a test elsewhere makes it fail to load in the CJS pass. The default pass relies on `__dirname`, so the whole suite can't simply switch to ESM.
 
 To run a focused subset during development:
 
