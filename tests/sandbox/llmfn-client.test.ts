@@ -9,7 +9,7 @@ const protocol: ResponseProtocol = {
 describe("buildRequestParams — capabilities", () => {
   it("applies default model and a generous default max_tokens", () => {
     const p = buildRequestParams("hi", protocol, {});
-    expect(p.model).toBe("claude-opus-4-7");
+    expect(p.model).toBe("claude-opus-4-8");
     expect(p.max_tokens).toBeGreaterThanOrEqual(16384);
   });
 

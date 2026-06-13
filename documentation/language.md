@@ -289,7 +289,7 @@ Defines an LLM function. An LLM function has a signature like a `defn`, but inst
 ```text
 defllmfn analyzeDocument
   signature: from [String?(text)] to DocumentAnalysis?;
-  with: model = 'claude-opus-4-7';
+  with: model = 'claude-opus-4-8';
 
   system """
   You are a careful document analyst. Return a structured result.
@@ -317,12 +317,12 @@ signature: from [String?(query)] to [SearchResult?];
 Optional model configuration:
 
 ```
-with: model = 'claude-opus-4-7', max_tokens = '4096';
+with: model = 'claude-opus-4-8', max_tokens = '4096';
 ```
 
 | Key | Default | Description |
 |---|---|---|
-| `model` | `claude-opus-4-7` | The Claude model to use |
+| `model` | `claude-opus-4-8` | The Claude model to use |
 | `max_tokens` | `16384` | Maximum tokens in the response |
 | `tools` | `''` (none) | Comma-separated names of host tools the model may call (see below) |
 
@@ -331,7 +331,7 @@ with: model = 'claude-opus-4-7', max_tokens = '4096';
 An LLM function can be given **tools** — host capabilities the model may call mid-generation — through the `tools` key:
 
 ```
-with: model = 'claude-opus-4-7', tools = 'parse, typecheck, run-grammar';
+with: model = 'claude-opus-4-8', tools = 'parse, typecheck, run-grammar';
 ```
 
 Tools are TypeScript functions, not DSL constructs: a program only *selects* them by name, and an unknown name is an error. When one or more tools are present, the call becomes an **agentic loop** — the model may call the tools repeatedly (bounded, currently 10 rounds). The structured-output `respond` tool is offered alongside them, so the model returns the result **in-band** when done (no extra round trip); a forced `respond` call is kept only as a fallback if the model ends with plain text. With no tools the call is a single structured request.
