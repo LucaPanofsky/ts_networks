@@ -17,3 +17,6 @@ WORKSPACE/
 # Generated maintenance-analysis artifacts (the analysis/*.ts tool IS tracked)
 analysis/REPORT.html
 coverage/
+
+# Agent host-side work dir (bind-mounted to /workspace)
+tsn-work/

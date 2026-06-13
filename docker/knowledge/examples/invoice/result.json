@@ -1,0 +1,34 @@
+{
+    "__type": "Invoice",
+    "invoiceNumber": "123",
+    "issueDate": "March 25, 2024",
+    "dueDate": "March 25, 2024",
+    "status": "PAID",
+    "seller": {
+        "__type": "Party",
+        "name": "Example, LLC",
+        "street": "123 Fake Street",
+        "cityLine": "New York City, NY 10012",
+        "phone": "(555) 867-5309",
+        "email": "support@example.com"
+    },
+    "billTo": {
+        "__type": "Party",
+        "name": "Customer",
+        "street": "Address",
+        "cityLine": "City, State Zipcode",
+        "email": "customer@example.org"
+    },
+    "items": [
+        {
+            "__type": "LineItem",
+            "description": "Subscription",
+            "unitCost": "$19.00",
+            "quantity": "1",
+            "amount": "$19.00"
+        }
+    ],
+    "subtotal": "$19.00",
+    "taxRate": "0%",
+    "amountDue": "$19.00"
+}

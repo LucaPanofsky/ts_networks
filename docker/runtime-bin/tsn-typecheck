@@ -1,0 +1,3 @@
+#!/bin/sh
+# Type-check a .tsn program: records <-> grammars <-> verbs agree.
+exec tsx /app/ts-networks/scripts/typecheck.ts "$@"

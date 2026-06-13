@@ -102,6 +102,16 @@ Note the bare `npx tsc --noEmit` checks only `src/` (the root tsconfig's `includ
 
 ---
 
+## Non-negotiable: keep the agent knowledge base in sync
+
+The containerized authoring agent ships with a **curated, hand-maintained knowledge base** (`docker/knowledge/` — a wiki baked read-only into the agent image, distinct from `documentation/`, which serves humans too). It is **not** generated from `documentation/`, so it does **not** update itself.
+
+**Whenever you add or change a language feature** — a new construct, a changed `defgrammar`/`defextract`/`TTable` behavior, a new operation/script, a renamed verb, a new pitfall — you **must** update the agent knowledge base in the same change. A stale KB silently teaches the agent the old language. Treat it like a test fixture: the work is not done until the KB reflects the new behavior.
+
+Concretely, when a language change lands, check and update as needed: the relevant `docker/knowledge/*.md` page(s), the distilled `language-core.md`, the bundled example `.tsn` files, and the agent's `docker/agent-home/CLAUDE.md` if the authoring loop or verify commands changed. (This is the accepted maintenance cost of hand-curation; the upside is a sharp, agent-only KB free of dev-process noise.)
+
+---
+
 ## Test methodology
 
 When writing or reviewing tests for a module, derive coverage from four categories:

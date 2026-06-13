@@ -1,0 +1,3 @@
+#!/bin/sh
+# Emit a JSON Schema for every defrecord in a .tsn program.
+exec tsx /app/ts-networks/scripts/compile-schemas.ts "$@"
