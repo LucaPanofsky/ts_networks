@@ -15,9 +15,10 @@
     "build": "npm run generate && npm run bundle && tsc && sed 's|from \"./prompt-tokenizer\"|from \"./prompt-tokenizer.js\"|' src/data-network/parser.js > dist/data-network/parser.js && cp src/data-network/parser.terms.js dist/data-network/parser.terms.js",
     "typecheck": "tsc -p tsconfig.test.json --noEmit",
     "pretest": "npm run typecheck",
-    "test": "npm run generate && jest",
+    "test": "npm run generate && jest && npm run test:esm",
+    "test:esm": "ESM_TESTS=1 NODE_OPTIONS=--experimental-vm-modules jest",
     "pretest:all": "npm run typecheck",
-    "test:all": "npm run generate && TEST_ALL=1 jest",
+    "test:all": "npm run generate && TEST_ALL=1 jest && npm run test:esm",
     "mcp": "npx tsx scripts/mcp.ts",
     "analyze": "jest --coverage --collectCoverageFrom='src/**/*.ts' --collectCoverageFrom='!src/editor/**' --coverageReporters=json && npx tsx analysis/report.ts",
     "analyze:quick": "npx tsx analysis/report.ts",
@@ -44,6 +45,7 @@
     "codemirror": "^6.0.2",
     "express": "^5.2.1",
     "mermaid": "^11.15.0",
-    "ohm-js": "^17.5.0"
+    "ohm-js": "^17.5.0",
+    "unpdf": "^1.6.2"
   }
 }

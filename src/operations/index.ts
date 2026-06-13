@@ -7,6 +7,7 @@ export { compileSchemas } from "./compile-schemas.js";
 export { runGrammar } from "./run-grammar.js";
 export { runTtable } from "./run-ttable.js";
 export { diagram } from "./diagram.js";
+export { pdfToText } from "./pdf-to-text.js";
 
 import { parse } from "./parse.js";
 import { check } from "./check.js";
@@ -16,6 +17,7 @@ import { compileSchemas } from "./compile-schemas.js";
 import { runGrammar } from "./run-grammar.js";
 import { runTtable } from "./run-ttable.js";
 import { diagram } from "./diagram.js";
+import { pdfToText } from "./pdf-to-text.js";
 import type { Operation } from "./types.js";
 
 export const operations: Operation<unknown, unknown>[] = [
@@ -27,4 +29,5 @@ export const operations: Operation<unknown, unknown>[] = [
   runGrammar as Operation<unknown, unknown>,
   runTtable as Operation<unknown, unknown>,
   diagram as Operation<unknown, unknown>,
+  pdfToText as Operation<unknown, unknown>,
 ];
