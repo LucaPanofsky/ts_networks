@@ -39,7 +39,7 @@ function systemField(
   return { system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }] };
 }
 
-const DEFAULT_MODEL = "claude-opus-4-7";
+const DEFAULT_MODEL = "claude-opus-4-8";
 // Structured outputs (e.g. a full classification record) are large; a low ceiling
 // silently truncates the tool result. Default generously; override via the LLM
 // function's `with:` clause when needed.
