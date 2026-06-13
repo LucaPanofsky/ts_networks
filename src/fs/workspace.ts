@@ -15,6 +15,12 @@ export class WorkspaceError extends Error {
   override name = "WorkspaceError";
 }
 
+// Where the flat workspace lives on disk: the TSN_WORKSPACE override (the future
+// container mount point) or ./WORKSPACE relative to the process cwd.
+export function workspaceRoot(): string {
+  return process.env.TSN_WORKSPACE ?? path.resolve(process.cwd(), "WORKSPACE");
+}
+
 // Pure validation: return `name` iff it is a safe bare filename, else throw.
 // Exported so the guarantee is testable without touching disk — it is the
 // load-bearing guard.

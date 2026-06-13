@@ -34,6 +34,11 @@ Cell values are evaluated as JavaScript expressions in the program's sandbox, so
 npx tsx scripts/run.ts examples/geometry.tsn rectangleMetrics 'rect={width:3,height:4}'
 ```
 
+Alternatively, `cell=@filename` seeds the **raw text** of a file from the `WORKSPACE/` directory (read verbatim as a string, *not* evaluated as JS) — the way to feed a real document (e.g. the `.txt` produced by `pdf-to-text`) into a network:
+```bash
+npx tsx scripts/run.ts extract.tsn extractInvoice doc=@example_invoice.txt
+```
+
 **Render a network as a Mermaid diagram (cells, operations, switch cond/value labels, explicit recursion):**
 ```bash
 npx tsx scripts/diagram.ts <file.tsn> [networkName] [live]

@@ -1,5 +1,6 @@
 import { compile } from "../sandbox/jsgen/index.js";
 import { toolsFromConfig } from "./tools.js";
+import { Workspace, WorkspaceError, workspaceRoot } from "../fs/workspace.js";
 import { Something, Contradiction, type InfoStructure } from "../info-structure.js";
 import { MergeObject } from "../information-structures/merge-object.js";
 import { MergeSet } from "../information-structures/merge-set.js";
@@ -26,7 +27,10 @@ export const run: Operation<RunInput, Promise<RunOutput>> = {
       network: { type: "string", description: "Name of the network to run." },
       cells: {
         type: "object",
-        description: "Map of cell names to JavaScript expressions for their initial values.",
+        description:
+          "Map of cell names to initial values. Each value is a JavaScript expression evaluated " +
+          "in the program's sandbox, or `@filename` to seed the raw text of a file from the " +
+          "workspace (read verbatim, not evaluated).",
         additionalProperties: { type: "string" },
       },
     },
@@ -54,8 +58,24 @@ export const run: Operation<RunInput, Promise<RunOutput>> = {
     );
     const sandboxKeys = validEntries.map(([k]) => k);
     const sandboxVals = validEntries.map(([, v]) => v);
+    const ws = new Workspace(workspaceRoot());
     const inputs: Record<string, unknown> = {};
     for (const [name, expr] of Object.entries(cellExprs)) {
+      // `@filename` seeds the RAW TEXT of a workspace file as a string — read
+      // verbatim, never evaluated as JS (a document is data, not code).
+      if (expr.startsWith("@")) {
+        const fileName = expr.slice(1);
+        try {
+          inputs[name] = await ws.readText(fileName);
+        } catch (e) {
+          if (e instanceof WorkspaceError) return { ok: false, error: `cell "${name}": ${e.message}` };
+          if ((e as NodeJS.ErrnoException).code === "ENOENT") {
+            return { ok: false, error: `cell "${name}": no such file in the workspace: ${fileName}` };
+          }
+          return { ok: false, error: `cell "${name}": ${(e as Error).message}` };
+        }
+        continue;
+      }
       try {
         inputs[name] = new Function(...sandboxKeys, `return ${expr}`)(...sandboxVals);
       } catch (e) {

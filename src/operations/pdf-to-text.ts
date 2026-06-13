@@ -1,5 +1,4 @@
-import * as path from "node:path";
-import { Workspace, WorkspaceError } from "../fs/workspace.js";
+import { Workspace, WorkspaceError, workspaceRoot } from "../fs/workspace.js";
 import { pdfToText as decodePdf, PdfExtractError } from "../pdf/extract.js";
 import type { Operation } from "./types.js";
 
@@ -9,12 +8,6 @@ import type { Operation } from "./types.js";
 // auto-surfaces to the MCP server and CLI via the `operations` array.
 
 const PREVIEW_CHARS = 500;
-
-// Where the flat workspace lives: the TSN_WORKSPACE override (the future
-// container mount point) or ./WORKSPACE relative to the process cwd.
-export function workspaceRoot(): string {
-  return process.env.TSN_WORKSPACE ?? path.resolve(process.cwd(), "WORKSPACE");
-}
 
 // Derive the .txt output name from a PDF input name: drop a trailing `.pdf`
 // (any case), append `.txt`. "invoice.pdf" -> "invoice.txt"; "scan" -> "scan.txt".
