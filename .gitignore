@@ -12,6 +12,8 @@ dev
 .claude/
 # Session handoff scratch (deliberately untracked)
 CLAUDE_TUNNEL.md
+# Agent scratch workspace (PDFs/txt the agent materializes — not source)
+WORKSPACE/
 # Generated maintenance-analysis artifacts (the analysis/*.ts tool IS tracked)
 analysis/REPORT.html
 coverage/
