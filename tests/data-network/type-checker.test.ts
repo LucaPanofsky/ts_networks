@@ -1,11 +1,11 @@
-import { typeCheck, typeCheckProgram } from "../../src/data-network/type-checker.js";
+import { typeCheck, typeCheckProgram, validateInterpolate } from "../../src/data-network/type-checker.js";
 import { parseProgram } from "../../src/data-network/tree-to-network.js";
 import { readFileSync } from "fs";
 
 // ── Happy path ────────────────────────────────────────────────────────────────
 
 describe("typeCheck: happy path — documentPipeline", () => {
-  const src = readFileSync("examples/agentic_network_document_analysis_example.tsn", "utf-8");
+  const src = readFileSync("tests/fixtures/document-analysis.tsn", "utf-8");
   const enriched = typeCheck(parseProgram(src).networks[0]!, parseProgram(src));
 
   test("no cell errors", () => {
@@ -274,5 +274,449 @@ end
     for (const enriched of results.values())
       for (const cell of enriched.cells.values())
         expect(cell._errors).toHaveLength(0);
+  });
+});
+
+// ── network/<name> references (arity-only) ─────────────────────────────────────
+
+describe("typeCheck: network/<name> propagator references", () => {
+  const src = `
+defn add
+  signature: from [Number?(x), Number?(y)] to Number?;
+  expression x + y;
+end
+
+defnetwork inner
+  signature: from [x, y] to z;
+  propagate add from [x, y] to z;
+end
+
+defnetwork outer
+  signature: from [a, b] to c;
+  propagate network/inner from [a, b] to c;
+end
+
+defnetwork outerBad
+  signature: from [a] to c;
+  propagate network/inner from [a] to c;
+end
+
+defnetwork outerMixed
+  signature: from [a, b] to c;
+  propagate network/inner from [a, b] to c;
+  propagate add from [a, b] to c;
+end
+`;
+  const program = parseProgram(src);
+  const net = (name: string) => typeCheck(program.networks.find(n => n.name === name)!, program);
+
+  test("correct arity → no propagator or cell errors", () => {
+    const enriched = net("outer");
+    for (const prop of enriched.propagators) expect(prop._errors).toHaveLength(0);
+    for (const cell of enriched.cells.values()) expect(cell._errors).toHaveLength(0);
+  });
+
+  test("wrong arity → arity-mismatch error", () => {
+    const prop = net("outerBad").propagators.find(p => p.fn === "network/inner")!;
+    expect(prop._errors.some(e => e.kind === "arity-mismatch")).toBe(true);
+    const err = prop._errors.find(e => e.kind === "arity-mismatch")!;
+    expect(err.message).toContain("2"); // expects 2
+    expect(err.message).toContain("1"); // got 1
+  });
+
+  test("a network ref contributes no type to its cells (no false conflict)", () => {
+    const enriched = net("outerMixed");
+    const c = enriched.cells.get("c")!;
+    // `add` writes Number?; the network ref adds nothing → single type, no conflict.
+    expect(c.writtenBy.has("Any?")).toBe(false);
+    expect(c._errors.some(e => e.kind === "conflicting-cell-types")).toBe(false);
+  });
+});
+
+// ── defgrammar call sites (grammar/<name>) ──────────────────────────────────────
+
+describe("typeCheck: grammar/<name> as a typed propagator", () => {
+  const src = `
+defrecord CitationRec
+  title: String?;
+  section: String?;
+end
+
+defgrammar Citation
+  signature: from [String?(text)] to CitationRec?;
+  """
+Citation { cite = title "U.S.C." section
+  title = digit+
+  section = digit+ }
+"""
+end
+
+defgrammar Citations
+  signature: from [String?(text)] to [CitationRec?];
+  """
+Citations { cite = title "U.S.C." section
+  title = digit+
+  section = digit+ }
+"""
+end
+
+defnetwork parseOne
+  signature: from [text] to cite;
+  propagate grammar/Citation from [text] to cite;
+end
+
+defnetwork scanAll
+  signature: from [doc] to cites;
+  propagate grammar/Citations from [doc] to cites;
+end
+`;
+  const program = parseProgram(src);
+  const one = typeCheck(program.networks.find(n => n.name === "parseOne")!, program);
+  const scan = typeCheck(program.networks.find(n => n.name === "scanAll")!, program);
+
+  test("scalar grammar: input read as String?, output written as the record type", () => {
+    expect(one.cells.get("text")!.readBy).toContain("String?");
+    expect(one.cells.get("cite")!.writtenBy).toContain("CitationRec?");
+  });
+
+  test("scalar grammar: no errors on any cell or propagator", () => {
+    for (const cell of one.cells.values()) expect(cell._errors).toHaveLength(0);
+    for (const prop of one.propagators) expect(prop._errors).toHaveLength(0);
+  });
+
+  test("vector (scan) grammar: output written as the vector type, no unknown-predicate error", () => {
+    expect(scan.cells.get("cites")!.writtenBy).toContain("[CitationRec?]");
+    for (const prop of scan.propagators) {
+      expect(prop._errors.some(e => e.kind === "unknown-predicate")).toBe(false);
+    }
+  });
+});
+
+describe("typeCheck: grammar/<name> arity mismatch", () => {
+  const src = `
+defrecord CitationRec
+  title: String?;
+end
+
+defgrammar Citation
+  signature: from [String?(text)] to CitationRec?;
+  """
+Citation { cite = title
+  title = digit+ }
+"""
+end
+
+defnetwork bad
+  signature: from [a, b] to cite;
+  propagate grammar/Citation from [a, b] to cite;
+end
+`;
+  const program = parseProgram(src);
+  const enriched = typeCheck(program.networks[0]!, program);
+
+  test("passing 2 args to a 1-arg grammar is an arity-mismatch", () => {
+    const prop = enriched.propagators.find(p => p.fn === "grammar/Citation")!;
+    expect(prop._errors.some(e => e.kind === "arity-mismatch")).toBe(true);
+  });
+});
+
+// ── as mapping / as filtering coercions ─────────────────────────────────────────
+// `as mapping` distributes a scalar fn over a vector: the input cell holds [param]
+// and the output holds [returnType]. `as filtering` keeps survivors: input [param],
+// output [param]. The checker must wrap accordingly, or it falsely reports the fn's
+// scalar param conflicting with the vector cell.
+
+describe("typeCheck: as mapping over a grammar-scanned vector", () => {
+  const src = `
+defrecord Point
+  label: String?;
+end
+
+defrecord Paragraph
+  number: String?;
+  points: [Point?];
+end
+
+defgrammar ParaScan
+  signature: from [String?(text)] to [Paragraph?];
+  """
+ParaScan { paragraph = digit+ }
+"""
+end
+
+defn enrichParagraph
+  signature: from [Paragraph?(p)] to Paragraph?;
+  expression p;
+end
+
+defnetwork pipe
+  signature: from [text] to out;
+  propagate grammar/ParaScan from [text] to raw;
+  propagate enrichParagraph as mapping from [raw] to out;
+end
+`;
+  const program = parseProgram(src);
+  const enriched = typeCheck(program.networks[0]!, program);
+
+  test("no cell errors (the scanned vector feeds the mapping cleanly)", () => {
+    for (const cell of enriched.cells.values()) expect(cell._errors).toHaveLength(0);
+  });
+
+  test("no propagator errors", () => {
+    for (const prop of enriched.propagators) expect(prop._errors).toHaveLength(0);
+  });
+
+  test("the mapped input cell is read AND written as a vector", () => {
+    const raw = enriched.cells.get("raw")!;
+    expect(raw.writtenBy).toContain("[Paragraph?]");
+    expect(raw.readBy).toContain("[Paragraph?]");
+  });
+
+  test("the mapping output cell is a vector of the fn's return type", () => {
+    expect(enriched.cells.get("out")!.writtenBy).toContain("[Paragraph?]");
+  });
+});
+
+describe("typeCheck: as filtering", () => {
+  const src = `
+defpredicate big?
+  signature: from [Number?(n)] to Boolean?;
+  expression n > 2;
+end
+
+defnetwork filt
+  signature: from [xs] to ys;
+  propagate big? as filtering from [xs] to ys;
+end
+`;
+  const program = parseProgram(src);
+  const enriched = typeCheck(program.networks[0]!, program);
+
+  test("no errors; input and output are vectors of the element type", () => {
+    for (const cell of enriched.cells.values()) expect(cell._errors).toHaveLength(0);
+    for (const prop of enriched.propagators) expect(prop._errors).toHaveLength(0);
+    expect(enriched.cells.get("xs")!.readBy).toContain("[Number?]");
+    expect(enriched.cells.get("ys")!.writtenBy).toContain("[Number?]");
+  });
+});
+
+// ── Topology warnings ─────────────────────────────────────────────────────────
+// Signature inputs should be sources (never written by a propagator) and the
+// signature output should be a terminal (never read by a propagator). Violations
+// are legal under the merge algebra — a re-written input just merges, disagreement
+// becomes a Contradiction — so they are *warnings*, not errors.
+
+describe("typeCheck: topology warnings", () => {
+  const topoWarnings = (cell: { _errors: { kind: string; severity?: string }[] }) =>
+    cell._errors.filter(e => e.severity === "warning");
+
+  test("a directed network has no topology warnings", () => {
+    const src = `
+defn add
+  signature: from [Number?(a), Number?(b)] to Number?;
+  expression a + b;
+end
+defnetwork sum
+  signature: from [x, y] to z;
+  propagate add from [x, y] to z;
+end
+`;
+    const program = parseProgram(src);
+    const enriched = typeCheck(program.networks[0]!, program);
+    for (const cell of enriched.cells.values()) expect(topoWarnings(cell)).toHaveLength(0);
+  });
+
+  test("signature input written by a propagator → warning on that cell (not a source)", () => {
+    const src = `
+defn double
+  signature: from [Number?(x)] to Number?;
+  expression x * 2;
+end
+defnetwork broken
+  signature: from [x] to y;
+  propagate double from [x] to x;
+end
+`;
+    const program = parseProgram(src);
+    const enriched = typeCheck(program.networks[0]!, program);
+    const x = enriched.cells.get("x")!;
+    expect(x._errors).toContainEqual({
+      kind: "non-source-input",
+      severity: "warning",
+      message: "signature input 'x' is written to by a propagator — it is not a source",
+    });
+  });
+
+  test("signature output read by a propagator → warning on that cell (not a terminal)", () => {
+    const src = `
+defn add
+  signature: from [Number?(a), Number?(b)] to Number?;
+  expression a + b;
+end
+defn negate
+  signature: from [Number?(x)] to Number?;
+  expression x * -1;
+end
+defnetwork broken
+  signature: from [x, y] to z;
+  propagate add from [x, y] to z;
+  propagate negate from [z] to w;
+end
+`;
+    const program = parseProgram(src);
+    const enriched = typeCheck(program.networks[0]!, program);
+    const z = enriched.cells.get("z")!;
+    expect(z._errors).toContainEqual({
+      kind: "non-terminal-output",
+      severity: "warning",
+      message: "signature output 'z' is used as input by a propagator — it is not a terminal",
+    });
+  });
+
+  test("a switch counts as wiring too — its output written / inputs read are checked", () => {
+    const src = `
+defnetwork routing
+  signature: from [cond, payload] to cond;
+  switch from [cond, payload] to cond;
+end
+`;
+    const program = parseProgram(src);
+    const enriched = typeCheck(program.networks[0]!, program);
+    const cond = enriched.cells.get("cond")!;
+    // `cond` is a signature input written by the switch → non-source warning.
+    expect(topoWarnings(cond).some(e => e.kind === "non-source-input")).toBe(true);
+  });
+
+  test("topology findings are warnings, never errors — a smell, not a soundness break", () => {
+    const src = `
+defn double
+  signature: from [Number?(x)] to Number?;
+  expression x * 2;
+end
+defnetwork broken
+  signature: from [x] to y;
+  propagate double from [x] to x;
+end
+`;
+    const program = parseProgram(src);
+    const enriched = typeCheck(program.networks[0]!, program);
+    const all = [...enriched.cells.values()].flatMap(c => c._errors);
+    const topo = all.filter(e => e.kind === "non-source-input" || e.kind === "non-terminal-output");
+    expect(topo.length).toBeGreaterThan(0);
+    expect(topo.every(e => e.severity === "warning")).toBe(true);
+  });
+});
+
+// ── validateInterpolate ─────────────────────────────────────────────────────
+// Static validation that every {{path}} in an `interpolate` body resolves: the root
+// is a parameter, and each further segment is a field of the prior segment's record
+// type. This converts the runtime "references undefined variable" crash into a
+// located, compile-time error.
+
+describe("validateInterpolate", () => {
+  const check = (src: string) => validateInterpolate(parseProgram(src));
+
+  // Capability — a body whose bare and dotted paths all resolve is clean.
+  it("accepts bare params and dotted record-field paths", () => {
+    const src = `
+defrecord GF
+  point: String?;
+  body:  String?;
+end
+defn make
+  signature: from [GF?(rec), String?(name)] to String?;
+  interpolate """{{rec.point}} / {{rec.body}} / {{name}}""";
+end
+`;
+    expect(check(src)).toEqual([]);
+  });
+
+  // Capability — descent through nested records of arbitrary depth.
+  it("accepts a deeply nested record path", () => {
+    const src = `
+defrecord Leaf
+  v: String?;
+end
+defrecord Mid
+  leaf: Leaf?;
+end
+defn f
+  signature: from [Mid?(m)] to String?;
+  interpolate """{{m.leaf.v}}""";
+end
+`;
+    expect(check(src)).toEqual([]);
+  });
+
+  // Negative — the root is not a parameter.
+  it("rejects a placeholder whose root is not a parameter", () => {
+    const src = `
+defn f
+  signature: from [String?(name)] to String?;
+  interpolate """Hi {{missing}}""";
+end
+`;
+    const errors = check(src);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("no parameter named \"missing\"");
+  });
+
+  // Negative — descending into a scalar (a String has no fields).
+  it("rejects descent into a scalar parameter", () => {
+    const src = `
+defn f
+  signature: from [String?(name)] to String?;
+  interpolate """{{name.first}}""";
+end
+`;
+    const errors = check(src);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("non-record type");
+  });
+
+  // Negative — a real record but an unknown field on it.
+  it("rejects an unknown field on a record parameter", () => {
+    const src = `
+defrecord GF
+  point: String?;
+end
+defn f
+  signature: from [GF?(rec)] to String?;
+  interpolate """{{rec.nope}}""";
+end
+`;
+    const errors = check(src);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("has no field \"nope\"");
+  });
+
+  // Negative — descending into a list field (a vector is not a record).
+  it("rejects descent into a list-valued field", () => {
+    const src = `
+defrecord Item
+  label: String?;
+end
+defrecord Doc
+  items: [Item?];
+end
+defn f
+  signature: from [Doc?(d)] to String?;
+  interpolate """{{d.items.label}}""";
+end
+`;
+    const errors = check(src);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("list");
+  });
+
+  // Invariant — an expression-bodied defn is untouched (no false positives).
+  it("ignores functions without an interpolate body", () => {
+    const src = `
+defn add
+  signature: from [Number?(a), Number?(b)] to Number?;
+  expression a + b;
+end
+`;
+    expect(check(src)).toEqual([]);
   });
 });

@@ -1,4 +1,6 @@
-import { I, Something, type InfoStructure } from "../info-structure.js";
+import { I, Something, Contradiction, type InfoStructure } from "../info-structure.js";
+import { MergeObject } from "../information-structures/merge-object.js";
+import { MergeSet } from "../information-structures/merge-set.js";
 import type { DataNetwork } from "../data-network/data-network.js";
 import type { Registry } from "../registry.js";
 import { naryUnpacking } from "../nary-unpacking.js";
@@ -9,6 +11,111 @@ import { run, type RunResult } from "./runner.js";
 import { AsyncPropagator, wrapSync } from "./async-propagator.js";
 import { asyncRun } from "./async-runner.js";
 import { APromise } from "../information-structures/apromise.js";
+
+// Wrap a propagator's unpacked output so a successful (Something) record result
+// becomes a MergeObject — the form that field-merges when two propagators write
+// the same cell. Nothing and Contradiction pass through untouched. A Something
+// whose content is not a plain object (number, string, array, ...) cannot be
+// lifted, so it becomes a Contradiction.
+function coerceToMergeObject(
+  f: (...args: InfoStructure<unknown>[]) => InfoStructure<unknown>,
+): (...args: InfoStructure<unknown>[]) => InfoStructure<unknown> {
+  return (...args) => {
+    const r = f(...args);
+    if (!(r instanceof Something)) return r;
+    const v = r.content();
+    if (v !== null && typeof v === "object" && !Array.isArray(v)) {
+      return MergeObject.lift(v as Record<string, unknown>);
+    }
+    return new Contradiction("coerce/not-an-object", new Set([r]));
+  };
+}
+
+// As coerceToMergeObject, but lifts a successful array result into a MergeSet — the
+// set-intersection form. A Something whose content is not an array (number, string,
+// plain object, ...) cannot be lifted, so it becomes a Contradiction.
+function coerceToMergeSet(
+  f: (...args: InfoStructure<unknown>[]) => InfoStructure<unknown>,
+): (...args: InfoStructure<unknown>[]) => InfoStructure<unknown> {
+  return (...args) => {
+    const r = f(...args);
+    if (!(r instanceof Something)) return r;
+    const v = r.content();
+    if (Array.isArray(v)) {
+      // An empty array is an empty domain — unsatisfiable, not a valid set.
+      if (v.length === 0) return new Contradiction("coerce/empty-set", new Set([r]));
+      return MergeSet.lift(v);
+    }
+    return new Contradiction("coerce/not-a-collection", new Set([r]));
+  };
+}
+
+// Unlike the structure coercions above (which post-process the *output*), this
+// coerces how the fn is *applied*: the single input cell holds a vector, and the
+// fn is mapped over its elements, gathering the per-element results back into a
+// Something(vector). Each element fires eagerly, so for an async fn all calls run
+// in parallel — the bind-fold only sequences the awaits (wall-time = max, not sum).
+// A Nothing/Contradiction input passes straight through (via bind); a non-array
+// Something is a type error. An element yielding a Contradiction collapses the
+// whole result; an element yielding Nothing makes the whole result Nothing (wait).
+function coerceToMapping(
+  f: (...args: InfoStructure<unknown>[]) => InfoStructure<unknown>,
+): (...args: InfoStructure<unknown>[]) => InfoStructure<unknown> {
+  return (...args) =>
+    args[0]!.bind((arr) => {
+      if (!Array.isArray(arr)) {
+        return new Contradiction("coerce/mapping-not-a-vector", new Set([args[0]]));
+      }
+      const parts = arr.map((el) => f(I(el)));
+      return parts.reduce(
+        (acc, p) => acc.bind((list) => p.bind((v) => I([...(list as unknown[]), v]))),
+        I([]),
+      );
+    });
+}
+
+// As coerceToMapping, but the fn is a predicate: keep each element whose result is
+// truthy, gathering the survivors (in order) into a Something(vector).
+function coerceToFiltering(
+  f: (...args: InfoStructure<unknown>[]) => InfoStructure<unknown>,
+): (...args: InfoStructure<unknown>[]) => InfoStructure<unknown> {
+  return (...args) =>
+    args[0]!.bind((arr) => {
+      if (!Array.isArray(arr)) {
+        return new Contradiction("coerce/filtering-not-a-vector", new Set([args[0]]));
+      }
+      const parts = arr.map((el) => f(I(el)).bind((keep) => I({ el, keep })));
+      return parts.reduce(
+        (acc, p) =>
+          acc.bind((list) =>
+            p.bind((pair) => {
+              const { el, keep } = pair as { el: unknown; keep: unknown };
+              return I(keep ? [...(list as unknown[]), el] : list);
+            }),
+          ),
+        I([]),
+      );
+    });
+}
+
+// Maps an `as <Name>` clause to the wrapper for that coercion. A coercion may
+// post-process the output (MergeObject, MergeSet) or change how the fn is applied
+// (mapping, filtering over a vector input).
+type Coercion = (
+  f: (...args: InfoStructure<unknown>[]) => InfoStructure<unknown>,
+) => (...args: InfoStructure<unknown>[]) => InfoStructure<unknown>;
+
+const COERCIONS = new Map<string, Coercion>([
+  ["MergeObject", coerceToMergeObject],
+  ["MergeSet", coerceToMergeSet],
+  ["mapping", coerceToMapping],
+  ["filtering", coerceToFiltering],
+]);
+
+// Coercions that distribute the fn over a single vector input cell; only the first
+// input is consumed, so any other arity is a mistake and must fail loudly rather
+// than silently drop the extra inputs. (Multi-input zip/broadcast is future work.)
+const ELEMENTWISE_COERCIONS = new Set(["mapping", "filtering"]);
 
 export class NetworkRuntime {
   private readonly _cells: Map<string, Cell>;
@@ -21,7 +128,15 @@ export class NetworkRuntime {
     // Compile propagators: fn string → actual Propagator
     this._propagators = new Map();
     for (const [name, p] of network.propagators) {
-        if (p.fn === "__RECURSIVE") {
+      const asCoercion = p.params["as"];
+      if (asCoercion !== undefined && !COERCIONS.has(asCoercion)) {
+        throw new Error(`NetworkRuntime: unsupported coercion "as ${asCoercion}" (supported: ${[...COERCIONS.keys()].join(", ")})`);
+      }
+      if (asCoercion !== undefined && ELEMENTWISE_COERCIONS.has(asCoercion) && p.from.length !== 1) {
+        throw new Error(`NetworkRuntime: "as ${asCoercion}" requires a single vector input cell, but "${name}" has ${p.from.length}`);
+      }
+      if (p.fn === "__RECURSIVE") {
+        if (asCoercion !== undefined) throw new Error(`NetworkRuntime: "as" coercion is not supported on a recursive propagate`);
         const fromNames = [...p.from];
         const signatureFrom = [...network.signature.from];
         const call = (cells: Map<string, Cell>): NetworkMessage => {
@@ -51,6 +166,7 @@ export class NetworkRuntime {
           if (!entry) throw new Error(`NetworkRuntime: unknown function "${p.fn}" in registry`);
           unpacked = naryUnpacking(entry.impl, entry.arity);
         }
+        if (asCoercion !== undefined) unpacked = COERCIONS.get(asCoercion)!(unpacked);
         this._propagators.set(name, new Propagator(name, p.from, p.to, unpacked));
       }
     }

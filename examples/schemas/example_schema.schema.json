@@ -1,0 +1,117 @@
+{
+  "Measurement": {
+    "type": "object",
+    "properties": {
+      "value": {
+        "type": "number",
+        "description": "PositiveNumber? — satisfies: n > 0"
+      },
+      "label": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "value",
+      "label"
+    ]
+  },
+  "Source": {
+    "type": "object",
+    "properties": {
+      "url": {
+        "type": "string"
+      },
+      "confidence": {
+        "type": "number",
+        "description": "PositiveNumber? — satisfies: n > 0"
+      }
+    },
+    "required": [
+      "url",
+      "confidence"
+    ]
+  },
+  "AnnotatedMeasurement": {
+    "type": "object",
+    "properties": {
+      "measurement": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "number",
+            "description": "PositiveNumber? — satisfies: n > 0"
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "label"
+        ]
+      },
+      "source": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": "number",
+            "description": "PositiveNumber? — satisfies: n > 0"
+          }
+        },
+        "required": [
+          "url",
+          "confidence"
+        ]
+      },
+      "notes": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "measurement",
+      "source",
+      "notes"
+    ]
+  },
+  "Report": {
+    "type": "object",
+    "properties": {
+      "title": {
+        "type": "string"
+      },
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "value": {
+              "type": "number",
+              "description": "PositiveNumber? — satisfies: n > 0"
+            },
+            "label": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "value",
+            "label"
+          ]
+        }
+      },
+      "tags": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "required": [
+      "title",
+      "items",
+      "tags"
+    ]
+  }
+}

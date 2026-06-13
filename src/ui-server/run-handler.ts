@@ -10,6 +10,6 @@ export type RunResponse =
   | { ok: true; network: string; cells: Record<string, unknown> }
   | { ok: false; error: string };
 
-export function handleRun(req: RunRequest): RunResponse {
-  return run.handle(req) as RunResponse;
+export async function handleRun(req: RunRequest): Promise<RunResponse> {
+  return (await run.handle(req)) as RunResponse;
 }

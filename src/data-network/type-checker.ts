@@ -1,10 +1,21 @@
 import type { ProgramAST, DataNetworkAST } from "./types.js";
 import { typeRefToString } from "./types.js";
+import { placeholderPaths } from "./placeholders.js";
 
 // ── Public types ──────────────────────────────────────────────────────────────
 
 export type TypeError = {
-  kind: "conflicting-cell-types" | "input-type-mismatch" | "unknown-predicate" | "arity-mismatch";
+  kind:
+    | "conflicting-cell-types"
+    | "input-type-mismatch"
+    | "unknown-predicate"
+    | "arity-mismatch"
+    | "non-source-input"
+    | "non-terminal-output";
+  // Soundness violations are errors (the default when omitted). `non-source-input` /
+  // `non-terminal-output` are *warnings*: legal under the merge algebra (a re-written
+  // input merges; disagreement is a Contradiction value), just usually a wiring smell.
+  severity?: "error" | "warning";
   message: string;
 };
 
@@ -20,6 +31,11 @@ export type EnrichedPropagator = {
   fn: string | null;
   from: string[];
   to: string;
+  // The param types as seen by the *cells*, after any `as` coercion. For `as mapping`
+  // / `as filtering` these are the fn's params wrapped in a vector; otherwise the
+  // fn's params verbatim. Pass 2 (input-type-mismatch) reads these so it agrees with
+  // the cell types Pass 1 recorded.
+  _paramTypes?: string[];
   _errors: TypeError[];
 };
 
@@ -41,10 +57,20 @@ function buildFnMap(program: ProgramAST): Map<string, FnSignature> {
       returnType: typeRefToString(fn.returnType),
     });
   }
-  for (const agent of program.agents) {
-    map.set(agent.name, {
-      params: agent.params.map(p => p.predicate),
-      returnType: typeRefToString(agent.returnType),
+  for (const llmFn of program.llmFns) {
+    map.set(llmFn.name, {
+      params: llmFn.params.map(p => p.predicate),
+      returnType: typeRefToString(llmFn.returnType),
+    });
+  }
+  // A signed grammar is callable as `grammar/<name>` and is fully typed like a fn: its
+  // params and (scalar or vector) return type drive the same checks. Unsigned grammars
+  // (bare recognizers) carry no types and are handled arity-only below.
+  for (const grammar of program.grammars) {
+    if (!grammar.signature) continue;
+    map.set(`grammar/${grammar.name}`, {
+      params: grammar.signature.params.map(p => p.predicate),
+      returnType: typeRefToString(grammar.signature.returnType),
     });
   }
   return map;
@@ -58,11 +84,86 @@ function buildKnownPredicates(program: ProgramAST): Set<string> {
   return known;
 }
 
+// ── Interpolate body validation ─────────────────────────────────────────────
+//
+// A pure, program-level check (like the grammar/extract/ttable validators): every
+// `{{path}}` in a `defn ... interpolate` body must resolve against the function's
+// parameters. The root segment must name a parameter; each further segment must be a
+// field of the prior segment's record type. Without this, an unresolved path is only
+// caught at run time — an unknown root as a JS ReferenceError, a bad sub-path as a
+// renderer error. This turns both into a located, compile-time message. Leaf type is
+// unconstrained: any resolvable value is stringified by the renderer.
+//
+// Sandbox-independent (AST + record shapes only), so the typecheck operation calls it
+// statically. Returns one message per unresolved path (empty = clean).
+export function validateInterpolate(program: ProgramAST): string[] {
+  const errors: string[] = [];
+  const recordIndex = new Map(program.records.map(r => [r.name, r]));
+  // The record an interpolate path can descend into: a scalar record type like `GF?`
+  // (or `GF`). A primitive (`String?`), an enum, or a list (`[GF?]`) has no fields.
+  const recordOf = (typeStr: string) => {
+    if (typeStr.startsWith("[")) return null;
+    const name = typeStr.endsWith("?") ? typeStr.slice(0, -1) : typeStr;
+    return recordIndex.get(name) ?? null;
+  };
+
+  for (const fn of program.fns) {
+    if (fn.body.kind !== "interpolate") continue;
+    const paramType = new Map(fn.params.map(p => [p.name, p.predicate]));
+
+    for (const path of placeholderPaths(fn.body.template)) {
+      const segments = path.split(".");
+      const root = segments[0]!;
+      if (!paramType.has(root)) {
+        errors.push(`defn ${fn.name}: interpolate references {{${path}}} but there is no parameter named "${root}"`);
+        continue;
+      }
+
+      let currentType = paramType.get(root)!;
+      for (let i = 1; i < segments.length; i++) {
+        const segment = segments[i]!;
+        const prefix = segments.slice(0, i).join(".");
+        if (currentType.startsWith("[")) {
+          errors.push(`defn ${fn.name}: interpolate path {{${path}}} descends into "${segment}", but "${prefix}" is a list (${currentType})`);
+          break;
+        }
+        const rec = recordOf(currentType);
+        if (!rec) {
+          errors.push(`defn ${fn.name}: interpolate path {{${path}}} descends into "${segment}", but "${prefix}" has non-record type "${currentType}"`);
+          break;
+        }
+        const field = rec.fields.find(f => f.name === segment);
+        if (!field) {
+          errors.push(`defn ${fn.name}: interpolate path {{${path}}} — record "${rec.name}" has no field "${segment}"`);
+          break;
+        }
+        currentType = typeRefToString(field.type);
+      }
+    }
+  }
+  return errors;
+}
+
 // ── Core pass ─────────────────────────────────────────────────────────────────
 
 export function typeCheck(network: DataNetworkAST, program: ProgramAST): EnrichedNetwork {
   const fnMap = buildFnMap(program);
   const known = buildKnownPredicates(program);
+
+  // A network is callable as `network/<name>` with arity = its number of signature
+  // inputs. Networks declare no cell *types*, so the only sound check is arity — and
+  // it deliberately contributes nothing to cell type-inference (adding a synthetic
+  // type here would create false "conflicting types" errors on shared cells).
+  const networkArity = new Map<string, number>();
+  for (const n of program.networks) networkArity.set(`network/${n.name}`, n.signature.from.length);
+  // Unsigned grammars (bare recognizers) are arity-only callables, like networks: a
+  // signature would have typed them into fnMap above. Their arity is always 1 (a string).
+  for (const g of program.grammars) if (!g.signature) networkArity.set(`grammar/${g.name}`, 1);
+
+  // A declared type is known if it is a known scalar predicate, or a vector `[X]`
+  // whose element `X` is a known scalar (grammar scan returns and vector-valued fns).
+  const isKnownType = (t: string): boolean =>
+    t.startsWith("[") && t.endsWith("]") ? known.has(t.slice(1, -1)) : known.has(t);
 
   const cells = new Map<string, EnrichedCell>();
   const propagators: EnrichedPropagator[] = [];
@@ -94,20 +195,47 @@ export function typeCheck(network: DataNetworkAST, program: ProgramAST): Enriche
         });
       }
 
-      const returnType = sig.returnType;
+      // An `as mapping` / `as filtering` coercion distributes the fn over a vector:
+      // the cell types are the fn's types wrapped in `[...]`. Mapping yields a vector
+      // of the return type; filtering keeps survivors, so it yields a vector of the
+      // (single) input element type. The structure coercions (MergeObject/MergeSet)
+      // post-process the value without changing arity, so types are unchanged.
+      const coercion = term.params["as"];
+      const isMapping = coercion === "mapping";
+      const isFiltering = coercion === "filtering";
+      const vec = (t: string) => `[${t}]`;
+
+      const returnType =
+        isMapping   ? vec(sig.returnType) :
+        isFiltering ? vec(sig.params[0] ?? sig.returnType) :
+        sig.returnType;
       getCell(term.to).writtenBy.add(returnType);
-      if (!known.has(returnType)) {
+      if (!isKnownType(returnType)) {
         ep._errors.push({ kind: "unknown-predicate", message: `return type '${returnType}' of '${term.fn}' is not defined` });
       }
 
+      const paramTypes = (isMapping || isFiltering) ? sig.params.map(vec) : sig.params;
+      ep._paramTypes = paramTypes;
       for (let i = 0; i < term.from.length; i++) {
-        const paramType = sig.params[i];
+        const paramType = paramTypes[i];
         if (!paramType) continue;
         getCell(term.from[i]!).readBy.add(paramType);
-        if (!known.has(paramType)) {
+        if (!isKnownType(paramType)) {
           ep._errors.push({ kind: "unknown-predicate", message: `parameter type '${paramType}' of '${term.fn}' is not defined` });
         }
       }
+    } else if (networkArity.has(term.fn)) {
+      // A sub-network reference: check arity only. Register the cells so they appear
+      // in the topology, but add no types (networks are untyped at the cell level).
+      const arity = networkArity.get(term.fn)!;
+      if (term.from.length !== arity) {
+        ep._errors.push({
+          kind: "arity-mismatch",
+          message: `'${term.fn}' expects ${arity} argument(s) but got ${term.from.length}`,
+        });
+      }
+      getCell(term.to);
+      for (const c of term.from) getCell(c);
     }
 
     propagators.push(ep);
@@ -177,9 +305,10 @@ export function typeCheck(network: DataNetworkAST, program: ProgramAST): Enriche
     const sig = fnMap.get(ep.fn);
     if (!sig) continue;
 
+    const paramTypes = ep._paramTypes ?? sig.params;
     for (let i = 0; i < ep.from.length; i++) {
       const cell = cells.get(ep.from[i]!);
-      const paramType = sig.params[i];
+      const paramType = paramTypes[i];
       if (!cell || !paramType) continue;
 
       const inferred =
@@ -194,6 +323,37 @@ export function typeCheck(network: DataNetworkAST, program: ProgramAST): Enriche
         });
       }
     }
+  }
+
+  // ── Topology warnings ──────────────────────────────────────────────────────
+  // A well-formed network reads its signature inputs and writes its signature
+  // output; the reverse (an input written by a propagator, an output fed back into
+  // one) is legal under the merge algebra but usually a wiring mistake. Walk the
+  // terms directly so untyped sub-network/switch wiring counts too.
+  const writtenCells = new Set<string>();
+  const readCells = new Set<string>();
+  for (const term of network.terms) {
+    if (term.kind === "propagate" || term.kind === "switch") {
+      writtenCells.add(term.to);
+      for (const c of term.from) readCells.add(c);
+    }
+  }
+  for (const name of network.signature.from) {
+    if (writtenCells.has(name)) {
+      getCell(name)._errors.push({
+        kind: "non-source-input",
+        severity: "warning",
+        message: `signature input '${name}' is written to by a propagator — it is not a source`,
+      });
+    }
+  }
+  const out = network.signature.to;
+  if (readCells.has(out)) {
+    getCell(out)._errors.push({
+      kind: "non-terminal-output",
+      severity: "warning",
+      message: `signature output '${out}' is used as input by a propagator — it is not a terminal`,
+    });
   }
 
   return { name: network.name, cells, propagators };

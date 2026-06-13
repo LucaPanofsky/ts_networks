@@ -1,4 +1,4 @@
-import { compileRecord, compileExpr, compileEnum, compileProgram } from "../../../src/sandbox/jsgen/compiler.js";
+import { compileRecord, compileExpr, compileEnum, compileProgram, reservedFieldErrors } from "../../../src/sandbox/jsgen/compiler.js";
 import type { RecordAST, FnAST, EnumAST, ProgramAST, Expr, MatchExpr } from "../../../src/data-network/types.js";
 
 // ── Shared fixtures ───────────────────────────────────────────────────────────
@@ -67,11 +67,30 @@ describe("invariants", () => {
   });
 });
 
+describe("interpolate codegen", () => {
+  test("lowers to an __interp call passing the referenced roots", () => {
+    const out = compileExpr({ kind: "interpolate", template: "Hi {{name}}!" });
+    expect(out).toBe('__interp("Hi {{name}}!", { name: name })');
+  });
+
+  test("passes the root once per distinct root, derived from dotted paths", () => {
+    // `rec.point` and `rec.body` share the root `rec`; `n` is a second root. The
+    // arg object names each root exactly once, in first-appearance order.
+    const out = compileExpr({ kind: "interpolate", template: "{{rec.point}} {{n}} {{rec.body}}" });
+    expect(out).toBe('__interp("{{rec.point}} {{n}} {{rec.body}}", { rec: rec, n: n })');
+  });
+
+  test("emits an empty arg object when there are no placeholders", () => {
+    const out = compileExpr({ kind: "interpolate", template: "no holes" });
+    expect(out).toBe('__interp("no holes", {  })');
+  });
+});
+
 // ── Units ─────────────────────────────────────────────────────────────────────
 
 describe("compileProgram", () => {
   const program: ProgramAST = {
-    records: [vec2], fns: [addFn], networks: [], derives: [], agents: [], enums: [docType],
+    records: [vec2], fns: [addFn], networks: [], derives: [], llmFns: [], enums: [docType], grammars: [], extracts: [], ttables: [], parameters: [],
   };
 
   test("records emitted before functions", () => {
@@ -87,9 +106,78 @@ describe("compileProgram", () => {
     expect(out).toContain(`"DocType?": DocType$`);
   });
 
-  test("empty program emits bare return", () => {
-    expect(compileProgram({ records: [], fns: [], networks: [], derives: [], agents: [], enums: [] }))
-      .toBe("return {};");
+  test("empty program emits only the builtins preamble and a bare return", () => {
+    const out = compileProgram({ records: [], fns: [], networks: [], derives: [], llmFns: [], enums: [], grammars: [], extracts: [], ttables: [], parameters: [] });
+    // No user definitions, so the export map is empty; the builtins (every/some)
+    // are always in scope.
+    expect(out).toContain("const every = function(pred, coll)");
+    expect(out).toContain("const some = function(pred, coll)");
+    expect(out.trimEnd().endsWith("return {};")).toBe(true);
+  });
+});
+
+// ── Reserved-word record fields (#5) ──────────────────────────────────────────
+// A record field becomes a constructor PARAMETER and a value-position identifier in
+// the emitted constructor (`function(new) { return { __type, new: new }; }`), so a
+// reserved JS word as a field name produces invalid JS that otherwise surfaces only
+// as a cryptic SyntaxError when the sandbox is built. These checks turn that late
+// failure into an early, located diagnostic.
+
+const programWith = (records: RecordAST[]): ProgramAST => ({
+  records, fns: [], networks: [], derives: [], llmFns: [], enums: [], grammars: [], extracts: [], ttables: [], parameters: [],
+});
+
+const recordWithField = (field: string): RecordAST => ({
+  kind: "record", name: "Foo",
+  fields: [{ name: field, type: { kind: "scalar", predicate: "String?" } }],
+});
+
+describe("reservedFieldErrors", () => {
+  test("flags a reserved word, naming the record and the field", () => {
+    const [err, ...rest] = reservedFieldErrors(programWith([recordWithField("new")]));
+    expect(rest).toHaveLength(0);
+    expect(err).toContain("Foo");
+    expect(err).toContain(`"new"`);
+    expect(err).toMatch(/reserved JavaScript word/i);
+  });
+
+  test("flags every reserved-word field across all records", () => {
+    const errs = reservedFieldErrors(programWith([
+      { kind: "record", name: "A", fields: [
+        { name: "class", type: { kind: "scalar", predicate: "String?" } },
+        { name: "ok", type: { kind: "scalar", predicate: "String?" } },
+        { name: "default", type: { kind: "scalar", predicate: "String?" } },
+      ] },
+      { kind: "record", name: "B", fields: [
+        { name: "case", type: { kind: "scalar", predicate: "String?" } },
+      ] },
+    ]));
+    expect(errs).toHaveLength(3);
+  });
+
+  test("does NOT flag a non-reserved name that merely looks keyword-ish (`type`)", () => {
+    // `type` is a TS contextual keyword but a perfectly legal JS identifier, so it
+    // compiles fine — the check must use the real JS reserved set, not a guess.
+    expect(reservedFieldErrors(programWith([recordWithField("type")]))).toEqual([]);
+    expect(reservedFieldErrors(programWith([recordWithField("width")]))).toEqual([]);
+  });
+
+  test("a flagged field would otherwise emit invalid JS", () => {
+    // Documents WHY the check exists: the raw codegen for the field is unparseable.
+    expect(() => new Function(compileRecord(recordWithField("new")) + "\nreturn Foo;")).toThrow();
+    // ...while a legal field name compiles.
+    expect(() => new Function(compileRecord(recordWithField("type")) + "\nreturn Foo;")).not.toThrow();
+  });
+});
+
+describe("compileProgram reserved-word guard", () => {
+  test("throws a clear, located error instead of emitting invalid JS", () => {
+    expect(() => compileProgram(programWith([recordWithField("new")])))
+      .toThrow(/reserved JavaScript word/i);
+  });
+
+  test("a clean program still compiles", () => {
+    expect(() => compileProgram(programWith([recordWithField("width")]))).not.toThrow();
   });
 });
 

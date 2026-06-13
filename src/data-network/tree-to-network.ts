@@ -1,6 +1,7 @@
 import { parser } from "./parser.js";
 import type {
-  ProgramAST, DataNetworkAST, RecordAST, FnAST, DeriveAST, AgentAST, EnumAST,
+  ProgramAST, DataNetworkAST, RecordAST, FnAST, DeriveAST, LLMFnAST, EnumAST, GrammarAST, ParameterAST,
+  ExtractAST, ExtractWithin, ExtractStmt, TTableAST,
   Term, PropagateTerm, SwitchTerm, CellTerm, ConstantTerm,
   FieldDecl, TypedParam, TypeRef,
   Expr, LiteralExpr, VarExpr, CallExpr, BinaryExpr, UnaryExpr, FieldExpr,
@@ -33,8 +34,12 @@ export function parseProgram(input: string): ProgramAST {
   const records: RecordAST[] = [];
   const fns: FnAST[] = [];
   const derives: DeriveAST[] = [];
-  const agents: AgentAST[] = [];
+  const llmFns: LLMFnAST[] = [];
   const enums: EnumAST[] = [];
+  const grammars: GrammarAST[] = [];
+  const extracts: ExtractAST[] = [];
+  const ttables: TTableAST[] = [];
+  const parameters: ParameterAST[] = [];
 
   // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -80,15 +85,20 @@ export function parseProgram(input: string): ProgramAST {
     cursor.firstChild();
     cursor.nextSibling(); // FunctionName
     const fn = collectFunctionName();
-    cursor.nextSibling(); // From
+    const params: Record<string, string> = {};
+    cursor.nextSibling(); // As | From
+    if (cursor.name === "As") {
+      cursor.nextSibling(); // Name (coercion type)
+      params["as"] = slice(cursor.from, cursor.to);
+      cursor.nextSibling(); // From
+    }
     cursor.nextSibling(); // CellList
     const from = collectCellList();
     cursor.nextSibling(); // To
     cursor.nextSibling(); // Name (to cell)
     const to = slice(cursor.from, cursor.to);
-    let params: Record<string, string> = {};
     if (cursor.nextSibling() && cursor.name === "WithClause") {
-      params = collectParams();
+      Object.assign(params, collectParams());
     }
     cursor.parent();
     return { kind: "propagate", fn, from, to, params };
@@ -120,6 +130,41 @@ export function parseProgram(input: string): ProgramAST {
     const to = slice(cursor.from, cursor.to);
     cursor.parent();
     return { kind: "switch", fn, from, to };
+  };
+
+  // ── FnSignature ──────────────────────────────────────────────────────────────
+  // Shared by defn, defpredicate, defllmfn, and defgrammar — they all use the same
+  // `from [Pred?(name), …] to (Name | [Name])` signature. Cursor must be on the
+  // FnSignature node; on return it is restored to that node.
+
+  const collectFnSignature = (): { params: TypedParam[]; returnType: TypeRef } => {
+    const params: TypedParam[] = [];
+    let returnType: TypeRef = { kind: "scalar", predicate: "" };
+    let seenTo = false;
+    if (!cursor.firstChild()) return { params, returnType };
+    do {
+      if (cn() === "TypedParam") {
+        const names: string[] = [];
+        if (cursor.firstChild()) {
+          do {
+            if (cn() === "Name") names.push(slice(cursor.from, cursor.to));
+          } while (cursor.nextSibling());
+          cursor.parent();
+        }
+        if (names.length >= 2) params.push({ predicate: names[0]!, name: names[1]! });
+      } else if (cn() === "To") {
+        seenTo = true;
+      } else if (cn() === "VectorTypeRef" && seenTo) {
+        cursor.firstChild(); cursor.nextSibling();
+        const element = slice(cursor.from, cursor.to);
+        cursor.parent();
+        returnType = { kind: "vector", element };
+      } else if (cn() === "Name" && seenTo) {
+        returnType = { kind: "scalar", predicate: slice(cursor.from, cursor.to) };
+      }
+    } while (cursor.nextSibling());
+    cursor.parent();
+    return { params, returnType };
   };
 
   // ── expression parser ──────────────────────────────────────────────────────
@@ -381,30 +426,16 @@ export function parseProgram(input: string): ProgramAST {
       if (cursor.name === "Name" && !name) {
         name = slice(cursor.from, cursor.to);
       } else if (cursor.name === "FnSignature") {
-        let seenTo = false;
-        if (!cursor.firstChild()) continue;
-        do {
-          if (cn() === "TypedParam") {
-            const names: string[] = [];
-            if (cursor.firstChild()) {
-              do {
-                if (cn() === "Name") names.push(slice(cursor.from, cursor.to));
-              } while (cursor.nextSibling());
-              cursor.parent();
-            }
-            if (names.length >= 2) params.push({ predicate: names[0]!, name: names[1]! });
-          } else if (cn() === "To") {
-            seenTo = true;
-          } else if (cn() === "VectorTypeRef" && seenTo) {
-            cursor.firstChild(); cursor.nextSibling();
-            const element = slice(cursor.from, cursor.to);
-            cursor.parent();
-            returnType = { kind: "vector", element };
-          } else if (cn() === "Name" && seenTo) {
-            returnType = { kind: "scalar", predicate: slice(cursor.from, cursor.to) };
-          }
-        } while (cursor.nextSibling());
-        cursor.parent();
+        ({ params, returnType } = collectFnSignature());
+      } else if (cursor.name === "InterpolateBody") {
+        // `interpolate """..."""` — read the triple-quoted template like defllmfn
+        // does its prompt. The body is the interpolate Expr; the referenced argument
+        // roots are derived from the template at codegen time, not stored here.
+        cursor.firstChild(); // Interpolate_
+        cursor.nextSibling(); // PromptString
+        const raw = slice(cursor.from, cursor.to);
+        body = { kind: "interpolate", template: raw.slice(3, -3).trim() };
+        cursor.parent(); // exit InterpolateBody
       } else if (cursor.name === "ExpressionBody") {
         cursor.firstChild(); // Expression_
         cursor.nextSibling(); // LetBody
@@ -433,44 +464,21 @@ export function parseProgram(input: string): ProgramAST {
     return { kind: "fn", isPredicate, name, params, returnType, body };
   };
 
-  // ── AgentDef ───────────────────────────────────────────────────────────────
+  // ── LLMFnDef ───────────────────────────────────────────────────────────────
 
-  const collectAgentDef = (): AgentAST => {
+  const collectLLMFnDef = (): LLMFnAST => {
     let name = "";
     let params: TypedParam[] = [];
     let returnType: TypeRef = { kind: "scalar", predicate: "" };
     let config: Record<string, string> = {};
     let prompt = "";
 
-    if (!cursor.firstChild()) return { kind: "agent", name, params, returnType, prompt, config };
+    if (!cursor.firstChild()) return { kind: "llmfn", name, params, returnType, prompt, config };
     do {
       if (cursor.name === "Name" && !name) {
         name = slice(cursor.from, cursor.to);
       } else if (cursor.name === "FnSignature") {
-        let seenTo = false;
-        if (!cursor.firstChild()) continue;
-        do {
-          if (cn() === "TypedParam") {
-            const names: string[] = [];
-            if (cursor.firstChild()) {
-              do {
-                if (cn() === "Name") names.push(slice(cursor.from, cursor.to));
-              } while (cursor.nextSibling());
-              cursor.parent();
-            }
-            if (names.length >= 2) params.push({ predicate: names[0]!, name: names[1]! });
-          } else if (cn() === "To") {
-            seenTo = true;
-          } else if (cn() === "VectorTypeRef" && seenTo) {
-            cursor.firstChild(); cursor.nextSibling();
-            const element = slice(cursor.from, cursor.to);
-            cursor.parent();
-            returnType = { kind: "vector", element };
-          } else if (cn() === "Name" && seenTo) {
-            returnType = { kind: "scalar", predicate: slice(cursor.from, cursor.to) };
-          }
-        } while (cursor.nextSibling());
-        cursor.parent();
+        ({ params, returnType } = collectFnSignature());
       } else if (cursor.name === "WithClause") {
         config = collectParams();
       } else if (cursor.name === "PromptString") {
@@ -479,7 +487,158 @@ export function parseProgram(input: string): ProgramAST {
       }
     } while (cursor.nextSibling());
     cursor.parent();
-    return { kind: "agent", name, params, returnType, prompt, config };
+    return { kind: "llmfn", name, params, returnType, prompt, config };
+  };
+
+  // ── GrammarDef ───────────────────────────────────────────────────────────────
+
+  const collectGrammarDef = (): GrammarAST => {
+    let name = "";
+    let source = "";
+    let signature: GrammarAST["signature"];
+
+    if (!cursor.firstChild()) return { kind: "grammar", name, source };
+    do {
+      if (cursor.name === "Name" && !name) {
+        name = slice(cursor.from, cursor.to);
+      } else if (cursor.name === "FnSignature") {
+        signature = collectFnSignature();
+      } else if (cursor.name === "PromptString") {
+        const raw = slice(cursor.from, cursor.to);
+        source = raw.slice(3, -3).trim();
+      }
+    } while (cursor.nextSibling());
+    cursor.parent();
+    return { kind: "grammar", name, source, signature };
+  };
+
+  // ── ExtractDef ─────────────────────────────────────────────────────────────
+  // A ScanStmt/ParseStmt holds three Names in source order — record, field, grammar
+  // — separated by the As/Using keyword nodes. Collecting Names by order is robust to
+  // those intervening keyword nodes.
+  const collectExtractBind = (kind: "scan" | "parse"): ExtractStmt => {
+    const names: string[] = [];
+    cursor.firstChild();
+    do {
+      if (cursor.name === "Name") names.push(slice(cursor.from, cursor.to));
+    } while (cursor.nextSibling());
+    cursor.parent();
+    return { kind, record: names[0] ?? "", as: names[1] ?? "", grammar: names[2] ?? "" };
+  };
+
+  // A WithinBlock: `Within Name (Using Name)? ExtractStmt* End`. The first Name is the
+  // target (record at the root, field when nested); a Name after the Using node is the
+  // grammar reference (root only). Nested scopes carry no grammar.
+  const collectWithinBlock = (): ExtractWithin => {
+    let target = "";
+    let grammar: string | undefined;
+    let seenUsing = false;
+    const body: ExtractStmt[] = [];
+    cursor.firstChild(); // Within keyword
+    do {
+      const n = cursor.name;
+      if (n === "Name") {
+        if (!target) target = slice(cursor.from, cursor.to);
+        else if (seenUsing) grammar = slice(cursor.from, cursor.to);
+      } else if (n === "Using") {
+        seenUsing = true;
+      } else if (n === "ExtractStmt") {
+        // ExtractStmt is a wrapper (like Term); descend to the ScanStmt/ParseStmt/
+        // WithinBlock it holds.
+        cursor.firstChild();
+        const inner = cursor.name;
+        if (inner === "ScanStmt") body.push(collectExtractBind("scan"));
+        else if (inner === "ParseStmt") body.push(collectExtractBind("parse"));
+        else if (inner === "WithinBlock") body.push(collectWithinBlock());
+        cursor.parent();
+      }
+    } while (cursor.nextSibling());
+    cursor.parent();
+    const within: ExtractWithin = { kind: "within", target, body };
+    if (grammar !== undefined) within.grammar = grammar;
+    return within;
+  };
+
+  const collectExtractDef = (): ExtractAST => {
+    let name = "";
+    let root: ExtractWithin = { kind: "within", target: "", body: [] };
+    cursor.firstChild(); // Defextract keyword
+    do {
+      const n = cursor.name;
+      if (n === "Name" && !name) name = slice(cursor.from, cursor.to);
+      else if (n === "WithinBlock") root = collectWithinBlock();
+    } while (cursor.nextSibling());
+    cursor.parent();
+    return { kind: "extract", name, root };
+  };
+
+  // ── TTableDef ──────────────────────────────────────────────────────────────
+  // Clauses may appear in any order: a RowClause (`row: Rec;`), a CellClause
+  // (`cell: '|';`), and HeaderClause lines (`header field = 'text';`). Strings are
+  // single-quoted, so slice(1, -1) drops the quotes.
+  const collectTTableDef = (): TTableAST => {
+    let name = "";
+    let row = "";
+    let cell = "";
+    const headers: { field: string; text?: string }[] = [];
+    cursor.firstChild(); // Ttable keyword
+    do {
+      const n = cursor.name;
+      if (n === "Name" && !name) {
+        name = slice(cursor.from, cursor.to);
+      } else if (n === "RowClause") {
+        cursor.firstChild(); cursor.nextSibling(); cursor.nextSibling(); // Row, ":", Name
+        row = slice(cursor.from, cursor.to);
+        cursor.parent();
+      } else if (n === "CellClause") {
+        cursor.firstChild(); cursor.nextSibling(); cursor.nextSibling(); // Cell, ":", String
+        cell = slice(cursor.from, cursor.to).slice(1, -1);
+        cursor.parent();
+      } else if (n === "HeaderClause") {
+        // `header field;` (declared) or `header field = 'text';` (located).
+        let field = "";
+        let text: string | undefined;
+        cursor.firstChild();
+        do {
+          if (cursor.name === "Name" && !field) field = slice(cursor.from, cursor.to);
+          else if (cursor.name === "String") text = slice(cursor.from, cursor.to).slice(1, -1);
+        } while (cursor.nextSibling());
+        cursor.parent();
+        headers.push(text !== undefined ? { field, text } : { field });
+      }
+    } while (cursor.nextSibling());
+    cursor.parent();
+    return { kind: "ttable", name, row, cell, headers };
+  };
+
+  // ── ParameterDef ───────────────────────────────────────────────────────────
+
+  const collectParameterDef = (): ParameterAST => {
+    let name = "";
+    let type: TypeRef = { kind: "scalar", predicate: "" };
+    let value: string | undefined;
+
+    if (!cursor.firstChild()) return { kind: "parameter", name, type };
+    do {
+      if (cursor.name === "Name" && !name) {
+        name = slice(cursor.from, cursor.to);
+      } else if (cursor.name === "TypeClause") {
+        cursor.firstChild(); // Type keyword
+        cursor.nextSibling(); // ":"
+        cursor.nextSibling(); // Name
+        type = { kind: "scalar", predicate: slice(cursor.from, cursor.to) };
+        cursor.parent();
+      } else if (cursor.name === "ValueClause") {
+        cursor.firstChild(); // Value keyword
+        cursor.nextSibling(); // ":"
+        cursor.nextSibling(); // PromptString
+        const raw = slice(cursor.from, cursor.to);
+        value = raw.slice(3, -3).trim();
+        cursor.parent();
+      }
+    } while (cursor.nextSibling());
+    cursor.parent();
+    return { kind: "parameter", name, type, value };
   };
 
   // ── top-level walk ─────────────────────────────────────────────────────────
@@ -493,13 +652,17 @@ export function parseProgram(input: string): ProgramAST {
       else if (cn() === "FnDef") fns.push(collectFnDef(false));
       else if (cn() === "PredicateDef") fns.push(collectFnDef(true));
       else if (cn() === "DeriveDef") derives.push(collectDeriveDef());
-      else if (cn() === "AgentDef") agents.push(collectAgentDef());
+      else if (cn() === "LLMFnDef") llmFns.push(collectLLMFnDef());
       else if (cn() === "EnumDef") enums.push(collectEnumDef());
+      else if (cn() === "GrammarDef") grammars.push(collectGrammarDef());
+      else if (cn() === "ExtractDef") extracts.push(collectExtractDef());
+      else if (cn() === "TTableDef") ttables.push(collectTTableDef());
+      else if (cn() === "ParameterDef") parameters.push(collectParameterDef());
       cursor.parent();
     }
   } while (cursor.nextSibling());
 
-  return { networks, records, fns, derives, agents, enums };
+  return { networks, records, fns, derives, llmFns, enums, grammars, extracts, ttables, parameters };
 }
 
 export function parseNetwork(input: string): DataNetworkAST {

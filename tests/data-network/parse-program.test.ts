@@ -70,6 +70,31 @@ describe("parseProgram: defn", () => {
   test("no error nodes", () => noErrorNodes(fnSimple));
 });
 
+// ── defn — interpolate body ──────────────────────────────────────────────────
+
+const fnInterpolate = `
+defn render
+  signature: from [String?(name)] to String?;
+  interpolate """Hi {{name}}, welcome { home }""";
+end
+`;
+
+describe("parseProgram: defn interpolate body", () => {
+  const fn = parseProgram(fnInterpolate).fns[0]! as FnAST;
+
+  test("body is an interpolate node carrying the trimmed template verbatim", () => {
+    // The triple quotes are stripped; the inner text (including the literal single
+    // braces of `{ home }`) is preserved. Referenced roots are NOT stored — they are
+    // derived at codegen time.
+    expect(fn.body).toEqual({
+      kind: "interpolate",
+      template: "Hi {{name}}, welcome { home }",
+    });
+  });
+
+  test("no error nodes", () => noErrorNodes(fnInterpolate));
+});
+
 // ── defn — no params ─────────────────────────────────────────────────────────
 
 const fnNoParams = `
@@ -340,12 +365,12 @@ describe("parseProgram: match expression", () => {
   });
 });
 
-// ── defagent ──────────────────────────────────────────────────────────────────
+// ── defllmfn ──────────────────────────────────────────────────────────────────
 
-const agentDsl = `
-defagent analyzeDocument
+const llmFnDsl = `
+defllmfn analyzeDocument
   signature: from [String?(text)] to String?;
-  with: model = 'claude-opus-4-7', temperature = '0.2';
+  with: model = 'claude-opus-4-7', max_tokens = '4096';
   """
   # Task
 
@@ -357,30 +382,346 @@ defagent analyzeDocument
 end
 `;
 
-describe("parseProgram: defagent", () => {
-  const agent = parseProgram(agentDsl).agents[0]!;
+describe("parseProgram: defllmfn", () => {
+  const llmFn = parseProgram(llmFnDsl).llmFns[0]!;
 
-  test("no parse errors", () => noErrorNodes(agentDsl));
+  test("no parse errors", () => noErrorNodes(llmFnDsl));
 
   test("name, params, returnType", () => {
-    expect(agent.name).toBe("analyzeDocument");
-    expect(agent.params).toEqual([{ predicate: "String?", name: "text" }]);
-    expect(agent.returnType).toEqual({ kind: "scalar", predicate: "String?" });
+    expect(llmFn.name).toBe("analyzeDocument");
+    expect(llmFn.params).toEqual([{ predicate: "String?", name: "text" }]);
+    expect(llmFn.returnType).toEqual({ kind: "scalar", predicate: "String?" });
   });
 
   test("config", () => {
-    expect(agent.config).toEqual({ model: "claude-opus-4-7", temperature: "0.2" });
+    expect(llmFn.config).toEqual({ model: "claude-opus-4-7", max_tokens: "4096" });
   });
 
   test("prompt contains expected content", () => {
-    expect(agent.prompt).toContain("# Task");
-    expect(agent.prompt).toContain("{{text}}");
-    expect(agent.prompt).toContain('"neutral"');
+    expect(llmFn.prompt).toContain("# Task");
+    expect(llmFn.prompt).toContain("{{text}}");
+    expect(llmFn.prompt).toContain('"neutral"');
   });
 
   test("prompt strips surrounding triple-quotes", () => {
-    expect(agent.prompt.startsWith('"""')).toBe(false);
-    expect(agent.prompt.endsWith('"""')).toBe(false);
+    expect(llmFn.prompt.startsWith('"""')).toBe(false);
+    expect(llmFn.prompt.endsWith('"""')).toBe(false);
+  });
+});
+
+// ── defgrammar ──────────────────────────────────────────────────────────────────
+
+const grammarDsl = `
+defgrammar Citation
+  """
+  Citation {
+    cite          = title "U.S.C." section
+    title         = digit+
+    section       = "§" spaces sectionNumber
+    sectionNumber = digit+ subsec*
+    subsec        = "(" alnum+ ")"
+  }
+  """
+end
+`;
+
+describe("parseProgram: defgrammar", () => {
+  const grammar = parseProgram(grammarDsl).grammars[0]!;
+
+  test("no parse errors", () => noErrorNodes(grammarDsl));
+
+  test("kind and name", () => {
+    expect(grammar.kind).toBe("grammar");
+    expect(grammar.name).toBe("Citation");
+  });
+
+  test("source is captured verbatim", () => {
+    expect(grammar.source).toContain("Citation {");
+    expect(grammar.source).toContain(`cite          = title "U.S.C." section`);
+    expect(grammar.source).toContain("§");
+  });
+
+  test("source strips the surrounding triple-quotes", () => {
+    expect(grammar.source.startsWith('"""')).toBe(false);
+    expect(grammar.source.endsWith('"""')).toBe(false);
+  });
+
+  test("a bare grammar has no signature", () => {
+    expect(grammar.signature).toBeUndefined();
+  });
+});
+
+describe("parseProgram: defgrammar with a signature", () => {
+  const scalar = parseProgram(`
+defgrammar Citation
+  signature: from [String?(text)] to CitationRec?;
+  """ Citation { cite = "x" } """
+end
+`).grammars[0]!;
+
+  const vector = parseProgram(`
+defgrammar Citations
+  signature: from [String?(text)] to [CitationRec?];
+  """ Citations { cite = "x" } """
+end
+`).grammars[0]!;
+
+  test("a scalar signature reuses the fn-signature shape (params + scalar return)", () => {
+    expect(scalar.signature).toEqual({
+      params: [{ predicate: "String?", name: "text" }],
+      returnType: { kind: "scalar", predicate: "CitationRec?" },
+    });
+  });
+
+  test("a vector return type is captured (scan mode)", () => {
+    expect(vector.signature!.returnType).toEqual({ kind: "vector", element: "CitationRec?" });
+  });
+
+  test("the source is still captured alongside the signature", () => {
+    expect(scalar.source).toContain("Citation { cite");
+  });
+});
+
+// ── defextract ──────────────────────────────────────────────────────────────────
+
+const extractDsl = `
+defextract GdprArticle
+  within Article using grammar/Article
+    scan Paragraph as paragraphs using grammar/Paragraph;
+    within paragraphs
+      scan Point as points using grammar/Point;
+    end
+  end
+end
+`;
+
+describe("parseProgram: defextract", () => {
+  const extract = parseProgram(extractDsl).extracts[0]!;
+
+  test("no parse errors", () => noErrorNodes(extractDsl));
+
+  test("kind and name", () => {
+    expect(extract.kind).toBe("extract");
+    expect(extract.name).toBe("GdprArticle");
+  });
+
+  // Capability: the whole nested tree is captured in one structural assertion.
+  test("the full within/scan tree is parsed", () => {
+    expect(extract.root).toEqual({
+      kind: "within",
+      target: "Article",
+      grammar: "grammar/Article",
+      body: [
+        { kind: "scan", record: "Paragraph", as: "paragraphs", grammar: "grammar/Paragraph" },
+        {
+          kind: "within",
+          target: "paragraphs",
+          body: [
+            { kind: "scan", record: "Point", as: "points", grammar: "grammar/Point" },
+          ],
+        },
+      ],
+    });
+  });
+
+  // Invariant: the ROOT within carries the grammar that parses it; a NESTED within
+  // names a field already produced by a scan and carries NO grammar. This encodes the
+  // root-vs-nested distinction that the rest of the pipeline relies on.
+  test("root within has a grammar; nested within does not", () => {
+    expect(extract.root.grammar).toBe("grammar/Article");
+    const nested = extract.root.body.find(s => s.kind === "within")!;
+    expect(nested.kind).toBe("within");
+    if (nested.kind === "within") expect(nested.grammar).toBeUndefined();
+  });
+
+  // Unit: a slash-name (`grammar/Article`) is captured verbatim — it tokenises as one
+  // Name, the same way `propagate grammar/Cite ...` does.
+  test("grammar references are captured verbatim as slash-names", () => {
+    const bind = extract.root.body[0]!;
+    expect(bind.kind).toBe("scan");
+    if (bind.kind === "scan") expect(bind.grammar).toBe("grammar/Paragraph");
+  });
+});
+
+describe("parseProgram: defextract `parse` verb", () => {
+  const parseVerbDsl = `
+defextract Doc
+  within Report using grammar/Report
+    parse Header as header using grammar/Header;
+  end
+end
+`;
+  const extract = parseProgram(parseVerbDsl).extracts[0]!;
+
+  test("no parse errors", () => noErrorNodes(parseVerbDsl));
+
+  // Capability: `parse` is the scalar counterpart of `scan` — same shape, different verb.
+  test("a parse statement yields kind 'parse'", () => {
+    expect(extract.root.body[0]).toEqual({
+      kind: "parse", record: "Header", as: "header", grammar: "grammar/Header",
+    });
+  });
+});
+
+// ── TTable ──────────────────────────────────────────────────────────────────────
+
+const ttableDsl = `
+defrecord Equivalence
+  old:    String?;
+  lisbon: String?;
+  newNum: String?;
+end
+
+TTable Equivalences
+  row: Equivalence;
+  cell: '|';
+  header old = 'Old numbering of the Treaty on European Union';
+  header lisbon = 'Numbering in the Treaty of Lisbon';
+  header newNum = 'New numbering of the Treaty on European Union';
+end
+`;
+
+describe("parseProgram: TTable", () => {
+  const ttable = parseProgram(ttableDsl).ttables[0]!;
+
+  test("no parse errors", () => noErrorNodes(ttableDsl));
+
+  test("kind, name, row record, and cell delimiter", () => {
+    expect(ttable.kind).toBe("ttable");
+    expect(ttable.name).toBe("Equivalences");
+    expect(ttable.row).toBe("Equivalence");
+    expect(ttable.cell).toBe("|");
+  });
+
+  test("headers map fields to column texts, in order", () => {
+    expect(ttable.headers).toEqual([
+      { field: "old",    text: "Old numbering of the Treaty on European Union" },
+      { field: "lisbon", text: "Numbering in the Treaty of Lisbon" },
+      { field: "newNum", text: "New numbering of the Treaty on European Union" },
+    ]);
+  });
+
+  // Clauses may appear in any order — the walker keys on clause kind, not position.
+  test("clauses parse in any order", () => {
+    const reordered = parseProgram(`
+defrecord R x: String?; end
+TTable T
+  header x = 'X';
+  cell: '|';
+  row: R;
+end
+`).ttables[0]!;
+    expect(reordered.row).toBe("R");
+    expect(reordered.cell).toBe("|");
+    expect(reordered.headers).toEqual([{ field: "x", text: "X" }]);
+  });
+});
+
+// ── defparameter ──────────────────────────────────────────────────────────────
+
+const parameterDsl = `
+defparameter myArticle
+  type: Text?;
+  value:
+    """
+    Article 12(1)-(2) GDPR
+    """;
+end
+`;
+
+describe("parseProgram: defparameter", () => {
+  const param = parseProgram(parameterDsl).parameters[0]!;
+
+  test("no parse errors", () => noErrorNodes(parameterDsl));
+
+  test("kind and name", () => {
+    expect(param.kind).toBe("parameter");
+    expect(param.name).toBe("myArticle");
+  });
+
+  test("type is captured as a scalar type ref", () => {
+    expect(param.type).toEqual({ kind: "scalar", predicate: "Text?" });
+  });
+
+  test("value strips the surrounding triple-quotes and trims", () => {
+    expect(param.value).toBe("Article 12(1)-(2) GDPR");
+  });
+});
+
+describe("parseProgram: defparameter without a value", () => {
+  const noValue = `
+defparameter pending
+  type: Text?;
+end
+`;
+  const param = parseProgram(noValue).parameters[0]!;
+
+  test("no parse errors", () => noErrorNodes(noValue));
+
+  test("the type is still captured", () => {
+    expect(param.type).toEqual({ kind: "scalar", predicate: "Text?" });
+  });
+
+  test("a missing value clause leaves value undefined", () => {
+    expect(param.value).toBeUndefined();
+  });
+});
+
+describe("parseProgram: defparameter — value body is opaque", () => {
+  // The triple-quoted value is swallowed verbatim, so DSL-looking punctuation
+  // inside it (`:`, `;`, `[...]`, quotes) is preserved, not parsed.
+  const src = `
+defparameter blob
+  type: Text?;
+  value: """ a: 1; b = [2]; "quoted" """;
+end
+`;
+  test("no parse errors", () => noErrorNodes(src));
+
+  test("inner punctuation is preserved verbatim", () => {
+    expect(parseProgram(src).parameters[0]!.value).toBe(`a: 1; b = [2]; "quoted"`);
+  });
+});
+
+describe("parseProgram: defparameter alongside other definitions", () => {
+  const mixed = `
+defrecord Payload
+  label: String?;
+end
+
+defparameter greeting
+  type: Text?;
+  value: """ hello """;
+end
+`;
+  const prog = parseProgram(mixed);
+
+  test("the parameter and the record are both parsed", () => {
+    expect(prog.records[0]!.name).toBe("Payload");
+    expect(prog.parameters[0]!.name).toBe("greeting");
+    expect(prog.parameters[0]!.value).toBe("hello");
+  });
+});
+
+describe("parseProgram: defparameter — negatives", () => {
+  test("a parameter without a type clause is a syntax error", () => {
+    expect(() => parseProgram(`defparameter foo\nend`)).toThrow(/Syntax error/);
+  });
+});
+
+describe("defparameter keywords remain usable as identifiers (@extend)", () => {
+  // `type` and `value` are contextual keywords inside defparameter; they must
+  // still parse as ordinary names everywhere else.
+  const src = `
+defrecord Config
+  type: String?;
+  value: String?;
+end
+`;
+  test("no parse errors", () => noErrorNodes(src));
+
+  test("'type' and 'value' parse as ordinary field names", () => {
+    expect(parseProgram(src).records[0]!.fields.map(f => f.name)).toEqual(["type", "value"]);
   });
 });
 

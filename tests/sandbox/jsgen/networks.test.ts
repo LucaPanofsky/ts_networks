@@ -2,7 +2,8 @@ import { buildNetworks } from "../../../src/sandbox/jsgen/networks.js";
 import { compile } from "../../../src/sandbox/jsgen/index.js";
 import { createRegistry } from "../../../src/registry.js";
 import { parseProgram } from "../../../src/data-network/tree-to-network.js";
-import { Something, Nothing } from "../../../src/info-structure.js";
+import { Something, Nothing, Contradiction, type InfoStructure } from "../../../src/info-structure.js";
+import { APromise } from "../../../src/information-structures/apromise.js";
 
 const src = `
 defnetwork equations
@@ -43,6 +44,26 @@ describe("buildNetworks: basic", () => {
   });
 });
 
+describe("buildNetworks: networks are registered as callable network/<name>", () => {
+  const program = parseProgram(src);
+  const registry = makeRegistry();
+  const networks = buildNetworks(program, registry);
+
+  test("each network gets a network/<name> registry entry", () => {
+    expect(registry.get("network/equations")).toBeDefined();
+    expect(registry.get("network/doubler")).toBeDefined();
+  });
+
+  test("entry arity matches the number of signature inputs", () => {
+    expect(registry.get("network/equations")!.arity).toBe(2); // from [a, b]
+    expect(registry.get("network/doubler")!.arity).toBe(1);   // from [x]
+  });
+
+  test("registration does not prevent the runtimes from building", () => {
+    expect(networks.size).toBe(2);
+  });
+});
+
 describe("buildNetworks: equations network invocation", () => {
   const program = parseProgram(src);
   const networks = buildNetworks(program, makeRegistry());
@@ -76,6 +97,69 @@ describe("buildNetworks: doubler network invocation", () => {
   test("doubles the input", () => {
     const result = doubler.invoke({ x: 7 });
     expect(result.cells.get("y")!.knows()).toEqual(new Something(14));
+  });
+});
+
+describe("buildNetworks: a network propagated as network/<name> inside another", () => {
+  // `outer` calls `inner` (a doubler) as an ordinary propagator via the
+  // network/ namespace. A sub-network is an async leaf, so the composing parent is
+  // driven with invokeAsync, which settles every cell before returning.
+  const compositionSrc = `
+defn double
+  signature: from [Number?(x)] to Number?;
+  expression x * 2;
+end
+
+defn inc
+  signature: from [Number?(x)] to Number?;
+  expression x + 1;
+end
+
+defnetwork inner
+  signature: from [x] to y;
+  propagate double from [x] to y;
+end
+
+defnetwork outer
+  signature: from [a] to b;
+  propagate network/inner from [a] to b;
+end
+
+defnetwork conflicting
+  signature: from [x] to out;
+  propagate double from [x] to out;
+  propagate inc from [x] to out;
+end
+
+defnetwork outerConflict
+  signature: from [a] to b;
+  propagate network/conflicting from [a] to b;
+end
+`;
+  const compiled = compile(compositionSrc);
+
+  // A sub-network is an async leaf, so the caller's cell holds an APromise that the
+  // consumer awaits — the same pattern as a defllmfn cell (see llmfn.test.ts).
+  const settle = async (info: InfoStructure<unknown>): Promise<InfoStructure<unknown>> =>
+    info instanceof APromise ? (await info.deferred.promise as InfoStructure<unknown>) : info;
+
+  test("the sub-network's output is unwrapped into the caller's cell", async () => {
+    const result = await compiled.networks.get("outer")!.invokeAsync({ a: 5 });
+    expect(await settle(result.cells.get("b")!.knows())).toEqual(new Something(10));
+  });
+
+  test("a sub-network whose leaf never fires leaves the caller's cell unknown", async () => {
+    // No input → the network/inner leaf is never invoked → no APromise is created
+    // and the caller's cell stays Nothing.
+    const result = await compiled.networks.get("outer")!.invokeAsync({});
+    expect(result.cells.get("b")!.knows()).toBe(Nothing);
+  });
+
+  test("a contradiction inside the sub-network propagates to the caller", async () => {
+    // `conflicting` writes `out` from both double (10) and inc (6) → merge conflict
+    // → the sub-run exits, which the leaf projects as a Contradiction upward.
+    const result = await compiled.networks.get("outerConflict")!.invokeAsync({ a: 5 });
+    expect(await settle(result.cells.get("b")!.knows())).toBeInstanceOf(Contradiction);
   });
 });
 

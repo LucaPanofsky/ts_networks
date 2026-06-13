@@ -60,5 +60,13 @@ npx tsx scripts/parse.ts my-program.tsn | jq '.networks[0]'
 
 ## Contents
 
-- [Language Reference](language.md) — the DSL: networks, records, functions, agents, expressions, and special forms
+- [Language Reference](language.md) — the DSL: networks, records, functions, LLM functions, expressions, and special forms
 - [Status](status.md) — what is implemented, what is pending
+
+**How-to guides**
+
+- [Defining grammars](how_to/defining_grammars.md) — write a `defgrammar` (Ohm) that turns text into records
+- [Extracting documents](how_to/extracting_documents.md) — compose grammars into a `defextract` that produces a nested tree of records
+- [Extracting tables](how_to/extracting_tables.md) — read delimited text tables into records with a `TTable`, standalone or as a `defextract` leaf
+- [Extending the language](how_to/extending_the_language.md) — add a new construct to the DSL, stage by stage
+- [Running the MCP server](how_to/mcp_server.md) — expose the program-reasoning tools to an external agent over stdio

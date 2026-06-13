@@ -3,7 +3,7 @@
 }
 
 Definition {
-  NetworkDef | RecordDef | FnDef | PredicateDef | DeriveDef | AgentDef | EnumDef
+  NetworkDef | RecordDef | FnDef | PredicateDef | DeriveDef | LLMFnDef | EnumDef | GrammarDef | ExtractDef | TTableDef | ParameterDef
 }
 
 // ── defnetwork ────────────────────────────────────────────────────────────────
@@ -19,7 +19,7 @@ Signature {
 Term { PropagateTerm | SwitchTerm | CellTerm | ConstantTerm }
 
 PropagateTerm {
-  Propagate FunctionName From CellList To Name (WithClause | ";")
+  Propagate FunctionName (As Name)? From CellList To Name (WithClause | ";")
 }
 
 SwitchTerm {
@@ -50,13 +50,73 @@ FunctionName {
   Name ("." Name)*
 }
 
-// ── defagent ──────────────────────────────────────────────────────────────────
+// ── defllmfn ──────────────────────────────────────────────────────────────────
 
-AgentDef {
-  Defagent Name FnSignature WithClause? PromptString ";" End
+LLMFnDef {
+  Defllmfn Name FnSignature WithClause? PromptString ";" End
 }
 
 @external tokens promptString from "./prompt-tokenizer" { PromptString }
+
+// ── defgrammar ────────────────────────────────────────────────────────────────
+// An Ohm grammar carried verbatim in a triple-quoted blob. The body is opaque to
+// the DSL (the PromptString external tokenizer swallows it), so it may contain any
+// Ohm source. The optional signature reuses FnSignature (identical syntax to defn
+// and defllmfn): `from [String?(text)] to Rec?` binds matches to a record, with a
+// scalar return parsing the whole string and a `to [Rec?]` vector return scanning
+// for all embedded matches. With no signature the grammar is a bare recognizer.
+
+GrammarDef {
+  Defgrammar Name FnSignature? PromptString End
+}
+
+// ── defextract ──────────────────────────────────────────────────────────────────
+// A structural extractor: a tree of `within` scopes binding record-valued fields to
+// recognisers. The ROOT `within` names the target record and the grammar that parses
+// it (`using grammar/X`); NESTED `within` scopes recurse into a field a prior scan
+// produced, carrying no grammar. `scan` fills a vector field (many), `parse` a scalar
+// one. The grammar reference is a single Name (slash-names like `grammar/Article`).
+
+ExtractDef {
+  Defextract Name WithinBlock End
+}
+
+WithinBlock {
+  Within Name (Using Name)? ExtractStmt* End
+}
+
+ExtractStmt {
+  ScanStmt | ParseStmt | WithinBlock
+}
+
+ScanStmt  { Scan Name As Name Using Name ";" }
+ParseStmt { Parse Name As Name Using Name ";" }
+
+// ── TTable ──────────────────────────────────────────────────────────────────────
+// A flat text-table extractor: declares the row record, the cell delimiter, and the
+// per-column headers. Clauses may appear in any order. Callable as TTable/<name>.
+
+TTableDef {
+  Ttable Name (RowClause | CellClause | HeaderClause)* End
+}
+
+RowClause    { Row ":" Name ";" }
+CellClause   { Cell ":" String ";" }
+HeaderClause { Header Name ("=" String)? ";" }
+
+// ── defparameter ───────────────────────────────────────────────────────────────
+// A named, overridable input with an optional default. `type:` carries the value's
+// predicate; the optional `value:` carries the default as a triple-quoted blob
+// (text only for now, so the body is swallowed verbatim by the PromptString
+// tokenizer). `type` and `value` are contextual keywords (@extend), so they remain
+// usable as ordinary identifiers (e.g. record field names) everywhere else.
+
+ParameterDef {
+  Defparameter Name TypeClause ValueClause? End
+}
+
+TypeClause  { Type ":" Name ";" }
+ValueClause { Value ":" PromptString ";" }
 
 // ── defenum ───────────────────────────────────────────────────────────────────
 
@@ -87,7 +147,7 @@ VectorTypeRef {
 // ── def fn ────────────────────────────────────────────────────────────────────
 
 FnDef {
-  Defn Name FnSignature ExpressionBody End
+  Defn Name FnSignature (ExpressionBody | InterpolateBody) End
 }
 
 PredicateDef {
@@ -104,6 +164,10 @@ TypedParam {
 
 ExpressionBody {
   Expression_ LetBody
+}
+
+InterpolateBody {
+  Interpolate_ PromptString ";"
 }
 
 LetBody {
@@ -177,20 +241,38 @@ MulOp { "*" | Divide }
 
 kw<term> { @specialize[@name={term}]<Name, term> }
 
+// Contextual keyword: recognised as a keyword where the grammar expects it, but
+// still usable as an ordinary Name elsewhere (unlike kw<>, which reserves it).
+ckw<term> { @extend[@name={term}]<Name, term> }
+
 Defnetwork   { kw<"defnetwork"> }
 Defrecord    { kw<"defrecord"> }
 Defn         { kw<"defn"> }
 Defpredicate { kw<"defpredicate"> }
-Defagent     { kw<"defagent"> }
+Defllmfn     { kw<"defllmfn"> }
 Defenum      { kw<"defenum"> }
+Defgrammar   { kw<"defgrammar"> }
+Defextract   { kw<"defextract"> }
+Within       { kw<"within"> }
+Scan         { kw<"scan"> }
+Parse        { kw<"parse"> }
+Using        { kw<"using"> }
+Ttable       { kw<"TTable"> }
+Row          { ckw<"row"> }
+Header       { ckw<"header"> }
+Defparameter { kw<"defparameter"> }
+Type         { ckw<"type"> }
+Value        { ckw<"value"> }
 Derive       { kw<"derive"> }
 Let          { kw<"let"> }
 End          { kw<"end"> }
 Signature_   { kw<"signature"> }
 Expression_  { kw<"expression"> }
+Interpolate_ { kw<"interpolate"> }
 From         { kw<"from"> }
 To           { kw<"to"> }
 Propagate    { kw<"propagate"> }
+As           { kw<"as"> }
 With         { kw<"with"> }
 Switch       { kw<"switch"> }
 Cell         { kw<"cell"> }
@@ -202,7 +284,7 @@ Boolean      { kw<"true"> | kw<"false"> }
 // ── tokens ────────────────────────────────────────────────────────────────────
 
 @tokens {
-  Name        { $[a-zA-Z_] $[a-zA-Z0-9_?!\-]* }
+  Name        { $[a-zA-Z_] $[a-zA-Z0-9_?!\-/]* }
   Number      { $[0-9]+ ("." $[0-9]+)? }
   String      { "'" (!['])* "'" }
   "==" ">=" "<=" "!=" "&&" "||"

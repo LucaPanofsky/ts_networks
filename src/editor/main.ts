@@ -1,3 +1,6 @@
+// STALE — not part of the alpha. Abandoned browser editor frontend, kept for reference
+// only; not maintained, not to be revived. See ./README.md. Supported surface: the CLI
+// scripts (`npx tsx scripts/*.ts`) and the MCP server (`npm run mcp`).
 import { EditorView, basicSetup } from "codemirror";
 import { EditorState } from "@codemirror/state";
 import { tsnet } from "./language.js";

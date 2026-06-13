@@ -7,3 +7,9 @@ src/data-network/parser.terms.js
 report/
 *.db
 public/editor.bundle.js
+dev
+# Claude Code local state
+.claude/
+# Generated maintenance-analysis artifacts (the analysis/*.ts tool IS tracked)
+analysis/REPORT.html
+coverage/

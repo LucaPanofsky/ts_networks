@@ -1,0 +1,86 @@
+// GDPR Article 33 — nested structural extraction with `defextract`.
+//
+// The declarative counterpart of examples/gdpr_article_structured_extraction.tsn,
+// which plumbs the same nesting by hand (ParaScan → enrichParagraph as mapping →
+// PointScan). Here a single `defextract` declares the tree and the runtime desugars
+// it onto exactly that chain.
+//
+// Run:
+//   npx tsx scripts/run.ts examples/gdpr_article_extract.tsn extractArticle \
+//     doc="$(jq -Rs . examples/gdpr_article_33.txt)"
+
+defrecord Point
+  label: String?;
+  body:  String?;
+end
+
+defrecord Paragraph
+  number: String?;
+  body:   String?;      // the point scan runs over this (field-based region)
+  points: [Point?];
+end
+
+defrecord Article
+  title:      String?;
+  number:     String?;
+  paragraphs: [Paragraph?];
+end
+
+// Each grammar RECOGNISES ONE record (a scalar `to X?`); the defextract verb decides
+// cardinality — `scan` finds many, `parse` finds one. The root Article is parsed once;
+// Paragraph and Point are scanned.
+
+// The header recogniser: parses the whole document, capturing number + title.
+defgrammar Article
+  signature: from [String?(text)] to Article?;
+  """
+  Article {
+    doc    = "Article" spaces number spaces title spaces rest
+    number = digit+
+    title  = (~"\n" any)+
+    rest   = any*
+  }
+  """
+end
+
+// Recognises one numbered paragraph; `body` runs up to the next "N." marker.
+defgrammar Paragraph
+  signature: from [String?(text)] to Paragraph?;
+  """
+  Paragraph {
+    paragraph = number "." spaces body
+    number    = digit+
+    body      = (~paraMark any)+
+    paraMark  = digit+ "."
+  }
+  """
+end
+
+// Recognises one lettered point; `body` runs up to the next "(x)".
+defgrammar Point
+  signature: from [String?(text)] to Point?;
+  """
+  Point {
+    point = "(" label ")" spaces body
+    label = "a".."z"
+    body  = (~mark any)*
+    mark  = "(" label ")"
+  }
+  """
+end
+
+// The structural extractor: a root Article (parsed from the whole input), its
+// paragraphs scanned in, and each paragraph's points scanned within it.
+defextract GdprArticle
+  within Article using grammar/Article
+    scan Paragraph as paragraphs using grammar/Paragraph;
+    within paragraphs
+      scan Point as points using grammar/Point;
+    end
+  end
+end
+
+defnetwork extractArticle
+  signature: from [doc] to article;
+  propagate extract/GdprArticle from [doc] to article;
+end

@@ -63,6 +63,6 @@ export declare const PredicateDef: number;
 export declare const Defpredicate: number;
 export declare const DeriveDef: number;
 export declare const Derive: number;
-export declare const AgentDef: number;
-export declare const Defagent: number;
+export declare const LLMFnDef: number;
+export declare const Defllmfn: number;
 export declare const VectorTypeRef: number;

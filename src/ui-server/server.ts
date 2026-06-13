@@ -1,3 +1,6 @@
+// STALE — not part of the alpha. Abandoned dev-server for the browser editor, kept for
+// reference only; not maintained, not to be revived. See ./README.md. Supported surface:
+// `scripts/diagram.ts` (diagrams) and `scripts/run.ts` (execution), plus `npm run mcp`.
 import express, { type Request, type Response } from "express";
 import path from "path";
 import { fileURLToPath } from "url";

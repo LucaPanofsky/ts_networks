@@ -16,8 +16,8 @@ function buildTypeMap(program: ProgramAST): Map<string, FnTypes> {
   const map = new Map<string, FnTypes>();
   for (const fn of program.fns)
     map.set(fn.name, { params: fn.params, returnType: typeRefToString(fn.returnType) });
-  for (const agent of program.agents)
-    map.set(agent.name, { params: agent.params, returnType: typeRefToString(agent.returnType) });
+  for (const llmFn of program.llmFns)
+    map.set(llmFn.name, { params: llmFn.params, returnType: typeRefToString(llmFn.returnType) });
   return map;
 }
 

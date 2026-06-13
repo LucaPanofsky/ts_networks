@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Treaty of Lisbon — Table of Equivalences (extracted)</title>
+<style>
+  body  { font: 15px/1.5 system-ui, sans-serif; max-width: 64rem; margin: 2rem auto; padding: 0 1rem; color: #1a1a1a; }
+  h1    { font-size: 1.3rem; }
+  .meta { color: #666; font-size: .85rem; margin-bottom: 1.5rem; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid #ccc; padding: .4rem .6rem; text-align: left; vertical-align: top; }
+  thead th { background: #1f2937; color: #fff; font-weight: 600; }       /* the COLUMN header */
+  tr.section th { background: #e5e7eb; font-weight: 700; }                /* a TITLE / section header */
+  td.empty { background: #fafafa; }
+  td.empty::after { content: "—"; color: #bbb; }                          /* an asserted-empty cell ("") */
+  code { background: #f3f4f6; padding: 0 .25rem; border-radius: 3px; }
+  footer { margin-top: 2rem; color: #888; font-size: .8rem; border-top: 1px solid #eee; padding-top: 1rem; }
+</style>
+</head>
+<body>
+<h1 id="title"></h1>
+<h2 id="section" style="font-size:1.05rem;color:#374151;margin-top:-.5rem"></h2>
+<p class="meta">The extracted tree, drawn as the table it came from. Dark row = column
+  header. Grey rows = the <code>TITLE</code> section headers (one spanning cell when the
+  three columns agree; three separate cells when they differ — see TITLE II). “—” = a
+  cell the source left blank.</p>
+
+<table id="t"></table>
+
+<footer>Source: <code>examples/treaty_table/treaty_total.json</code>
+  (<code>Annex → TitleGroup(titles, rows) → Equivalence</code>).</footer>
+
+<script id="data" type="application/json">
+{
+  "title": "TABLES OF EQUIVALENCES REFERRED TO IN ARTICLE 5 OF THE TREATY OF LISBON",
+  "section": "A. Treaty on European Union",
+  "columns": [
+    "Old numbering of the Treaty on European Union",
+    "Numbering in the Treaty of Lisbon",
+    "New numbering of the Treaty on European Union"
+  ],
+  "groups": [
+    {
+      "title": { "old": "TITLE I — COMMON PROVISIONS", "lisbon": "TITLE I — COMMON PROVISIONS", "newNum": "TITLE I — COMMON PROVISIONS" },
+      "rows": [
+        { "old": "Article 1", "lisbon": "Article 1", "newNum": "Article 1" },
+        { "old": "", "lisbon": "Article 1a", "newNum": "Article 2" },
+        { "old": "Article 2", "lisbon": "Article 2", "newNum": "Article 3" },
+        { "old": "Article 3 (repealed) [1]", "lisbon": "", "newNum": "" },
+        { "old": "", "lisbon": "Article 3a", "newNum": "Article 4" },
+        { "old": "", "lisbon": "Article 3b [2]", "newNum": "Article 5" },
+        { "old": "Article 4 (repealed) [3]", "lisbon": "", "newNum": "" },
+        { "old": "Article 5 (repealed) [4]", "lisbon": "", "newNum": "" },
+        { "old": "Article 6", "lisbon": "Article 6", "newNum": "Article 6" },
+        { "old": "Article 7", "lisbon": "Article 7", "newNum": "Article 7" },
+        { "old": "", "lisbon": "Article 7a", "newNum": "Article 8" }
+      ]
+    },
+    {
+      "title": {
+        "old": "TITLE II — PROVISIONS AMENDING THE TREATY ESTABLISHING THE EUROPEAN ECONOMIC COMMUNITY WITH A VIEW TO ESTABLISHING THE EUROPEAN COMMUNITY",
+        "lisbon": "TITLE II — PROVISIONS ON DEMOCRATIC PRINCIPLES",
+        "newNum": "TITLE II — PROVISIONS ON DEMOCRATIC PRINCIPLES"
+      },
+      "rows": [
+        { "old": "Article 8 (repealed) [5]", "lisbon": "Article 8", "newNum": "Article 9" },
+        { "old": "", "lisbon": "Article 8 A [6]", "newNum": "Article 10" },
+        { "old": "", "lisbon": "Article 8 B", "newNum": "Article 11" },
+        { "old": "", "lisbon": "Article 8 C", "newNum": "Article 12" }
+      ]
+    }
+  ]
+}
+</script>
+
+<script>
+  const COLS = ["old", "lisbon", "newNum"];
+  const data = JSON.parse(document.getElementById("data").textContent);
+  document.getElementById("title").textContent = data.title;
+  document.getElementById("section").textContent = data.section;
+
+  const table = document.getElementById("t");
+
+  // The column header — read straight from the extraction (data.columns), not hard-coded.
+  const thead = table.createTHead();
+  const hr = thead.insertRow();
+  for (const h of data.columns) { const th = document.createElement("th"); th.textContent = h; hr.appendChild(th); }
+
+  const tbody = table.createTBody();
+  for (const group of data.groups) {
+    // The section header (a TITLE row). One spanning cell if the three columns agree,
+    // otherwise three cells — exactly as it sits in the source.
+    const sr = tbody.insertRow();
+    sr.className = "section";
+    const tc = [group.title.old, group.title.lisbon, group.title.newNum];   // the title per column
+    const same = tc.every(t => t === tc[0]);
+    if (same) {
+      const th = document.createElement("th"); th.colSpan = 3; th.textContent = tc[0]; sr.appendChild(th);
+    } else {
+      for (const t of tc) { const th = document.createElement("th"); th.textContent = t; sr.appendChild(th); }
+    }
+    // The article rows.
+    for (const row of group.rows) {
+      const tr = tbody.insertRow();
+      for (const k of COLS) {
+        const td = tr.insertCell();
+        if (row[k] === "") td.className = "empty"; else td.textContent = row[k];
+      }
+    }
+  }
+</script>
+</body>
+</html>

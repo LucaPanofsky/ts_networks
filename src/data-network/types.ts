@@ -128,7 +128,19 @@ export type MatchExpr = {
   arms: MatchArm[];
 };
 
-export type Expr = LiteralExpr | VarExpr | CallExpr | BinaryExpr | UnaryExpr | FieldExpr | LetExpr | MatchExpr;
+// The body of a `defn ... interpolate """..."""`. Produces a String by substituting
+// `{{path}}` placeholders against the function's arguments, via the same renderer
+// (`renderPrompt`) that backs `defllmfn` prompts. `template` is the raw text between
+// the triple quotes; the referenced argument roots are derived from it at codegen
+// time (kept out of the AST so parse-time data-network code needs no placeholder
+// analysis). Only produced in function-body position by the grammar, but it is an
+// Expr (a value-producing form) like `let` and `match`.
+export type InterpolateExpr = {
+  kind: "interpolate";
+  template: string;
+};
+
+export type Expr = LiteralExpr | VarExpr | CallExpr | BinaryExpr | UnaryExpr | FieldExpr | LetExpr | MatchExpr | InterpolateExpr;
 
 // ── Function definitions ──────────────────────────────────────────────────────
 
@@ -162,15 +174,100 @@ export type DeriveAST = {
   sup: string;
 };
 
-// ── Agent definitions ─────────────────────────────────────────────────────────
+// ── LLM function definitions ──────────────────────────────────────────────────
 
-export type AgentAST = {
-  kind: "agent";
+export type LLMFnAST = {
+  kind: "llmfn";
   name: string;
   params: TypedParam[];
   returnType: TypeRef;
   prompt: string;
   config: Record<string, string>;
+};
+
+// ── Grammar definitions ───────────────────────────────────────────────────────
+
+// A named Ohm grammar carried as verbatim source text. The optional signature is
+// the same shape as a fn/llmfn signature (`from [String?(text)] to Rec?`): it binds
+// the parse result to a record. A scalar `returnType` parses the whole input string
+// into one record; a vector `returnType` (`to [Rec?]`) scans for all embedded
+// matches and returns an array. With no signature the grammar is a bare recognizer
+// returning the matched text.
+export type GrammarAST = {
+  kind: "grammar";
+  name: string;
+  source: string;
+  signature?: { params: TypedParam[]; returnType: TypeRef };
+};
+
+// ── Extract definitions (defextract) ──────────────────────────────────────────
+
+// A `scan`/`parse` statement binds a record-valued field of the enclosing scope to a
+// recogniser. The verb sets cardinality: `scan` fills a vector field (many matches),
+// `parse` fills a scalar field (one match). Spelled with the bare element record
+// (`scan Paragraph`); the `as <field>` target carries the [X?]/X? cardinality.
+export type ExtractBind = {
+  kind: "scan" | "parse";
+  record: string;   // the element record recognised, e.g. "Paragraph"
+  as: string;       // the field it fills on the enclosing scope's record
+  grammar: string;  // the recogniser reference, e.g. "grammar/Paragraph"
+};
+
+// A `within` scope. The ROOT names the record TYPE it builds (which is also the
+// extract's return type) and carries `grammar`, the recogniser that parses it; its
+// region is the whole input. A NESTED `within` names a FIELD produced by a prior
+// `scan`/`parse`, carries no grammar, and recurses into each matched element scoped
+// to the SPAN that element's grammar consumed (span-based — no region field).
+export type ExtractWithin = {
+  kind: "within";
+  target: string;     // root: record name; nested: field name
+  grammar?: string;   // root: grammar reference; nested: undefined
+  body: ExtractStmt[];
+};
+
+export type ExtractStmt = ExtractBind | ExtractWithin;
+
+// A named structural extractor, callable as `extract/<name>`. It has exactly one root
+// `within` (the document tree is a single record), built from nested withins/binds.
+export type ExtractAST = {
+  kind: "extract";
+  name: string;
+  root: ExtractWithin;
+};
+
+// ── Text-table definitions (TTable) ────────────────────────────────────────────
+
+// One column's header binding. The data's first row is always the header (consumed).
+// With `text`, the header is LOCATED: the declared text identifies the column in that
+// header row (order-independent, self-validating). Without `text`, the column is
+// POSITIONAL: mapped by declaration order, the header row's content ignored (e.g. a
+// section sub-header to discard).
+export type TTableHeader = { field: string; text?: string };
+
+// A flat text-table extractor, callable as `TTable/<name>` (text → [Row?]). It
+// declares the row record, the cell delimiter, and the per-column headers. The header
+// is mandatory: it locates the table, maps columns by name (order-independent), and
+// self-validates (a header that doesn't match → Contradiction).
+export type TTableAST = {
+  kind: "ttable";
+  name: string;
+  row: string;             // the row record name
+  cell: string;            // the cell delimiter (verbatim, quotes stripped)
+  headers: TTableHeader[]; // the declared column headers
+};
+
+// ── Parameter definitions ─────────────────────────────────────────────────────
+
+// A named, overridable input. `type` is the value's type reference; `value` is the
+// optional default (the trimmed body of a triple-quoted blob, text only for now).
+// An absent `value` means the default is Nothing — a network reading an unfilled
+// parameter simply produces no information. A `run` entry point (later) wires
+// parameters into network cells and lets the CLI override them.
+export type ParameterAST = {
+  kind: "parameter";
+  name: string;
+  type: TypeRef;
+  value?: string;
 };
 
 // ── Program ───────────────────────────────────────────────────────────────────
@@ -180,6 +277,10 @@ export type ProgramAST = {
   records: RecordAST[];
   fns: FnAST[];
   derives: DeriveAST[];
-  agents: AgentAST[];
+  llmFns: LLMFnAST[];
   enums: EnumAST[];
+  grammars: GrammarAST[];
+  extracts: ExtractAST[];
+  ttables: TTableAST[];
+  parameters: ParameterAST[];
 };

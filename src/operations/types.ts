@@ -9,7 +9,7 @@ export type Operation<I, O> = {
   handle: (input: I) => O;
 };
 
-export type SerializedError = { kind: string; message: string };
+export type SerializedError = { kind: string; message: string; severity: "error" | "warning" };
 
 export type SerializedEnrichedNetwork = {
   name: string;

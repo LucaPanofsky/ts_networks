@@ -1,7 +1,11 @@
 import type { RecordAST, FnAST, EnumAST, ProgramAST, Expr, RecordPattern } from "../../data-network/types.js";
+import { placeholderPaths } from "../../data-network/placeholders.js";
 
 function mangle(name: string): string {
-  return name.replace(/\?/g, "$").replace(/!/g, "_");
+  // DSL names may contain `?`, `!`, and `/` (the last for qualified names like
+  // `str/contains?`); none are legal in a JS identifier, so rewrite them to a safe
+  // form. The same mangle runs on both definitions and call sites, so they match.
+  return name.replace(/\?/g, "$").replace(/!/g, "_").replace(/\//g, "$");
 }
 
 export function compileExpr(expr: Expr): string {
@@ -52,12 +56,57 @@ const args = expr.args.map(compileExpr).join(", ");
       );
       return inner;
     }
+    case "interpolate": {
+      // Lower to the injected `__interp(template, args)` helper (mirrors how a
+      // grammar lowers to `__g`), so interpolation runs through the same renderer
+      // as `defllmfn` prompts. The arg object passes exactly the referenced roots
+      // — the part of each `{{path}}` before the first `.`. Roots are `\w+`, hence
+      // valid JS identifiers matching the (unmangled) parameter names: `{ rec: rec }`.
+      const roots = [...new Set(placeholderPaths(expr.template).map(p => p.split(".")[0]))];
+      const args = roots.map(r => `${r}: ${r}`).join(", ");
+      return `__interp(${JSON.stringify(expr.template)}, { ${args} })`;
+    }
   }
 }
 
 export function compileFn(fn: FnAST): string {
   const params = fn.params.map(p => p.name).join(", ");
   return `const ${mangle(fn.name)} = function(${params}) { return ${compileExpr(fn.body)}; };`;
+}
+
+// JS words that are illegal as a binding identifier (a function parameter or `const`
+// name). A record field is emitted into BOTH positions by `compileRecord`
+// (`function(new) { return { __type, new: new }; }`), so a reserved-word field
+// produces invalid JS — a SyntaxError that otherwise surfaces only at sandbox build,
+// with no pointer back to the field. The object KEY would be legal (reserved words
+// are fine as keys), but the parameter and value-position reference are not. Note a
+// merely keyword-ish name like `type` is a perfectly legal JS identifier and is NOT
+// listed — the check must reject only what actually breaks codegen.
+const RESERVED_JS_WORDS = new Set<string>([
+  "break", "case", "catch", "class", "const", "continue", "debugger", "default",
+  "delete", "do", "else", "enum", "export", "extends", "false", "finally", "for",
+  "function", "if", "import", "in", "instanceof", "new", "null", "return", "super",
+  "switch", "this", "throw", "true", "try", "typeof", "var", "void", "while", "with",
+  // Reserved in strict mode / modules — our emitted constructors run in contexts that
+  // may be strict, so reject these too rather than risk a context-dependent failure.
+  "let", "static", "yield", "await", "implements", "interface", "package", "private",
+  "protected", "public",
+]);
+
+// One message per record field whose name is a reserved JS word (empty = clean). The
+// codegen guard below and the typecheck operation both consume this, so the check
+// lives once, beside the codegen whose invariant it protects.
+export function reservedFieldErrors(program: ProgramAST): string[] {
+  const errors: string[] = [];
+  for (const rec of program.records) {
+    for (const f of rec.fields) {
+      if (RESERVED_JS_WORDS.has(f.name)) {
+        const cap = f.name.charAt(0).toUpperCase() + f.name.slice(1);
+        errors.push(`defrecord ${rec.name} — field "${f.name}" is a reserved JavaScript word; rename it (e.g. ${f.name}_, is${cap}).`);
+      }
+    }
+  }
+  return errors;
 }
 
 export function compileRecord(rec: RecordAST): string {
@@ -83,12 +132,82 @@ function compileExportMap(program: ProgramAST): string {
     ]),
     ...program.enums.map(e => `"${e.name}?": ${mangle(e.name + "?")}`),
     ...program.fns.map(f => `"${f.name}": ${mangle(f.name)}`),
+    ...program.grammars.map(g => `"grammar/${g.name}": ${mangle(`grammar/${g.name}`)}`),
   ];
   return entries.length === 0 ? "return {};" : `return { ${entries.join(", ")} };`;
 }
 
+// Builtins available to every expression. They are plain JS in the sandbox scope,
+// so a predicate written `big?` (which compiles to a function value) can be passed
+// straight in: `expression every(big?, xs)`. First-order from the DSL's view; the
+// host language already has functions as values, so nothing else is needed.
+//
+// `every`/`some` are general collection questions and stay flat. String functions
+// are namespaced under `str/` (a qualified name — the `/` is mangled like any other
+// identifier char). Strings are deliberately non-regex: literal split/join for
+// replace, includes-based predicates. Regex is a separate, later decision.
+const BUILTIN_DEFS: Record<string, string> = {
+  every: `function(pred, coll) { return coll.every(function(x) { return pred(x); }); }`,
+  some:  `function(pred, coll) { return coll.some(function(x) { return pred(x); }); }`,
+  str:   `function() { return Array.prototype.slice.call(arguments).join(""); }`,
+  "str/length":      `function(s) { return s.length; }`,
+  "str/upper":       `function(s) { return s.toUpperCase(); }`,
+  "str/lower":       `function(s) { return s.toLowerCase(); }`,
+  "str/trim":        `function(s) { return s.trim(); }`,
+  "str/substring":   `function(s, start, end) { return s.substring(start, end); }`,
+  "str/split":       `function(s, sep) { return s.split(sep); }`,
+  "str/join":        `function(coll, sep) { return coll.join(sep); }`,
+  "str/replace":     `function(s, find, repl) { return s.split(find).join(repl); }`,
+  "str/contains?":   `function(s, sub) { return s.includes(sub); }`,
+  "str/startsWith?": `function(s, p) { return s.startsWith(p); }`,
+  "str/endsWith?":   `function(s, p) { return s.endsWith(p); }`,
+  "str/blank?":      `function(s) { return s.trim().length === 0; }`,
+  // Host-only numeric primitives the language cannot express. Namespaced under `math/`
+  // like `str/...`. The prelude (`src/prelude.tsn`) wraps the propagatable-useful ones
+  // as `defn`s (`sqrt`, `abs`, `max`, …); call the rest directly as `math/floor(x)`.
+  "math/sqrt":  `function(n) { return Math.sqrt(n); }`,
+  "math/abs":   `function(n) { return Math.abs(n); }`,
+  "math/round": `function(n) { return Math.round(n); }`,
+  "math/floor": `function(n) { return Math.floor(n); }`,
+  "math/ceil":  `function(n) { return Math.ceil(n); }`,
+  "math/mod":   `function(a, b) { return a % b; }`,
+  "math/pow":   `function(a, b) { return Math.pow(a, b); }`,
+  "math/max":   `function(a, b) { return Math.max(a, b); }`,
+  "math/min":   `function(a, b) { return Math.min(a, b); }`,
+};
+
 export function compileProgram(program: ProgramAST): string {
+  // Fail loud and early: a reserved-word field would emit invalid JS that otherwise
+  // surfaces as a cryptic SyntaxError when this source is evaluated. This is the
+  // codegen chokepoint every sandbox-building path (run, etc.) flows through.
+  const [reservedErr] = reservedFieldErrors(program);
+  if (reservedErr) throw new Error(reservedErr);
+
+  // A builtin and a user definition would both be top-level `const`s in the same
+  // scope, so a clash is a hard SyntaxError. Skip any builtin whose (mangled) name
+  // the program defines — the user's definition wins (shadowing, not collision).
+  const declared = new Set<string>([
+    ...program.records.flatMap(r => [mangle(r.name), mangle(`${r.name}?`)]),
+    ...program.enums.map(e => mangle(`${e.name}?`)),
+    ...program.fns.map(f => mangle(f.name)),
+    ...program.grammars.map(g => mangle(`grammar/${g.name}`)),
+  ]);
+  const builtins = Object.entries(BUILTIN_DEFS)
+    .filter(([name]) => !declared.has(mangle(name)))
+    .map(([name, fn]) => `const ${mangle(name)} = ${fn};`);
+
+  // A grammar is a synchronous function, callable in expressions by its qualified
+  // name `grammar/<name>` (mangled like `str/contains?`). Its impl is a runtime Ohm
+  // closure, not source, so it can't be emitted inline — instead each grammar binds
+  // to a late-resolved entry of the injected `__g` map (populated by createSandbox
+  // once the sandbox the grammar captures records from exists).
+  const grammarBindings = program.grammars.map(
+    g => `const ${mangle(`grammar/${g.name}`)} = function() { return __g[${JSON.stringify(`grammar/${g.name}`)}].apply(this, arguments); };`,
+  );
+
   const lines: string[] = [
+    ...builtins,
+    ...grammarBindings,
     ...program.records.map(compileRecord),
     ...program.enums.map(compileEnum),
     ...program.fns.map(compileFn),
