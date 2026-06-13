@@ -4,6 +4,77 @@ A TypeScript implementation of propagation networks, a computational model based
 
 ---
 
+## Getting Started
+
+This is an **alpha / proof-of-concept**. There is no npm package — the intended usage is
+to **fork or clone the repo and work inside it**, running the CLI scripts with `npx tsx`.
+
+**Prerequisites:** Node 20+ (developed on 22) and `git`.
+
+**1. Clone and install:**
+
+```bash
+git clone <your-fork-or-this-repo> ts-networks
+cd ts-networks
+npm install
+```
+
+**2. Run an example** — no API key needed for these. A program is a `.tsn` file; you run
+one of its networks with seeded cell values (each `cell=jsExpr`):
+
+```bash
+# Rectangle area: feed a record, get a derived field
+npx tsx scripts/run.ts examples/geometry.tsn rectangleMetrics 'rect={width:3,height:4}'
+#   rect = {"width":3,"height":4}
+#   area = 12
+```
+
+Propagation is **bidirectional** — the same network solves for whichever cell is unknown.
+The `equation` network encodes `a + b = c`; give any two, get the third:
+
+```bash
+npx tsx scripts/run.ts examples/equation.tsn equation 'a=2' 'b=3'   # → c = 5
+npx tsx scripts/run.ts examples/equation.tsn equation 'a=2' 'c=5'   # → b = 3
+```
+
+**3. Inspect a program** without running it — parse, type-check, or draw it:
+
+```bash
+npx tsx scripts/typecheck.ts examples/citations.tsn     # static checks; prints `ok`
+npx tsx scripts/diagram.ts   examples/equation.tsn live  # a mermaid.live editor link
+```
+
+Every script takes a `.tsn` file as its first argument and prints `ok` (or a result) on
+success, exiting non-zero on failure. See the [script reference](CLAUDE.md) for the full
+list (`parse`, `check`, `typecheck`, `run`, `compile-schemas`, `diagram`).
+
+**4. Use an LLM function (optional).** Examples with a `defllmfn` call the Claude API and
+need a key:
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+npx tsx scripts/run.ts examples/llmfn_network_document_analysis_example.tsn documentPipeline \
+  "text='Quarterly revenue rose 12% on strong cloud demand.'"
+```
+
+**5. Author programs with an agent (optional).** The same operations are exposed over the
+[Model Context Protocol](https://modelcontextprotocol.io) so an MCP client (Claude Code,
+Claude Desktop, …) can parse/typecheck/run `.tsn` programs as tools:
+
+```bash
+npm run mcp          # serves the operations over stdio
+```
+
+Point your client at it with `cwd` set to this repo root — see
+[Running the MCP server](documentation/how_to/mcp_server.md) for the client config.
+
+**Next:** browse [`examples/`](examples/) for runnable programs, read the
+[Language Reference](documentation/language.md) (start with the
+[standard library](documentation/language.md#standard-library-the-prelude)), and run
+`npm test` to confirm the suite is green.
+
+---
+
 ## Building Blocks
 
 ### Core Information Structures
