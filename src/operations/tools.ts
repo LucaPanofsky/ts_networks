@@ -58,7 +58,7 @@ function adaptOp<I, O>(op: Operation<I, O>, coerce: (input: ToolInput) => I): LL
 //
 // What each operation-backed tool gives the model:
 //   run-grammar     — test one defgrammar against a sample; the located Ohm failure on a
-//                     mismatch is the point, not a pass/fail bit (the grammar-induction tool).
+//                     mismatch is the point, not a pass/fail bit (the grammar-authoring tool).
 //   run-ttable      — the tabular twin: test one TTable against a sample, surfacing per-row
 //                     contradictions and located header mismatches.
 //   typecheck       — wiring soundness: located type errors AND topology warnings (the

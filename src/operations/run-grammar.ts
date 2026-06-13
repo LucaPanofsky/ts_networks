@@ -19,7 +19,7 @@ type RunGrammarOutput =
   | { ok: false; kind: "parse" | "unknown-grammar" | "syntax" | "no-match"; error: string };
 
 // Run a single named grammar against a sample string, in isolation from the rest of
-// the program. This is the micro-tool for the grammar-induction loop: the value is the
+// the program. This is the micro-tool for the grammar-authoring loop: the value is the
 // LOCATED failure (the Ohm position, the unknown record), not a pass/fail bit. Errors
 // are returned as values, never thrown — same contract as the `parse` tool.
 export const runGrammar: Operation<RunGrammarInput, RunGrammarOutput> = {
