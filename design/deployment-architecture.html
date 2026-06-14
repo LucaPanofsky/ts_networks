@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADR · Gavagai Deployment Architecture</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MDAgNDAwIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgcng9Ijc2IiBmaWxsPSIjZjNlZmU2Ii8+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNDAsNDApIHNjYWxlKDAuOCkiPjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDAsNDAwKSBzY2FsZSgwLjEsLTAuMSkiPjxwYXRoIGZpbGw9IiMxMTExMTEiIGZpbGwtcnVsZT0iZXZlbm9kZCIgZD0iTTM0MDIgMzg3MyBjLTgwIC0zOSAtMTk1IC0xNzkgLTI3MSAtMzMwIC0yMyAtNDYgLTQ1IC04MyAtNDkgLTgzIC00CjAgLTMyIDI4IC02MiA2MyAtMTIyIDEzOSAtMzAwIDI2OSAtNDUxIDMyNyAtOTcgMzcgLTEyMyAzOCAtMTU4IDMgLTc5IC03OQotMTA1IC00MjIgLTQ4IC02NDUgNDQgLTE3OSAxMjAgLTM1NyAyMTMgLTUwMCA0MyAtNjcgNzQgLTEyMiA3NCAtMTMyIDAgLTMKLTMwIC0zOSAtNjcgLTc4IC0zNiAtNDAgLTkwIC0xMTAgLTEyMCAtMTU1IC02MSAtOTUgLTYzIC05NiAtMTc4IC02MyAtNDk4CjE0MyAtMTA3MiAyMCAtMTQxMCAtMzAxIC0yMDQgLTE5NCAtMzIyIC00MjMgLTM4MCAtNzM0IC0yNCAtMTI5IC00MCAtMTY5IC03NAotMTgwIC02NiAtMjEgLTExMyAtMTgwIC05MyAtMzE1IDIwIC0xMzkgNjggLTIxMiAxNzUgLTI2NiA2NCAtMzMgNjMgLTMxIDcwCi0xMDkgMTQgLTE1MyA4OSAtMjIwIDI4NyAtMjU2IDE4MCAtMzMgMTQyNiAtMTEgMTUxOCAyNyA2MiAyNSA2OSAxMjUgMTQgMjE0Ci0zMCA0OSAtMzEgNTAgLTExIDYxIDExIDUgMzIgOSA0NyA3IDI4IC0zIDMyIC05IDc3IC0xMTAgNzIgLTE2MCAyMzUgLTIzMwo0NzIgLTIxMSA3MSA3IDEyMyAxNyAxNDUgMjkgMjcgMTQgNTkgMTggMTczIDE5IDI2MiAzIDMyOSA0MyAzMDkgMTgzIC0xOSAxMzMKLTg2IDIwNyAtMjMxIDI1MyAtMzcgMTIgLTY5IDIzIC03MSAyNCAtMiAxIDEzIDQxIDMyIDg3IDQ3IDExMiA3MCAyMDIgMTAxCjM4MiAxNCA4MiAzOSAyMDggNTUgMjgwIDE2IDcyIDM0IDE3MSA0MSAyMTkgMTQgMTA0IDEzIDEwMyAxMzQgMTEwIDEyMCA2IDE5NgozNSAyNTUgOTYgNzMgNzQgODQgMTM4IDUxIDI5NiAtNDUgMjIxIC0xNDUgMzc4IC0zMzEgNTI3IGwtNDUgMzUgMTMgNDQgYzYwCjIxMiA3NyAzNTYgNjIgNTM5IC0xNiAxOTMgLTM4IDMwMyAtOTcgNDg4IC01MiAxNjIgLTg5IDE5NiAtMTcxIDE1NXogbS04MDgKLTEzOSBjMzc2IC0xOTQgNjE2IC01NjkgNjE2IC05NjIgMCAtOTYgLTEgLTk1IDEyMCAtMTI4IDMyOCAtODcgNTYwIC0zNzIgNTYwCi02ODUgMCAtMTI3IC0xMTMgLTE4MyAtMzUwIC0xNzYgLTEwNyAzIC0xNTUgLTE4IC0xMjAgLTUzIDI1IC0yNSAyNiAtODYgNQotMjIwIC03MiAtNDQ2IC0yNTYgLTc2OSAtNTA4IC04OTEgLTQ1IC0yMSAtODggLTM5IC05NyAtMzkgLTI4IDAgLTU5IC0yOCAtNTMKLTQ5IDggLTMzIDM2IC00OSAxMjEgLTc0IDEzNSAtMzkgMjAyIC0xMDIgMjAyIC0xOTAgMCAtNTEgLTE1IC01NyAtMTQ3IC02NAotMjEyIC0xMSAtMjg2IDI4IC0zNjggMTkyIC00MSA4MiAtNTYgMTAzIC04NyAxMjAgbC0zNyAyMCAtMTE2IC0yNCBjLTEyMSAtMjUKLTI3NCAtMjYgLTI5OCAtMiAtNyA3IC0zIDQwIDE0IDExMyAzNSAxNTAgMzMgMzMwIC00IDQ0MyAtMTI3IDM4MyAtNTE4IDU4MQotOTYyIDQ4NSAtMTAzIC0yMiAtMTAzIC00NSAwIC0yOSA0MDAgNjMgNzkzIC0xNTUgODgwIC00ODYgMzggLTE0NyAxMyAtMzEwCi03NSAtNDg1IC01OCAtMTE2IC02OCAtMTA2IDEwMCAtMTEzIDE3OCAtOCAzMTMgLTczIDMzNSAtMTYwIDExIC00MSAtMiAtNDgKLTExMiAtNTggLTE2NCAtMTYgLTEyNTAgLTIzIC0xMzMwIC05IC0yMDMgMzUgLTI3OCAxNjEgLTE3MyAyOTIgbDMxIDM4IC01NCAwCmMtMTczIDAgLTI3MCAxMDEgLTI2OCAyODEgMSAxMDIgMjQgMTQ5IDkyIDE4NSA0OCAyNiA1NCAzMyA1NyA2NCA0NCA1ODAgMzc5Cjk4OSA5MjcgMTEzMCAyODggNzQgNTIzIDYxIDg5MSAtNTEgNTAgLTE1IDcwIC04IDkyIDMyIDgzIDE1MSAxOTYgMjg3IDI3OQozMzYgbDQyIDI0IC05MCAxMzYgYy0yNDQgMzczIC0zMzcgNzMxIC0yNjMgMTAxNiAyNSA5NyAzNSAxMDAgMTQ4IDQxeiBtODc0Ci0xIGMyOSAtNzAgNzkgLTI3MiA5NiAtMzk0IDI5IC0xOTggMTYgLTQyNyAtMzIgLTU2OSAtMjYgLTc1IC0zNSAtNzkgLTEyNwotNTAgLTEwMCAzMSAtOTYgMjYgLTExMCAxNTUgLTExIDEwNyAtNTggMjgwIC0xMDMgMzc5IGwtNDAgOTAgMjQgNjUgYzQ5IDEzMQoxNTEgMjg2IDIyNyAzNDYgNDIgMzMgNDEgMzMgNjUgLTIyeiBtLTI0OCAtMzA0NiBjLTU1IC0xMjEgLTQ2IC0xMzcgMTA1IC0xODIKMTM0IC00MCAyMDMgLTEyMCAxODEgLTIwOSAtNyAtMjkgLTI3IC0zNCAtMTYxIC00MiAtMTM1IC03IC0xNDUgLTIgLTE4MSAxMDAKLTIxIDYwIC03MiAxMTkgLTEzNiAxNTUgbC00OCAyOCA2OCA0NiBjMzcgMjUgOTYgNzUgMTMyIDExMSAzNiAzNSA2NiA2MyA2OAo2MiAxIC0yIC0xMSAtMzMgLTI4IC02OXoiLz48L2c+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMCw0MDApIHNjYWxlKDAuMSwtMC4xKSI+PHBhdGggZmlsbD0iI2UzMDYxMyIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMjk3NSAyNDY2IGMtMTg5IC0zNiAtNDA1IC0xODkgLTQzMCAtMzAzIC0xNSAtNzEgNjUgLTE2NyAxMjIgLTE0NwozNCAxMyA4NCA2OSAxMzQgMTUwIDg5IDE0OCAxNjggMTk4IDMwOSAxOTggMzIxIC0xIDQ0MCAtMzEzIDE3NyAtNDYzIC0yOSAtMTYKLTExNyAtNTIgLTE5NyAtODEgLTIxMiAtNzYgLTI4NCAtMTE3IC0zMjkgLTE5MCAtMjkgLTQ4IC0zMCAtMTkwIC0xIC0yODEgMzUKLTExNCAxMzIgLTIzOSAxODUgLTIzOSA3NiAwIDg5IDM1IDkxIDI0MyAxIDE2NSAyIDE2OCAzMiAyMzAgNjUgMTMwIDIyMyAyNTAKMzk0IDI5NyA4OSAyNCAyNDYgMTAwIDI5MyAxNDIgNzMgNjQgNjYgMTQyIC0yMCAyMTMgLTIwMCAxNjQgLTU1MiAyNzEgLTc2MAoyMzF6IE0yOTIwIDk5MSBjLTEzNyAtNDQgLTE2MyAtMTgwIC01MSAtMjcxIDQ4IC00MCA4NSAtMzkgMTI1IDMgODEgODcKMTEyIDIyNyA1NiAyNTQgLTM2IDE3IC0xMDAgMjQgLTEzMCAxNHoiLz48L2c+PC9nPjwvc3ZnPg==">
+<link rel="stylesheet" href="report.css">
+</head>
+<body>
+
+<!-- ===== reusable rabbit symbol (from resources/logo.html) ===== -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="rabbit" viewBox="0 0 400 400"><g transform="translate(0.000000,400.000000) scale(0.100000,-0.100000)">
+    <path fill="currentColor" fill-rule="evenodd" d="M3402 3873 c-80 -39 -195 -179 -271 -330 -23 -46 -45 -83 -49 -83 -4
+0 -32 28 -62 63 -122 139 -300 269 -451 327 -97 37 -123 38 -158 3 -79 -79
+-105 -422 -48 -645 44 -179 120 -357 213 -500 43 -67 74 -122 74 -132 0 -3
+-30 -39 -67 -78 -36 -40 -90 -110 -120 -155 -61 -95 -63 -96 -178 -63 -498
+143 -1072 20 -1410 -301 -204 -194 -322 -423 -380 -734 -24 -129 -40 -169 -74
+-180 -66 -21 -113 -180 -93 -315 20 -139 68 -212 175 -266 64 -33 63 -31 70
+-109 14 -153 89 -220 287 -256 180 -33 1426 -11 1518 27 62 25 69 125 14 214
+-30 49 -31 50 -11 61 11 5 32 9 47 7 28 -3 32 -9 77 -110 72 -160 235 -233
+472 -211 71 7 123 17 145 29 27 14 59 18 173 19 262 3 329 43 309 183 -19 133
+-86 207 -231 253 -37 12 -69 23 -71 24 -2 1 13 41 32 87 47 112 70 202 101
+382 14 82 39 208 55 280 16 72 34 171 41 219 14 104 13 103 134 110 120 6 196
+35 255 96 73 74 84 138 51 296 -45 221 -145 378 -331 527 l-45 35 13 44 c60
+212 77 356 62 539 -16 193 -38 303 -97 488 -52 162 -89 196 -171 155z m-808
+-139 c376 -194 616 -569 616 -962 0 -96 -1 -95 120 -128 328 -87 560 -372 560
+-685 0 -127 -113 -183 -350 -176 -107 3 -155 -18 -120 -53 25 -25 26 -86 5
+-220 -72 -446 -256 -769 -508 -891 -45 -21 -88 -39 -97 -39 -28 0 -59 -28 -53
+-49 8 -33 36 -49 121 -74 135 -39 202 -102 202 -190 0 -51 -15 -57 -147 -64
+-212 -11 -286 28 -368 192 -41 82 -56 103 -87 120 l-37 20 -116 -24 c-121 -25
+-274 -26 -298 -2 -7 7 -3 40 14 113 35 150 33 330 -4 443 -127 383 -518 581
+-962 485 -103 -22 -103 -45 0 -29 400 63 793 -155 880 -486 38 -147 13 -310
+-75 -485 -58 -116 -68 -106 100 -113 178 -8 313 -73 335 -160 11 -41 -2 -48
+-112 -58 -164 -16 -1250 -23 -1330 -9 -203 35 -278 161 -173 292 l31 38 -54 0
+c-173 0 -270 101 -268 281 1 102 24 149 92 185 48 26 54 33 57 64 44 580 379
+989 927 1130 288 74 523 61 891 -51 50 -15 70 -8 92 32 83 151 196 287 279
+336 l42 24 -90 136 c-244 373 -337 731 -263 1016 25 97 35 100 148 41z m874
+-1 c29 -70 79 -272 96 -394 29 -198 16 -427 -32 -569 -26 -75 -35 -79 -127
+-50 -100 31 -96 26 -110 155 -11 107 -58 280 -103 379 l-40 90 24 65 c49 131
+151 286 227 346 42 33 41 33 65 -22z m-248 -3046 c-55 -121 -46 -137 105 -182
+134 -40 203 -120 181 -209 -7 -29 -27 -34 -161 -42 -135 -7 -145 -2 -181 100
+-21 60 -72 119 -136 155 l-48 28 68 46 c37 25 96 75 132 111 36 35 66 63 68
+62 1 -2 -11 -33 -28 -69z"/>
+  </g>
+  <g transform="translate(0.000000,400.000000) scale(0.100000,-0.100000)">
+    <path fill="#e30613" fill-rule="evenodd" d="M2975 2466 c-189 -36 -405 -189 -430 -303 -15 -71 65 -167 122 -147
+34 13 84 69 134 150 89 148 168 198 309 198 321 -1 440 -313 177 -463 -29 -16
+-117 -52 -197 -81 -212 -76 -284 -117 -329 -190 -29 -48 -30 -190 -1 -281 35
+-114 132 -239 185 -239 76 0 89 35 91 243 1 165 2 168 32 230 65 130 223 250
+394 297 89 24 246 100 293 142 73 64 66 142 -20 213 -200 164 -552 271 -760
+231z M2920 991 c-137 -44 -163 -180 -51 -271 48 -40 85 -39 125 3 81 87
+112 227 56 254 -36 17 -100 24 -130 14z"/>
+  </g></symbol>
+</svg>
+
+<header>
+  <div class="wrap">
+    <p class="eyebrow">Architecture Decision Record · ADR-001</p>
+    <div class="titleline">
+      <svg><use href="#rabbit"/></svg>
+      <h1>Deploying Gavagai<span class="q">?</span></h1>
+    </div>
+    <p class="lede">How we take the containerized authoring agent from a single-conversation
+      box to an <strong>organization-internal tool</strong> that a small team can log into —
+      with the API key, multi-user isolation, and persistence questions all settled.</p>
+    <div class="badges">
+      <span class="badge accepted">Status · Accepted (PoC)</span>
+      <span class="badge">Date · 2026-06-14</span>
+      <span class="badge">Scope · ≤ 10 users</span>
+      <span class="badge red">Decision · Org-internal, single container</span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="wrap">
+    <a href="#context"><span class="n">01</span>Context</a>
+    <a href="#decision"><span class="n">02</span>Decision</a>
+    <a href="#system"><span class="n">03</span>System</a>
+    <a href="#persistence"><span class="n">04</span>Persistence</a>
+    <a href="#isolation"><span class="n">05</span>Isolation</a>
+    <a href="#roadmap"><span class="n">06</span>Roadmap</a>
+    <a href="#consequences"><span class="n">07</span>Consequences</a>
+    <a href="#assumptions"><span class="n">08</span>Assumptions</a>
+    <a href="#open"><span class="n">09</span>Open questions</a>
+  </div>
+</nav>
+
+<!-- ===== 01 CONTEXT ===== -->
+<section id="context">
+  <div class="wrap">
+    <div class="sec-head"><span class="num">01</span><h2>Context &amp; scope</h2></div>
+    <p><strong>Gavagai</strong> is a containerized Claude Code instance that authors <code>.tsn</code>
+      programs using the language's own runtime — read-only mounted, so it can <em>use</em> the
+      language but not change it. Today it runs as <strong>one container = one conversation</strong>:
+      the Anthropic API key arrives through an environment variable at boot, and there is exactly one
+      user.</p>
+
+    <div class="defcard">
+      <div class="dc-head">
+        <span class="dc-kicker">Terminology</span>
+        <span class="dc-term">What we mean by "container"</span>
+      </div>
+      <div class="dc-body">
+        <p>Throughout this record, <strong>container</strong> means an <strong>OS-level
+          container</strong> — a single image, run as one isolated process environment with its own
+          filesystem, users, and network view, sharing the host kernel rather than booting a full
+          virtual machine. Think of it as <em>a process in a sealed box</em>: cheap to start and
+          throw away, but with a real boundary the kernel enforces.</p>
+        <p>It is also our <strong>unit of deployment</strong>. When the design says it "spawns a
+          process per user" or "stays single-container", it means everything happens inside
+          <em>this one box</em> — the same box the org runs today, not a fleet.</p>
+        <div class="dc-detail">
+          <h4>Technical detail — the Gavagai image</h4>
+          <dl class="spec">
+            <dt>Base image</dt><dd>node:22-slim</dd>
+            <dt>Runs inside</dt><dd>the chat HTTP/SSE server (Node) + one <code>claude</code> CLI
+              process per user, driven through the Agent SDK</dd>
+            <dt>Runtime mount</dt><dd>ts-networks — root-owned, read-only to the agent
+              (the OS-enforced security boundary)</dd>
+            <dt>Process user</dt><dd>non-root <code>node</code> (Claude Code refuses to run as root)</dd>
+            <dt>Writable surface</dt><dd><code>/workspace</code> — the only place the agent can write</dd>
+          </dl>
+          <p class="dc-foot">Technical detail generated against
+            <code>@anthropic-ai/claude-agent-sdk</code> <strong>0.3.177</strong> (pinned in
+            <code>docker/chat-server/package.json</code>) and the <code>docker/</code> image
+            definition. Pin and re-verify if the version changes.</p>
+        </div>
+      </div>
+    </div>
+
+    <p>We want to deploy it for real, internal use: <strong>an organization stands it up as a
+      productivity tool</strong> — parse this text, extract that table, author this extractor — and a
+      handful of employees log in and use it. This record fixes the deployment model and the three
+      questions that come with it: <strong>the API key, multi-user isolation, and persistence</strong>.</p>
+    <p>This is a <strong>proof of concept for at most ~10 users</strong>. That number is a design
+      input, not a footnote: it lets us choose the <em>simple</em> correct answer (one container, one
+      key, OS-level isolation) over the <em>scalable</em> one (per-session containers, an
+      orchestrator, autoscaling). We design it well; we do not build for a million users we do not
+      have. Where that scale ceiling changes a choice, it is called out explicitly.</p>
+
+    <div class="principle">
+      <h3>Guiding principle — SDK first</h3>
+      <p>We build on the <strong>Claude Agent SDK</strong> and lean on its primitives
+        (<code>cwd</code>, <code>env</code>, session <code>resume</code>); we do <strong>not</strong>
+        re-invent what it already does. The hard parts — driving the <code>claude</code> CLI,
+        persisting the transcript, gating tools — are the SDK's job. This keeps our surface small and
+        our confidence high.</p>
+      <p><strong>Caveat:</strong> the capabilities are real but option names evolve. A real
+        implementation <strong>pins a specific SDK version</strong> and verifies the surface against
+        it. Treat names here as the capability, not the contract.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 02 DECISION ===== -->
+<section id="decision" style="padding-top:0">
+  <div class="wrap" style="padding-top:60px">
+    <div class="sec-head"><span class="num">02</span><h2>The decision</h2></div>
+  </div>
+  <div class="wrap">
+    <div class="decision">
+      <p class="eyebrow">We will</p>
+      <h2>Deploy Gavagai as a single internal web app, behind the org's own authentication,
+        running one org API key, giving each user an OS-isolated workspace inside one container —
+        built on the Agent SDK.</h2>
+      <p>The model is <strong>org-internal</strong>, not bring-your-own-key and not public SaaS.
+        That single framing dissolves the trust problem rather than mitigating it, and it is the only
+        model the SDK actually supports (API-key auth, no third-party login).</p>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="subdec">
+      <div class="sd"><div class="k">D1 · Model</div><h4>Org-internal</h4>
+        <p>The org runs it inside its own perimeter. The operator <em>is</em> the trusted party —
+          using it asks for no trust beyond email or the corporate drive.</p></div>
+      <div class="sd"><div class="k">D2 · Auth</div><h4>Delegate to a reverse proxy</h4>
+        <p>We do not build login. An identity-aware proxy (SSO / oauth2-proxy / VPN) authenticates;
+          Gavagai trusts a signed <code>X-Forwarded-User</code> header.</p></div>
+      <div class="sd"><div class="k">D3 · Key</div><h4>One org key at boot</h4>
+        <p>A single <code>ANTHROPIC_API_KEY</code> as platform configuration. No gear, no per-user
+          key, nothing to race over across sessions.</p></div>
+      <div class="sd"><div class="k">D4 · Persistence</div><h4>Index + bytes + scratch</h4>
+        <p>A metadata index and a durable byte store wrap a still-real per-session scratch dir
+          (the SDK's <code>cwd</code>), rehydrated with <code>resume</code>.</p></div>
+      <div class="sd" style="grid-column:1/-1"><div class="k">D5 · Isolation</div><h4>Per-session OS user, single container, Bash kept</h4>
+        <p>Each user's <code>claude</code> process runs as a distinct unix user with filesystem
+          permissions scoped to its own workspace. The <em>kernel</em> enforces the boundary, so the
+          agent keeps its shell (it needs one to run <code>.tsn</code>) without being able to reach
+          another user's files. No per-session containers, no orchestrator.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 03 SYSTEM ===== -->
+<section id="system">
+  <div class="wrap">
+    <div class="sec-head"><span class="num">03</span><h2>System shape</h2></div>
+    <p>One container, fronted by the org's proxy, fed one key as platform config. Inside, the HTTP/SSE
+      server spawns one SDK-driven <code>claude</code> process per connected user, each pinned to its
+      own workspace. Durable state lives outside the container so it survives a restart.</p>
+
+    <figure>
+      <div class="stage">
+        <svg viewBox="0 0 940 420" role="img" aria-label="System architecture diagram">
+          <!-- user -->
+          <rect class="d-box" x="20" y="170" width="120" height="64" rx="4"/>
+          <text class="d-t" x="80" y="198" text-anchor="middle">Employee</text>
+          <text class="d-s" x="80" y="216" text-anchor="middle">browser</text>
+
+          <!-- proxy -->
+          <rect class="d-box-paper" x="190" y="160" width="140" height="84" rx="4"/>
+          <text class="d-lbl" x="260" y="150" text-anchor="middle">D2 · AUTH</text>
+          <text class="d-t" x="260" y="196" text-anchor="middle">Identity-aware</text>
+          <text class="d-t" x="260" y="214" text-anchor="middle">reverse proxy</text>
+          <text class="d-s" x="260" y="232" text-anchor="middle">SSO / VPN</text>
+
+          <!-- org key chip -->
+          <rect class="d-box" x="190" y="40" width="140" height="56" rx="4"/>
+          <text class="d-lbl" x="260" y="32" text-anchor="middle">D3 · KEY</text>
+          <text class="d-t" x="260" y="64" text-anchor="middle">ANTHROPIC_API_KEY</text>
+          <text class="d-s" x="260" y="82" text-anchor="middle">platform secret · one key</text>
+
+          <!-- container -->
+          <rect class="d-box-ink" x="380" y="40" width="320" height="340" rx="6"/>
+          <text class="d-lbl" x="396" y="64" style="fill:#fff;letter-spacing:.12em">GAVAGAI CONTAINER · 1×</text>
+
+          <!-- server -->
+          <rect class="d-box" x="404" y="84" width="272" height="50" rx="4"/>
+          <text class="d-t" x="540" y="106" text-anchor="middle">HTTP / SSE server</text>
+          <text class="d-s" x="540" y="122" text-anchor="middle">re-frame chat · /files · /upload</text>
+
+          <!-- per-user processes -->
+          <rect class="d-box-paper" x="404" y="156" width="130" height="92" rx="4"/>
+          <text class="d-t" x="469" y="182" text-anchor="middle">claude (SDK)</text>
+          <text class="d-s" x="469" y="200" text-anchor="middle">user: alice</text>
+          <text class="d-s" x="469" y="216" text-anchor="middle">cwd /ws/alice</text>
+          <text class="d-s" x="469" y="234" text-anchor="middle">+ Bash</text>
+
+          <rect class="d-box-paper" x="546" y="156" width="130" height="92" rx="4"/>
+          <text class="d-t" x="611" y="182" text-anchor="middle">claude (SDK)</text>
+          <text class="d-s" x="611" y="200" text-anchor="middle">user: bob</text>
+          <text class="d-s" x="611" y="216" text-anchor="middle">cwd /ws/bob</text>
+          <text class="d-s" x="611" y="234" text-anchor="middle">+ Bash</text>
+
+          <text class="d-lbl" x="540" y="150" text-anchor="middle">D5 · OS-ISOLATED PROCESSES</text>
+
+          <!-- read-only runtime mount -->
+          <rect class="d-dash" x="404" y="268" width="272" height="44" rx="4" style="fill:#fff"/>
+          <text class="d-t" x="540" y="289" text-anchor="middle">ts-networks runtime</text>
+          <text class="d-s" x="540" y="305" text-anchor="middle">read-only mount · shared</text>
+
+          <!-- scratch dirs -->
+          <rect class="d-box" x="404" y="328" width="130" height="38" rx="4"/>
+          <text class="d-s" x="469" y="351" text-anchor="middle">/ws/alice</text>
+          <rect class="d-box" x="546" y="328" width="130" height="38" rx="4"/>
+          <text class="d-s" x="611" y="351" text-anchor="middle">/ws/bob</text>
+
+          <!-- persistence -->
+          <rect class="d-box" x="760" y="120" width="160" height="80" rx="4"/>
+          <text class="d-lbl" x="840" y="110" text-anchor="middle">D4 · PERSISTENCE</text>
+          <text class="d-t" x="840" y="152" text-anchor="middle">Index (metadata)</text>
+          <text class="d-s" x="840" y="170" text-anchor="middle">owner · files · session id</text>
+          <text class="d-s" x="840" y="188" text-anchor="middle">SQLite / Postgres</text>
+
+          <rect class="d-box" x="760" y="224" width="160" height="80" rx="4"/>
+          <text class="d-t" x="840" y="256" text-anchor="middle">Durable bytes</text>
+          <text class="d-s" x="840" y="274" text-anchor="middle">uploads · outputs · JSONL</text>
+          <text class="d-s" x="840" y="292" text-anchor="middle">volume / S3 · R2</text>
+
+          <!-- arrows -->
+          <defs>
+            <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+              <path d="M0 0 L10 5 L0 10 z" fill="#111"/>
+            </marker>
+          </defs>
+          <line class="d-line" x1="140" y1="202" x2="186" y2="202" marker-end="url(#arr)"/>
+          <line class="d-line" x1="330" y1="202" x2="376" y2="202" marker-end="url(#arr)"/>
+          <line class="d-line" x1="260" y1="96" x2="260" y2="156" marker-end="url(#arr)"/>
+          <line class="d-line" x1="700" y1="170" x2="756" y2="160" marker-end="url(#arr)"/>
+          <line class="d-line" x1="756" y1="270" x2="700" y2="280" marker-end="url(#arr)"/>
+        </svg>
+      </div>
+      <figcaption><b>Request &amp; trust flow.</b> The proxy is the only thing facing users; the
+        single key enters as platform config; inside the one container, each user gets an OS-isolated
+        SDK process over a shared read-only runtime; durable state lives outside so the container
+        stays disposable.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ===== 04 PERSISTENCE ===== -->
+<section id="persistence">
+  <div class="wrap">
+    <div class="sec-head"><span class="num">04</span><h2>Persistence — a layer over a still-real filesystem</h2></div>
+    <p><strong>The agent needs a real filesystem.</strong> Its whole job is to shell out —
+      <code>npx tsx scripts/run.ts</code>, write <code>.tsn</code> files, read PDF bytes. You cannot
+      hand it a database row; it runs <code>ls</code> and <code>cat</code>. So a database does not
+      <em>replace</em> the workspace — it <em>wraps</em> the filesystem, supplying the three things a
+      bare, ephemeral disk cannot: <strong>ownership, durability, and history</strong>.</p>
+
+    <figure>
+      <div class="stage">
+        <svg viewBox="0 0 900 300" role="img" aria-label="Three-tier persistence diagram">
+          <defs>
+            <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+              <path d="M0 0 L10 5 L0 10 z" fill="#111"/>
+            </marker>
+            <marker id="arrR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+              <path d="M0 0 L10 5 L0 10 z" fill="#e30613"/>
+            </marker>
+          </defs>
+
+          <!-- index -->
+          <rect class="d-box" x="30" y="90" width="220" height="120" rx="4"/>
+          <text class="d-lbl" x="140" y="80" text-anchor="middle">THE INDEX</text>
+          <text class="d-t" x="140" y="122" text-anchor="middle">Metadata DB</text>
+          <text class="d-s" x="140" y="146" text-anchor="middle">users · workspaces</text>
+          <text class="d-s" x="140" y="164" text-anchor="middle">files · session id</text>
+          <text class="d-s" x="140" y="188" text-anchor="middle">never bytes</text>
+
+          <!-- durable bytes -->
+          <rect class="d-box" x="340" y="90" width="220" height="120" rx="4"/>
+          <text class="d-lbl" x="450" y="80" text-anchor="middle">THE BYTES</text>
+          <text class="d-t" x="450" y="122" text-anchor="middle">Durable store</text>
+          <text class="d-s" x="450" y="146" text-anchor="middle">uploads · outputs</text>
+          <text class="d-s" x="450" y="164" text-anchor="middle">+ session JSONL</text>
+          <text class="d-s" x="450" y="188" text-anchor="middle">source of truth</text>
+
+          <!-- scratch -->
+          <rect class="d-box-ink" x="650" y="90" width="220" height="120" rx="4"/>
+          <text class="d-lbl" x="760" y="80" text-anchor="middle" style="fill:#fff">THE AGENT'S DISK</text>
+          <text class="d-t-w" x="760" y="122" text-anchor="middle">Scratch dir · cwd</text>
+          <text class="d-s-w" x="760" y="146" text-anchor="middle">/ws/&lt;user&gt;</text>
+          <text class="d-s-w" x="760" y="164" text-anchor="middle">real files for Bash</text>
+          <text class="d-s-w" x="760" y="188" text-anchor="middle">disposable</text>
+
+          <!-- materialize arrow store -> scratch -->
+          <path class="d-line" d="M560 130 H648" marker-end="url(#arr2)"/>
+          <text class="d-s" x="604" y="120" text-anchor="middle">materialize</text>
+          <text class="d-s" x="604" y="148" text-anchor="middle">+ resume</text>
+          <!-- sync back scratch -> store -->
+          <path class="d-line-red" d="M648 180 H562" marker-end="url(#arrR)"/>
+          <text class="d-lbl" x="604" y="200" text-anchor="middle">sync at turn end</text>
+
+          <!-- index <-> bytes pointer -->
+          <path class="d-dash" d="M250 150 H338"/>
+          <text class="d-s" x="294" y="142" text-anchor="middle">points at</text>
+          <text class="d-s" x="294" y="170" text-anchor="middle">blob keys</text>
+        </svg>
+      </div>
+      <figcaption><b>The transcript is an SDK primitive, not our invention.</b> A fresh container
+        rehydrates a whole session — files <em>and</em> conversation — because the SDK already persists
+        the JSONL per <code>cwd</code> and resumes by id. We supply durable storage and the sync; the
+        SDK supplies the memory. No bespoke history engine.</figcaption>
+    </figure>
+
+    <p>The UI endpoints change <em>source</em>, not <em>shape</em>: <code>/files</code> reads the
+      listing from the index (scoped to the caller) instead of <code>readdir</code>; <code>/upload</code>
+      writes to the byte store plus an index row. The chat loop and the file viewer are untouched —
+      same <code>{dir, name, size}</code> JSON.</p>
+
+    <div class="principle" style="border-left-color:var(--ink)">
+      <h3>PoC-scale simplification</h3>
+      <p>At ≤10 users the two outer tiers need not be heavyweight: a <strong>persistent volume +
+        SQLite</strong> has the same shape as "object store + Postgres" and is plenty. The
+        <em>design</em> is the three roles (index / bytes / scratch); the <em>backends</em> are a
+        deployment knob you can turn up later without changing the shape.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 05 ISOLATION ===== -->
+<section id="isolation">
+  <div class="wrap">
+    <div class="sec-head"><span class="num">05</span><h2>Isolation — the heart of the decision</h2></div>
+    <p>Each connected user spawns its own <code>claude</code> process — that part is easy. The trap is
+      assuming the SDK's <code>cwd</code> option <em>isolates</em> them. It does not. Toggle the
+      diagram to see why, and the fix we chose.</p>
+
+    <div class="toggle" role="group" aria-label="Isolation model">
+      <button id="btn-trap" class="danger" aria-pressed="true" onclick="showIso('trap')">The trap · cwd only</button>
+      <button id="btn-fix" aria-pressed="false" onclick="showIso('fix')">The fix · per-user OS user</button>
+    </div>
+
+    <figure>
+      <div class="stage">
+        <!-- TRAP -->
+        <svg id="iso-trap" viewBox="0 0 900 300" role="img" aria-label="cwd does not confine">
+          <defs>
+            <marker id="arrRok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+              <path d="M0 0 L10 5 L0 10 z" fill="#e30613"/>
+            </marker>
+          </defs>
+          <!-- shared fs band -->
+          <rect class="d-dash" x="30" y="150" width="840" height="120" rx="4" style="fill:#fff"/>
+          <text class="d-s" x="50" y="172">one OS user · one filesystem — everything is visible</text>
+
+          <!-- processes -->
+          <rect class="d-box-paper" x="80" y="40" width="150" height="70" rx="4"/>
+          <text class="d-t" x="155" y="70" text-anchor="middle">claude · alice</text>
+          <text class="d-s" x="155" y="90" text-anchor="middle">cwd /ws/alice + Bash</text>
+
+          <rect class="d-box-paper" x="670" y="40" width="150" height="70" rx="4"/>
+          <text class="d-t" x="745" y="70" text-anchor="middle">claude · bob</text>
+          <text class="d-s" x="745" y="90" text-anchor="middle">cwd /ws/bob + Bash</text>
+
+          <!-- dirs -->
+          <rect class="d-box" x="120" y="200" width="150" height="50" rx="4"/>
+          <text class="d-t" x="195" y="230" text-anchor="middle">/ws/alice</text>
+          <rect class="d-box" x="630" y="200" width="150" height="50" rx="4"/>
+          <text class="d-t" x="705" y="230" text-anchor="middle">/ws/bob</text>
+
+          <!-- own access (fine) -->
+          <path class="d-line" d="M155 110 V198" marker-end="url(#arr2)"/>
+          <path class="d-line" d="M745 110 V198" marker-end="url(#arr2)"/>
+          <!-- cross access (the leak) -->
+          <path class="d-line-red" d="M210 96 C 420 150, 520 150, 632 210" marker-end="url(#arrRok)"/>
+          <text class="d-lbl" x="450" y="135" text-anchor="middle">cat /ws/bob/secret.tsn  →  ALLOWED</text>
+        </svg>
+
+        <!-- FIX -->
+        <svg id="iso-fix" class="hidden" viewBox="0 0 900 300" role="img" aria-label="per-user OS user confines">
+          <defs>
+            <marker id="arrGok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+              <path d="M0 0 L10 5 L0 10 z" fill="#1f6f43"/>
+            </marker>
+          </defs>
+          <!-- processes as distinct unix users -->
+          <rect class="d-box-paper" x="80" y="40" width="150" height="70" rx="4"/>
+          <text class="d-t" x="155" y="70" text-anchor="middle">claude · alice</text>
+          <text class="d-s" x="155" y="90" text-anchor="middle">unix user alice + Bash</text>
+
+          <rect class="d-box-paper" x="670" y="40" width="150" height="70" rx="4"/>
+          <text class="d-t" x="745" y="70" text-anchor="middle">claude · bob</text>
+          <text class="d-s" x="745" y="90" text-anchor="middle">unix user bob + Bash</text>
+
+          <!-- dirs with owners -->
+          <rect class="d-box" x="120" y="200" width="150" height="50" rx="4"/>
+          <text class="d-t" x="195" y="225" text-anchor="middle">/ws/alice</text>
+          <text class="d-s" x="195" y="242" text-anchor="middle">owner alice · 0700</text>
+          <rect class="d-box" x="630" y="200" width="150" height="50" rx="4"/>
+          <text class="d-t" x="705" y="225" text-anchor="middle">/ws/bob</text>
+          <text class="d-s" x="705" y="242" text-anchor="middle">owner bob · 0700</text>
+
+          <!-- own access ok -->
+          <path class="d-line-good" d="M155 110 V198" marker-end="url(#arrGok)"/>
+          <path class="d-line-good" d="M745 110 V198" marker-end="url(#arrGok)"/>
+
+          <!-- kernel wall -->
+          <line x1="450" y1="30" x2="450" y2="270" stroke="#111" stroke-width="2.5" stroke-dasharray="2 6"/>
+          <text class="d-lbl" x="450" y="24" text-anchor="middle" style="letter-spacing:.14em">KERNEL</text>
+
+          <!-- blocked cross access -->
+          <path class="d-line-red" d="M210 96 C 360 150, 400 170, 432 190"/>
+          <line x1="424" y1="178" x2="448" y2="206" class="d-line-red"/>
+          <line x1="448" y1="178" x2="424" y2="206" class="d-line-red"/>
+          <text class="d-lbl" x="330" y="135" text-anchor="middle">cat /ws/bob/...  →  PERMISSION DENIED</text>
+        </svg>
+      </div>
+      <figcaption id="iso-cap"><b>cwd is where a process starts, not a wall it can't cross.</b>
+        With Bash the agent just names an absolute path; same OS user + same filesystem means it
+        reaches anything. The toggle shows the fix: a distinct unix user per session, with the
+        directory owned <code>0700</code>, so the kernel refuses the cross-read no matter what the
+        agent types.</figcaption>
+    </figure>
+
+    <h3>Why this, and why Bash stays</h3>
+    <p>The agent's job is to author <em>and run</em> <code>.tsn</code> — a shell is part of the work,
+      not a risk to design away. We refuse to remove it. So the boundary has to live <strong>below</strong>
+      the agent, in the OS: spawn each user's process as a distinct unix user whose permissions reach
+      only its own workspace. The agent can ask for anything; the kernel says no. The read-only runtime
+      mount stays shared and unchanged (read-only for everyone — no tenancy concern there).</p>
+    <p>The payoff is that the whole deployment stays <strong>one container</strong> — no per-session
+      containers, no scheduler, no cloud-specific machinery — while the isolation is
+      <strong>OS-enforced</strong> rather than guardrails we write and hope hold.</p>
+
+    <div class="principle" style="border-left-color:var(--ink)">
+      <h3>The one piece of real work</h3>
+      <p>Controlling <em>how</em> the <code>claude</code> subprocess is spawned: it must run under the
+        session's <strong>uid/gid</strong>. The SDK normally spawns it for us, so the question to
+        settle against the pinned version is whether it exposes spawn uid/gid (or an exec hook), or
+        whether we point it at a small privilege-dropping launcher of our own. <em>That</em> — not
+        <code>cwd</code> — is where the isolation effort sits. Everything else (scratch dir,
+        <code>resume</code>, sync) is unchanged.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 06 ROADMAP ===== -->
+<section id="roadmap">
+  <div class="wrap">
+    <div class="sec-head"><span class="num">06</span><h2>Build order</h2></div>
+    <p>Steps 1–2 make it <strong>deployable internally for one shared workspace almost
+      immediately</strong>. Steps 3–5 are the multi-user build — each leaning on an SDK primitive or a
+      plain OS mechanism, not new infrastructure.</p>
+    <div class="steps">
+      <div class="step now">
+        <div class="s-n">1</div>
+        <div class="s-b"><b>Reverse-proxy auth <span class="pill now">ships v0</span></b>
+          <p>Put the proxy in front; trust the identity header. No app code beyond reading it — the
+            SDK has no user-auth, so this layer is required regardless.</p></div>
+      </div>
+      <div class="step now">
+        <div class="s-n">2</div>
+        <div class="s-b"><b>Org key as platform secret <span class="pill now">ships v0</span></b>
+          <p>Already how it works — sourced from the host's secret store at boot. With (1) this is a
+            usable single-workspace internal tool.</p></div>
+      </div>
+      <div class="step">
+        <div class="s-n">3</div>
+        <div class="s-b"><b>Persistence layer</b>
+          <p>Index + byte store (volume + SQLite at PoC scale); switch <code>/files</code> and
+            <code>/upload</code> to read/write through it; materialize / sync the scratch dir and the
+            session JSONL; resume with the SDK's <code>resume</code>.</p></div>
+      </div>
+      <div class="step">
+        <div class="s-n">4</div>
+        <div class="s-b"><b>Per-session OS-user isolation</b>
+          <p>Spawn each user's <code>claude</code> under a distinct unix user scoped to
+            <code>/ws/&lt;user&gt;</code>. Stays single-container; Bash kept. The uid/gid spawn
+            question (above) is resolved here.</p></div>
+      </div>
+      <div class="step">
+        <div class="s-n">5</div>
+        <div class="s-b"><b>Per-user history in the UI</b>
+          <p>Re-introduce a real "Recents", read from the SDK's own persisted transcript (synced via
+            tier 2) — not a parallel store we maintain.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 07 CONSEQUENCES ===== -->
+<section id="consequences">
+  <div class="wrap">
+    <div class="sec-head"><span class="num">07</span><h2>Consequences</h2></div>
+    <div class="cols">
+      <div class="col win">
+        <h3>What we gain</h3>
+        <ul>
+          <li>The trust problem dissolves — no one shares a personal key; the operator is the trusted org.</li>
+          <li>Small surface: the SDK does the heavy lifting (CLI, transcript, resume).</li>
+          <li>Single-container operations — no orchestrator, no autoscaling, no cloud lock-in.</li>
+          <li>OS-enforced isolation, not guardrails we have to get right.</li>
+          <li>The container stays disposable: durable state outside means cheap restart / rehydrate.</li>
+          <li>Bash — and the agent's full authoring power — is kept intact.</li>
+        </ul>
+      </div>
+      <div class="col cost">
+        <h3>What it costs / defers</h3>
+        <ul>
+          <li>Per-user uid/gid spawning is the real engineering bit; correctness rests on the perms setup.</li>
+          <li>One container is a single point of failure and won't scale horizontally — fine at ≤10 users, not beyond.</li>
+          <li>We own identity handling at the proxy boundary (trusting its header).</li>
+          <li><b>Deferred:</b> container-per-session for genuinely hostile / untrusted tenants.</li>
+          <li><b>Deferred:</b> token quotas and per-user accounting (soft monitoring only at PoC).</li>
+          <li><b>Foreclosed:</b> OAuth / claude.ai-login — the SDK does not offer it to third parties.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 08 ASSUMPTIONS ===== -->
+<section id="assumptions">
+  <div class="wrap">
+    <div class="sec-head"><span class="num">08</span><h2>Assumptions</h2></div>
+    <p>This design is only as sound as the premises under it. These are the ones we had to make; if
+      any breaks, the corresponding decision should be revisited.</p>
+    <div class="assume">
+      <div class="row"><div class="a-n">A1</div><div class="a-b">
+        <b>The organization is a trust boundary.</b>
+        <span>Users trust their employer with the documents they feed the tool — the same trust email
+          and the corporate drive already assume. This is what lets the operator hold one key and
+          dissolves the BYOK trust problem.</span></div></div>
+      <div class="row"><div class="a-n">A2</div><div class="a-b">
+        <b>The insider threat is low-stakes — but worth a hard wall anyway.</b>
+        <span>Users are colleagues behind SSO, not adversaries. So "permission denied between
+          workspaces" is sufficient; we do not need hostile-grade sandboxing (gVisor, per-tenant VMs).
+          We still enforce it at the kernel because it is cheap and removes a whole class of accidents.</span></div></div>
+      <div class="row"><div class="a-n">A3</div><div class="a-b">
+        <b>Scale is ~10 users, not thousands.</b>
+        <span>One container with one CPU/RAM envelope is enough; no autoscaling, no per-session
+          containers, no load balancer. This assumption directly justifies D5 (single container) and
+          the PoC persistence simplification.</span></div></div>
+      <div class="row"><div class="a-n">A4</div><div class="a-b">
+        <b>An identity-aware proxy exists or can be stood up.</b>
+        <span>The org can place SSO / oauth2-proxy / a VPN in front and inject a trustworthy signed
+          identity header. We trust that header; we do not re-verify the user's credentials.</span></div></div>
+      <div class="row"><div class="a-n">A5</div><div class="a-b">
+        <b>The Agent SDK exposes cwd / env / resume, and a way to control spawn uid/gid.</b>
+        <span>The persistence and isolation designs depend on these. The uid/gid path in particular is
+          <em>to be verified</em> against the pinned version — either a native option/exec hook, or we
+          wrap the spawn in a privilege-dropping launcher.</span></div></div>
+      <div class="row"><div class="a-n">A6</div><div class="a-b">
+        <b>The host is Linux and we can create unix users / set ownership inside the container.</b>
+        <span>The container starts privileged enough at setup to create per-user accounts and
+          <code>chown</code> workspaces, then drops privilege per spawned process.</span></div></div>
+      <div class="row"><div class="a-n">A7</div><div class="a-b">
+        <b>Durable storage and a writable scratch volume are available.</b>
+        <span>At PoC scale a single persistent volume + SQLite stands in for object store + Postgres.
+          The three roles (index / bytes / scratch) are the contract; the backends are swappable.</span></div></div>
+      <div class="row"><div class="a-n">A8</div><div class="a-b">
+        <b>Outbound network to the Anthropic API is permitted.</b>
+        <span>The agent is useless without it; the org's egress policy allows the container to reach
+          the API with the org key.</span></div></div>
+      <div class="row"><div class="a-n">A9</div><div class="a-b">
+        <b>The <code>.tsn</code> runtime is not itself an escape vector.</b>
+        <span>Running a <code>.tsn</code> program executes inside the language runtime (a constrained
+          DSL over a read-only mount). We assume it cannot break out to arbitrary host actions beyond
+          what the unix-user permissions already allow. Worth a dedicated look before trusting
+          untrusted-authored programs.</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 09 OPEN QUESTIONS ===== -->
+<section id="open" style="border-bottom:none">
+  <div class="wrap">
+    <div class="sec-head"><span class="num">09</span><h2>Open questions</h2></div>
+    <p>Settled enough to build; these are the threads to pull as we do.</p>
+    <div class="oq">
+      <div class="q"><b>Session model</b><p>One conversation per user, or many named, resumable ones?
+        Decides whether a workspace belongs to a user or a conversation.</p></div>
+      <div class="q"><b>Spawn uid/gid</b><p>Native SDK option / exec hook, or our own
+        privilege-dropping launcher? The pivot of step 4.</p></div>
+      <div class="q"><b>Sync semantics</b><p>Turn-boundary snapshot vs. a filesystem watcher; what
+        counts as an "output" worth persisting.</p></div>
+      <div class="q"><b>Reap &amp; reconnect</b><p>What is "idle", what happens to an in-flight turn,
+        what the user sees on SSE reconnect.</p></div>
+      <div class="q"><b>Usage accounting</b><p>One key, many users — does the org want per-user token
+        visibility and soft limits? Cheap via the identity header.</p></div>
+      <div class="q"><b>Retention &amp; deletion</b><p>Lifecycle of uploads, outputs, transcripts;
+        user-initiated delete; the org's data policy.</p></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p><strong>ADR-001 · Gavagai deployment architecture</strong> — org-internal, single container,
+      one key, OS-isolated per-user workspaces, built on the Agent SDK. Status: accepted for the PoC
+      (≤10 users).</p>
+    <p style="margin-top:14px">See also — <code>documentation/lang_agent.md</code> (container modes &amp;
+      the Gavagai chat) · <code>docker/chat-server/README.md</code> (server/agent split) ·
+      <code>report/gavagai-ui-roadmap.md</code> (UI rung roadmap).</p>
+  </div>
+</footer>
+
+<script>
+  function showIso(which){
+    const trap = which === 'trap';
+    document.getElementById('iso-trap').classList.toggle('hidden', !trap);
+    document.getElementById('iso-fix').classList.toggle('hidden', trap);
+    const bt = document.getElementById('btn-trap'), bf = document.getElementById('btn-fix');
+    bt.setAttribute('aria-pressed', String(trap));
+    bf.setAttribute('aria-pressed', String(!trap));
+    document.getElementById('iso-cap').innerHTML = trap
+      ? "<b>cwd is where a process starts, not a wall it can't cross.</b> With Bash the agent just "
+        + "names an absolute path; same OS user + same filesystem means it reaches anything. Toggle "
+        + "to <em>The fix</em> to see the boundary moved into the kernel."
+      : "<b>A distinct unix user per session, workspace owned 0700.</b> The agent can type any path "
+        + "it likes; the kernel refuses the cross-read. Bash stays — the wall lives below it, not "
+        + "around it.";
+  }
+</script>
+
+</body>
+</html>

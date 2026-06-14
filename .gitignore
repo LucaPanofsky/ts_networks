@@ -8,8 +8,9 @@ report/
 *.db
 public/editor.bundle.js
 dev
-# Claude Code local state
-.claude/
+# Claude Code local state (ignore all of .claude EXCEPT committed, shared skills)
+.claude/*
+!.claude/skills/
 # Playwright MCP scratch (screenshots, snapshots, console logs — regenerable)
 .playwright-mcp/
 # Session handoff scratch (deliberately untracked)
