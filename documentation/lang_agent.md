@@ -64,6 +64,10 @@ which cardinality, how general. The agent's job is **translation under indetermi
 underspecified human specification into a single, precise program in the network language. Dialogue
 is how reference gets pinned down — which is why the interactive mode exists.
 
+The chat carries the name visually: its mark is a sitting hare with a question mark for a face —
+the rabbit running past, the `?` standing in for the indeterminacy. It heads the empty-state
+("**Gavagai**") and sits small in the topbar beside **Lang Agent · Gavagai**.
+
 - **Server** ([`docker/chat-server/`](../docker/chat-server)) — a bare `node:http` app that holds
   the SDK session and bridges it to the browser over **SSE + POST** (`GET /events`, `POST /chat`,
   `POST /reset`). One container = one conversation. The agent runs against the same runtime and

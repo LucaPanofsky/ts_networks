@@ -1,20 +1,9 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Gavagai · ts-networks lang agent</title>
-    <link rel="stylesheet" href="/styles.css" />
-  </head>
-  <body>
-    <!-- Gavagai mark: a sitting hare with a question-mark face (Quine's gavagai).
-         Inlined from resources/rabbit.svg (the canonical source — re-extract to upgrade), defined
-         once and hidden; referenced with <use href="#gavagai-rabbit"> from view.js. Themeable via
-         custom properties that inherit into the <use> shadow: .r-body uses currentColor, .r-q uses
-         --q-fill (fill) and --q-display (the topbar instance sets --q-display:none to drop the ?). -->
-    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-      <symbol id="gavagai-rabbit" viewBox="0 0 400 400">
-        <style>.r-body{fill:currentColor}.r-q{fill:var(--q-fill,#e30613);display:var(--q-display,inline)}</style><g transform="translate(0.000000,400.000000) scale(0.100000,-0.100000)">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="Gavagai rabbit">
+  <!-- Gavagai mark: a sitting hare with a question-mark face (Quine's gavagai). Canonical,
+       reusable source. Themeable: r-body inherits currentColor; r-q is filled by the q-fill
+       custom property (default brand red) and shown by q-display. The chat UI inlines this as a
+       <symbol> in docker/chat-server/public/index.html (re-extract there to upgrade). -->
+  <style>.r-body{fill:currentColor}.r-q{fill:var(--q-fill,#e30613);display:var(--q-display,inline)}</style><g transform="translate(0.000000,400.000000) scale(0.100000,-0.100000)">
     <path class="r-body" fill-rule="evenodd" d="M3402 3873 c-80 -39 -195 -179 -271 -330 -23 -46 -45 -83 -49 -83 -4
 0 -32 28 -62 63 -122 139 -300 269 -451 327 -97 37 -123 38 -158 3 -79 -79
 -105 -422 -48 -645 44 -179 120 -357 213 -500 43 -67 74 -122 74 -132 0 -3
@@ -55,10 +44,5 @@ c-173 0 -270 101 -268 281 1 102 24 149 92 185 48 26 54 33 57 64 44 580 379
 394 297 89 24 246 100 293 142 73 64 66 142 -20 213 -200 164 -552 271 -760
 231z M2920 991 c-137 -44 -163 -180 -51 -271 48 -40 85 -39 125 3 81 87
 112 227 56 254 -36 17 -100 24 -130 14z"/>
-  </g>      </symbol>
-    </svg>
-    <!-- The entire app is rendered from state by view() and morphed in by main.js. -->
-    <div id="app"></div>
-    <script type="module" src="/main.js"></script>
-  </body>
-</html>
+  </g>
+</svg>

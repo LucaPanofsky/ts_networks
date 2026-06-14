@@ -38,7 +38,8 @@ function main(state) {
   return `
     <main class="main">
       <header class="topbar">
-        <span class="topbar-title">TSN Lang Agent | Gavagai</span>
+        ${rabbit('topbar-mark')}
+        <span class="topbar-title">Lang Agent <span class="sep">·</span> <span class="gv">Gavagai</span></span>
         <span class="status${working ? ' working' : ''}" id="status" title="agent status"></span>
       </header>
 
@@ -60,7 +61,8 @@ function dock(working) {
     <div class="dock">
       <div class="dock-inner">
         <div class="hero">
-          <h1><span class="mark">✳</span> ts-networks</h1>
+          ${rabbit('hero-mark')}
+          <h1>Gavagai</h1>
           <p>Describe a document and the data you want extracted from it.</p>
         </div>
         <form class="composer" id="composer">
@@ -72,6 +74,13 @@ function dock(working) {
         </form>
       </div>
     </div>`;
+}
+
+// The Gavagai mark — references the <symbol id="gavagai-rabbit"> defined once in index.html.
+// Sized/colored by CSS via the class (topbar-mark vs hero-mark); the body inherits currentColor
+// and the question mark is themed by --q-fill.
+function rabbit(cls) {
+  return `<svg class="rabbit ${cls}" aria-hidden="true"><use href="#gavagai-rabbit"/></svg>`;
 }
 
 export function esc(s) {

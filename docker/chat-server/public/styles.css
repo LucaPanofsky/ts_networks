@@ -15,6 +15,7 @@
   --muted: #9b958b;
   --accent: #d97757;      /* Claude-ish terracotta */
   --accent-ink: #1f1e1d;
+  --q-fill: var(--accent); /* the Gavagai rabbit's question-mark accent (terracotta, matches the UI) */
   --maxw: 740px;          /* readable column width */
   --sidebar-w: 264px;
   --rail-w: 60px;
@@ -71,9 +72,18 @@ button { font: inherit; color: inherit; cursor: pointer; background: none; borde
 
 /* ---------- main ---------- */
 .main { display: flex; flex-direction: column; min-width: 0; min-height: 0; height: 100%; }
-.topbar { flex: 0 0 auto; display: flex; align-items: center; gap: 10px;
+.topbar { flex: 0 0 auto; display: flex; align-items: center; gap: 9px;
           padding: 12px 18px; border-bottom: 1px solid var(--border); background: var(--bg); }
-.topbar-title { font-weight: 600; }
+.topbar-title { font-weight: 600; color: var(--muted); }   /* "Lang Agent" recedes... */
+.topbar-title .sep { margin: 0 5px; }
+.topbar-title .gv { color: var(--text); font-weight: 700; } /* ...so "Gavagai" reads as the name */
+
+/* ---------- Gavagai mark (the rabbit; symbol defined in index.html) ---------- */
+.rabbit { color: var(--text); flex: 0 0 auto; }   /* body inherits this; .r-q uses --q-fill */
+/* topbar mark: hide the question mark (too busy at 22px) — the var inherits into the <use> shadow,
+   where the symbol's internal style applies it; the hero mark keeps the ?. */
+.topbar-mark { width: 22px; height: 22px; --q-display: none; }
+.hero-mark { width: 78px; height: 78px; display: block; margin: 0 auto 16px; }
 .status { margin-left: auto; width: 9px; height: 9px; border-radius: 50%; background: #3fb950; transition: background .2s; }
 .status.working { background: var(--accent); animation: pulse 1s infinite; }
 @keyframes pulse { 50% { opacity: .35; } }
@@ -115,8 +125,7 @@ button { font: inherit; color: inherit; cursor: pointer; background: none; borde
 .content:not(.empty) .dock { position: sticky; bottom: 0; padding-top: 32px;
             background: linear-gradient(to bottom, rgba(31, 30, 29, 0) 0, var(--bg) 32px); }
 .hero { text-align: center; margin-bottom: 22px; }
-.hero h1 { font-size: 30px; font-weight: 600; margin: 0 0 6px; }
-.hero h1 .mark { color: var(--accent); }
+.hero h1 { font-size: 32px; font-weight: 650; letter-spacing: -.01em; margin: 0 0 6px; }
 .hero p { margin: 0; color: var(--muted); }
 
 .composer { border: 1px solid var(--border); background: var(--panel); border-radius: var(--radius);

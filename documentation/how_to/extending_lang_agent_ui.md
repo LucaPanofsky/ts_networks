@@ -172,6 +172,15 @@ that emits the agent's raw html instead of `esc(text)` for assistant messages.
   deliberate, isolated exception (the `reply(html)` branch), never the default path.
 - **The vendored `idiomorph.js` is not hand-edited.** It is the upstream ESM build with a
   provenance header; re-vendor to upgrade.
+- **The Gavagai mark is one inline `<symbol>`.** The rabbit logo is defined once as
+  `<symbol id="gavagai-rabbit">` in `index.html` (hidden, *outside* `#app` so morph never touches
+  it) and referenced with `<use href="#gavagai-rabbit">` from a `rabbit(cls)` helper in `view.js`.
+  It themes via custom-property hooks that inherit *into* the `<use>` shadow (where the symbol's
+  internal `<style>` applies them — ordinary descendant selectors can't reach inside): the body
+  inherits `currentColor`, the `?` is filled by `--q-fill` (defaults to `var(--accent)`) and shown
+  via `--q-display`. That is how the topbar mark drops the `?` (`--q-display: none` on `.topbar-mark`)
+  while the hero keeps it — one symbol, no second asset. Size/place each instance by its class
+  (`topbar-mark`, `hero-mark`); don't fork the path data.
 - **Run the right commands.** From `docker/chat-server/`: `npm test` (smoke + reducer/view);
   `node dev-preview.mjs` to eyeball with a fake agent; the Playwright MCP (browser `chromium`) to
   drive interactions and screenshot.
@@ -192,6 +201,11 @@ that emits the agent's raw html instead of `esc(text)` for assistant messages.
   layout where the scrollbar stopped at the composer. CSS-only in `styles.css` except one line in
   `postRender()` (the auto-scroll target moved from `thread` to `#content`). See the scroll-container
   gotcha above.
+- **Gavagai identity.** The chat got its own mark: the rabbit-with-a-question-mark-face logo (Quine's
+  gavagai) as an inline `<symbol>` in `index.html`, shown in the empty-state hero (with the title
+  **Gavagai**) and small in the topbar next to **Lang Agent · Gavagai**. The body is cream
+  (`currentColor`); the `?` is terracotta (`--q-fill: var(--accent)`). The sidebar stays
+  `ts-networks` (the project). See the Gavagai-mark gotcha above.
 - **Integration testing (live image).** Verified end-to-end against the built container.
 
   Verified:
