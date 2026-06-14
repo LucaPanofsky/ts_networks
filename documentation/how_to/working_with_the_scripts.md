@@ -1,0 +1,64 @@
+# How to: working with the scripts
+
+All scripts live in `scripts/` and are thin CLI adapters over the operations in `src/operations/`.
+Each takes a `.tsn` source file as its first argument. They all print `ok` (or a JSON result) on
+success and exit with code `1` on failure.
+
+The everyday verify loop while authoring is **`check` → `typecheck` → `run`** (a parse error makes
+a type error meaningless, so run them in that order).
+
+**Parse a program and inspect the AST:**
+```bash
+npx tsx scripts/parse.ts <file.tsn>
+```
+
+**Check a file parses without errors:**
+```bash
+npx tsx scripts/check.ts <file.tsn>
+```
+
+**Type-check a file (conflicting types, unknown predicates, input mismatches):**
+```bash
+npx tsx scripts/typecheck.ts <file.tsn>
+```
+
+**Emit JSON Schemas for all `defrecord` types (usable as LLM structured-output schemas):**
+```bash
+npx tsx scripts/compile-schemas.ts <file.tsn>
+```
+
+**Run a network with seeded cell values:**
+```bash
+npx tsx scripts/run.ts <file.tsn> <networkName> [cell=jsExpr ...]
+```
+
+Cell values are evaluated as JavaScript expressions in the program's sandbox, so constructors and predicates defined in the program are available:
+```bash
+npx tsx scripts/run.ts examples/geometry.tsn rectangleMetrics 'rect={width:3,height:4}'
+```
+
+Alternatively, `cell=@filename` seeds the **raw text** of a file from the `WORKSPACE/` directory (read verbatim as a string, *not* evaluated as JS) — the way to feed a real document (e.g. the `.txt` produced by `pdf-to-text`) into a network:
+```bash
+npx tsx scripts/run.ts extract.tsn extractInvoice doc=@example_invoice.txt
+```
+
+**Render a network as a Mermaid diagram (cells, operations, switch cond/value labels, explicit recursion):**
+```bash
+npx tsx scripts/diagram.ts <file.tsn> [networkName] [live]
+```
+
+`networkName` is optional when the program defines exactly one network. Pass the literal word `live` to get a `mermaid.live` editor link instead of the raw diagram string. Only requires the source to *parse* (and contain the network) — it reads structure, not types, so the referenced functions need not be defined:
+```bash
+npx tsx scripts/diagram.ts examples/search.tsn live
+```
+
+**Extract text from a PDF in the workspace:**
+```bash
+npx tsx scripts/pdf.ts <file.pdf>
+```
+
+Reads `<file.pdf>` from the `WORKSPACE/` directory, decodes it to text, and writes `<file>.txt` alongside it (pages separated by `--- page N ---`). Set `TSN_WORKSPACE` to point at a different workspace root. Unlike the other scripts, the argument is a PDF filename *in the workspace*, not a `.tsn` source file. Also available as the `pdf-to-text` MCP tool.
+
+> **Extracting structured data from a PDF?** Start with the playbook in
+> [`programmatic_agent_extraction.md`](programmatic_agent_extraction.md) — it takes a raw PDF
+> request from zero to a working `.tsn` extractor and links down to the construct-level how-tos.
