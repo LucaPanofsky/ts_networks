@@ -372,6 +372,8 @@ function contentType(path) {
   if (path.endsWith('.html')) return 'text/html; charset=utf-8';
   if (path.endsWith('.css')) return 'text/css; charset=utf-8';
   if (path.endsWith('.js') || path.endsWith('.mjs')) return 'text/javascript; charset=utf-8';
+  if (path.endsWith('.woff2')) return 'font/woff2';
+  if (path.endsWith('.svg')) return 'image/svg+xml';
   return 'application/octet-stream';
 }
 
