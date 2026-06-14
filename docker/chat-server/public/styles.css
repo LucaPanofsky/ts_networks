@@ -78,13 +78,23 @@ button { font: inherit; color: inherit; cursor: pointer; background: none; borde
 .status.working { background: var(--accent); animation: pulse 1s infinite; }
 @keyframes pulse { 50% { opacity: .35; } }
 
-/* content = thread + dock; this is what centers on the empty state (NOT the top bar) */
+/* content = thread + dock; this is what centers on the empty state (NOT the top bar). */
 .content { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .content.empty { justify-content: center; }
 .content.empty .thread { display: none; }
 .content:not(.empty) .hero { display: none; }
+/* In a conversation, CONTENT is the scroll container (not the thread). The scrollbar then belongs
+   to content and runs full height at the far-right edge, and the composer — a sticky child INSIDE
+   content's content box — sits to the LEFT of that scrollbar and never paints over it. This is what
+   lets the composer's full-width mask cover the message column edge-to-edge yet leave the scrollbar
+   clean: the two no longer share the same box. */
+.content:not(.empty) { overflow-y: auto; }
 
 .thread { flex: 1; min-height: 0; overflow-y: auto; padding: 24px 16px 8px; }
+/* content scrolls now, not the thread. Natural height (not flex:1) so content's scrollHeight
+   accounts for every message and the sticky dock lands after them; margin-top:auto keeps a short
+   conversation pinned to the bottom (composer at the bottom, no awkward mid-screen float). */
+.content:not(.empty) .thread { flex: 0 0 auto; overflow: visible; margin-top: auto; }
 .thread-inner { max-width: var(--maxw); margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
 
 .msg { white-space: pre-wrap; word-wrap: break-word; }
@@ -96,6 +106,14 @@ button { font: inherit; color: inherit; cursor: pointer; background: none; borde
 
 .dock { flex: 0 0 auto; padding: 8px 16px 22px; }
 .dock-inner { max-width: var(--maxw); margin: 0 auto; }
+/* Conversation state: the composer STICKS to the bottom of the scrollport while messages scroll
+   behind it. As a sticky child of content it reserves its own space (so the last message clears it
+   without extra padding) and spans content's content box — its full-width gradient masks any text
+   passing under it edge-to-edge, but stops at the scrollbar gutter. The gradient fades into the
+   thread above; rgba start (not `transparent`) avoids a grey fade. On the empty state the dock
+   stays in normal flow, centered with the hero. */
+.content:not(.empty) .dock { position: sticky; bottom: 0; padding-top: 32px;
+            background: linear-gradient(to bottom, rgba(31, 30, 29, 0) 0, var(--bg) 32px); }
 .hero { text-align: center; margin-bottom: 22px; }
 .hero h1 { font-size: 30px; font-weight: 600; margin: 0 0 6px; }
 .hero h1 .mark { color: var(--accent); }

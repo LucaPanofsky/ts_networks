@@ -158,6 +158,14 @@ that emits the agent's raw html instead of `esc(text)` for assistant messages.
   class is rendered from state too). `ignoreActiveValue: true` protects the focused textarea from
   being clobbered by an incoming server event. Anything the DOM owns but state doesn't (scroll
   position, the textarea auto-grow height) is re-applied in `postRender()` after each morph.
+- **`content` is the scroll container, not `thread`.** In a conversation the composer is a `sticky`
+  child of `#content`, which is what scrolls — so the scrollbar runs full height and messages scroll
+  *behind* the composer under a gradient mask (Claude-web style). Consequences a feature author must
+  respect: the auto-scroll-to-bottom in `postRender()` targets `#content` (the scroller); the
+  thread keeps its natural height with `margin-top: auto` so a short chat stays pinned to the bottom;
+  and the composer's full-width mask spans the message column but stops at the scrollbar gutter
+  (which is why it lives on `#content` and not over the `thread`). This is CSS in `styles.css` plus
+  the one scroll-target line in `postRender()` — no event/reducer/view changes.
 - **The UI is a pure projection of state**, which is itself a projection of the SSE stream. Never
   stash UI state in the DOM and read it back — add a state field instead.
 - **Escape by default.** `view.js` HTML-escapes message text (`esc`). Emitting raw html is a
@@ -178,6 +186,12 @@ that emits the agent's raw html instead of `esc(text)` for assistant messages.
   event-driven loop above: `state.js` / `update.js` / `view.js` / `effects.js` / `main.js`, with
   idiomorph morphing and a `reducer-test.mjs` for the pure layer. `server.mjs` exposes the
   `user` / `message` / `status` / `error` / `reset` SSE events and the `/chat` + `/reset` routes.
+- **Floating composer (sticky).** The composer now floats at the bottom (Claude-web style): `#content`
+  is the scroll container and the composer is a `sticky` child of it, so the scrollbar runs full
+  height and messages scroll behind the composer under a gradient mask — replacing the earlier band
+  layout where the scrollbar stopped at the composer. CSS-only in `styles.css` except one line in
+  `postRender()` (the auto-scroll target moved from `thread` to `#content`). See the scroll-container
+  gotcha above.
 - **Integration testing (live image).** Verified end-to-end against the built container.
 
   Verified:

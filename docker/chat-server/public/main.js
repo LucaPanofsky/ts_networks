@@ -28,8 +28,11 @@ function dispatch(event) {
 
 // Side effects that must run after the DOM reflects the new state.
 function postRender() {
-  const thread = document.getElementById('thread');
-  if (thread) thread.scrollTop = thread.scrollHeight;
+  // In a conversation, `content` is the scroll container (the composer is a sticky child of it),
+  // so the auto-scroll-to-bottom targets content, not thread. On the empty state content does not
+  // overflow, so this is a harmless no-op.
+  const scroller = document.getElementById('content');
+  if (scroller) scroller.scrollTop = scroller.scrollHeight;
   autogrow();
 }
 
