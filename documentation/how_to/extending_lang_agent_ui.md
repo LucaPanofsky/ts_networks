@@ -170,7 +170,23 @@ that emits the agent's raw html instead of `esc(text)` for assistant messages.
 
 ## Changelog
 
+> **Status: under ongoing development.** The chat UI is functional and verified against a live
+> built image for its core flows, but it is not yet feature-complete — expect refinements
+> (e.g. a chat-contract tweak and file upload from the UI are planned next).
+
 - **Initial functional UI.** The chat client was refactored from a single inline script into the
   event-driven loop above: `state.js` / `update.js` / `view.js` / `effects.js` / `main.js`, with
   idiomorph morphing and a `reducer-test.mjs` for the pure layer. `server.mjs` exposes the
   `user` / `message` / `status` / `error` / `reset` SSE events and the `/chat` + `/reset` routes.
+- **Integration testing (live image).** Verified end-to-end against the built container.
+
+  Verified:
+  - [x] **Multi-turn session resume** — a later turn recalls earlier ones.
+  - [x] **`New chat` resets the server-side session** — a fresh session, no leakage of prior turns.
+  - [x] **Workspace round-trip, both directions** — host↔container file exchange (the foundation for UI file upload).
+  - [x] **The `tsn-*` verify loop runs in-turn** — `check → typecheck → run` against the read-only runtime.
+
+  Deferred:
+  - [ ] **Busy-guard / no double-send** — send disabled while a turn is in flight.
+  - [ ] **Multi-tab + SSE reconnect** — multiple tabs share the conversation; the stream auto-reconnects.
+  - [ ] **Program authoring** — generating a new `.tsn` extractor end-to-end (its own later pass).
