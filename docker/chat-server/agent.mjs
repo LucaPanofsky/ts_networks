@@ -49,6 +49,15 @@ function resolveClaudePath() {
   }
 }
 
+// Turn a tool_use block into a short, human-friendly activity line. Bash carries the command
+// (the tsn-* verify loop runs through it), file tools carry a path; otherwise show the tool name.
+function traceLabel(block) {
+  const name = block.name || 'tool';
+  if (name === 'Bash' && block.input?.command) return block.input.command.split('\n')[0].slice(0, 80);
+  if (block.input?.file_path) return `${name} ${block.input.file_path}`;
+  return name;
+}
+
 export function createSdkAgent(opts = {}) {
   const cwd = opts.cwd ?? process.env.TSN_WORKSPACE ?? '/workspace';
   const additionalDirectories = opts.additionalDirectories ?? ['/app/ts-networks', '/knowledge'];
@@ -74,13 +83,20 @@ export function createSdkAgent(opts = {}) {
      * Run one turn. Returns { text, sessionId }. `text` is the assistant's final reply;
      * `sessionId` is the (possibly new) id to pass to the next turn.
      */
-    async runTurn({ prompt, sessionId }) {
+    async runTurn({ prompt, sessionId, onTrace }) {
       let text = '';
       let nextSessionId = sessionId;
       for await (const message of query({ prompt, options: optionsFor(sessionId) })) {
         // Every message carries the session id; capture it as soon as we see it so a
         // mid-turn failure still advances the conversation correctly.
         if (message.session_id) nextSessionId = message.session_id;
+        // Live trace (Rung 1): surface each tool the agent runs as it happens. We already
+        // iterate every SDK message; previously we kept only the final result.
+        if (message.type === 'assistant' && onTrace) {
+          for (const block of message.message?.content ?? []) {
+            if (block.type === 'tool_use') onTrace(traceLabel(block));
+          }
+        }
         if (message.type === 'result') {
           if (message.subtype === 'success') {
             text = message.result ?? '';

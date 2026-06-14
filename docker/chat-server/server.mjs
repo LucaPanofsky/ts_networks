@@ -9,14 +9,14 @@
 // SSE event types emitted (room to grow without rearchitecting the client):
 //   - user    { text }            an accepted user turn (echoed to every client)
 //   - message { text }            the assistant's complete reply for a turn
-//   - status  { state }           "working" | "idle" — a turn-level busy flag (NOT the
-//                                 deferred token/trace streaming; just a spinner toggle)
+//   - status  { state }           "working" | "idle" — a turn-level busy flag (spinner toggle)
+//   - trace   { text }            live tool activity during a turn (Rung 1) — one per tool use
 //   - error   { message }         a turn failed
 //   - reset   {}                  the conversation was cleared (New chat)
 //
-// Deferred (additive, no rearchitecture): a `trace` event per tool call for live
-// progress, partial `message` deltas for token streaming, and rendering replies as HTML
-// fragments with hypermedia controls. v1 delivers one whole plain-text message per turn.
+// Deferred (additive, no rearchitecture): partial `message` deltas for token-level streaming
+// (Rung 2), and rendering replies as HTML fragments with hypermedia controls. Each turn still
+// delivers one whole plain-text `message`; `trace` events are progress, not the reply.
 
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
@@ -78,7 +78,11 @@ export function createServer({ agent, publicDir = join(HERE, 'public') }) {
     broadcast('user', { text: message });
     broadcast('status', { state: 'working' });
     try {
-      const result = await agent.runTurn({ prompt: message, sessionId });
+      const result = await agent.runTurn({
+        prompt: message,
+        sessionId,
+        onTrace: (text) => broadcast('trace', { text }), // live tool activity (Rung 1)
+      });
       if (result.sessionId) sessionId = result.sessionId;
       broadcast('message', { text: result.text });
     } catch (err) {

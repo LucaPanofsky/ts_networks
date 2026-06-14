@@ -114,6 +114,12 @@ button { font: inherit; color: inherit; cursor: pointer; background: none; borde
 .msg.error { align-self: center; color: #f0a3a3; background: #3a1d1d; border: 1px solid #5a2a2a;
              padding: 8px 12px; border-radius: 10px; font-size: 13.5px; }
 
+/* live activity line (Rung 1): the agent's current tool, shown while working */
+.activity { align-self: flex-start; display: flex; align-items: center; gap: 8px;
+            color: var(--muted); font-size: 13.5px; }
+.activity-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent);
+                flex: 0 0 auto; animation: pulse 1s infinite; }
+
 .dock { flex: 0 0 auto; padding: 8px 16px 22px; }
 .dock-inner { max-width: var(--maxw); margin: 0 auto; }
 /* Conversation state: the composer STICKS to the bottom of the scrollport while messages scroll

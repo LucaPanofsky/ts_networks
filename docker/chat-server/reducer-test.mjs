@@ -121,4 +121,55 @@ test('sidebarCollapsed renders the collapsed modifier on the root', () => {
   assert.ok(view(s).includes('app sidebar-collapsed'));
 });
 
+// ---------- reducer: live trace (Rung 1) ----------
+test('trace-appended accumulates traces in order', () => {
+  let s = update(initialState, { type: 'trace-appended', text: 'reading the document' });
+  s = update(s, { type: 'trace-appended', text: 'running tsn-check' });
+  assert.deepEqual(s.traces, ['reading the document', 'running tsn-check']);
+});
+
+test('status-changed to working starts a fresh trace list; to idle clears it', () => {
+  let s = update(initialState, { type: 'status-changed', state: 'working' });
+  s = update(s, { type: 'trace-appended', text: 'x' });
+  assert.deepEqual(s.traces, ['x']);
+  s = update(s, { type: 'status-changed', state: 'idle' });
+  assert.deepEqual(s.traces, [], 'traces cleared when the turn ends');
+});
+
+test('a new working turn does not inherit the previous turn’s traces', () => {
+  let s = update(initialState, { type: 'status-changed', state: 'working' });
+  s = update(s, { type: 'trace-appended', text: 'old' });
+  s = update(s, { type: 'status-changed', state: 'idle' });
+  s = update(s, { type: 'status-changed', state: 'working' });
+  assert.deepEqual(s.traces, []);
+});
+
+test('conversation-reset clears traces too', () => {
+  let s = update(initialState, { type: 'status-changed', state: 'working' });
+  s = update(s, { type: 'trace-appended', text: 'x' });
+  s = update(s, { type: 'conversation-reset' });
+  assert.deepEqual(s.traces, []);
+});
+
+// ---------- view: the activity line ----------
+test('view shows the latest trace as an activity line only while working', () => {
+  let s = update(initialState, { type: 'status-changed', state: 'working' });
+  s = update(s, { type: 'trace-appended', text: 'reading the document' });
+  s = update(s, { type: 'trace-appended', text: 'running tsn-typecheck' });
+  const html = view(s);
+  assert.ok(html.includes('class="activity"'), 'activity line shown while working');
+  assert.ok(html.includes('running tsn-typecheck'), 'shows the LATEST trace');
+  assert.ok(!html.includes('reading the document'), 'only the latest, not the whole history');
+  const idle = update(s, { type: 'status-changed', state: 'idle' });
+  assert.ok(!view(idle).includes('class="activity"'), 'no activity line once idle');
+});
+
+test('activity line escapes trace text (no injection)', () => {
+  let s = update(initialState, { type: 'status-changed', state: 'working' });
+  s = update(s, { type: 'trace-appended', text: '<b>x</b>' });
+  const html = view(s);
+  assert.ok(!html.includes('<b>x</b>'), 'raw html must not appear');
+  assert.ok(html.includes('&lt;b&gt;x&lt;/b&gt;'), 'trace text must be escaped');
+});
+
 console.log(`REDUCER/VIEW OK — ${passed} tests (pure layer, ran with no DOM)`);

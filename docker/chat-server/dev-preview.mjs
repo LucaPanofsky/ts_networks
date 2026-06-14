@@ -3,9 +3,23 @@
 //   node dev-preview.mjs   ->   http://localhost:8787
 import { createServer } from './server.mjs';
 
+// Simulated tool activity, so the Rung 1 trace stream is visible without the real SDK (the echo
+// agent makes no real tool calls). Mirrors the shape of a real authoring turn's verify loop.
+const STEPS = [
+  'reading the document',
+  'running tsn-check',
+  'running tsn-typecheck',
+  'running tsn-run examples/geometry.tsn',
+  'writing /workspace/out/program.tsn',
+];
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const fakeAgent = {
-  async runTurn({ prompt, sessionId }) {
-    await new Promise((r) => setTimeout(r, 400)); // fake "thinking" so the spinner shows
+  async runTurn({ prompt, sessionId, onTrace }) {
+    for (const step of STEPS) {
+      await sleep(550);
+      onTrace?.(step); // stream the activity line, one tool at a time
+    }
+    await sleep(300);
     return { text: `(fake agent) you said: ${prompt}`, sessionId: sessionId ?? 'preview' };
   },
 };

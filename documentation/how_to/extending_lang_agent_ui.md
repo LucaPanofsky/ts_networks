@@ -87,8 +87,9 @@ Verify continuously: `npm test`, and `node dev-preview.mjs` to see it.
 ## A worked example: a live `trace` line
 
 Goal: while a turn runs, show the agent's tool activity (e.g. "running `tsn-typecheck`…") instead
-of just a spinner. It is **server-driven** and threads every stage. Illustrative fragments, not
-the full code.
+of just a spinner. It is **server-driven** and threads every stage. **This is now shipped as Rung 1**
+— the fragments below match the code (`agent.mjs` emits a trace per `tool_use`; the UI renders an
+`activity` line).
 
 **1. The event.** A new SSE event `trace { text }`, which becomes the domain event
 `{ type: 'trace-appended', text }`.
@@ -115,15 +116,18 @@ and clear it when a turn ends or resets:
 
 ```js
 case 'trace-appended':  return { ...state, traces: [...state.traces, event.text] };
-case 'status-changed':  return { ...state, status: event.state, traces: event.state === 'working' ? state.traces : [] };
+// a status transition resets the trace list (fresh turn on 'working', cleared on 'idle');
+// same-value changes stay a no-op so they don't wipe traces mid-turn
+case 'status-changed':  return state.status === event.state ? state : { ...state, status: event.state, traces: [] };
 ```
 
 **5. Render it (view.js).** A pure fragment shown only while working:
 
 ```js
-function traceLine(state) {
-  if (state.status !== 'working' || state.traces.length === 0) return '';
-  return `<div class="trace">${esc(state.traces[state.traces.length - 1])}</div>`;
+function activity(state) {
+  if (state.status !== 'working') return '';
+  const latest = state.traces[state.traces.length - 1] || 'Working…'; // neutral before the first trace
+  return `<div class="activity"><span class="activity-dot"></span>${esc(latest)}</div>`;
 }
 ```
 
@@ -206,6 +210,13 @@ that emits the agent's raw html instead of `esc(text)` for assistant messages.
   **Gavagai**) and small in the topbar next to **Lang Agent · Gavagai**. The body is cream
   (`currentColor`); the `?` is terracotta (`--q-fill: var(--accent)`). The sidebar stays
   `ts-networks` (the project). See the Gavagai-mark gotcha above.
+- **Live trace (Rung 1).** Tool activity now streams during a turn instead of a bare spinner. The
+  agent gained an `onTrace` sink (`runTurn({ …, onTrace })`); the real agent emits one per
+  `tool_use`, the server broadcasts a `trace` SSE event, and the UI shows the latest as an
+  `activity` line under the working indicator (cleared when the reply lands). The worked example
+  above is exactly this feature. **Verified through the fake-agent preview + the smoke test; the
+  real-SDK `tool_use` path is not yet exercised on the built image** (integration test deferred,
+  below). Token-level streaming of the reply is the next rung (Rung 2).
 - **Integration testing (live image).** Verified end-to-end against the built container.
 
   Verified:
@@ -217,4 +228,6 @@ that emits the agent's raw html instead of `esc(text)` for assistant messages.
   Deferred:
   - [ ] **Busy-guard / no double-send** — send disabled while a turn is in flight.
   - [ ] **Multi-tab + SSE reconnect** — multiple tabs share the conversation; the stream auto-reconnects.
+  - [ ] **Live trace on the real image (Rung 1)** — confirm the real SDK's `tool_use` blocks surface
+    as `activity` lines in the built container (the fake-agent pipeline is already verified).
   - [ ] **Program authoring** — generating a new `.tsn` extractor end-to-end (its own later pass).

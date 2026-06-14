@@ -30,7 +30,9 @@ SSE event types:
 | `user` | `{text}` | an accepted user turn, echoed to every client |
 | `message` | `{text}` | the assistant's **complete** reply for a turn |
 | `status` | `{state}` | `working` \| `idle` — a turn-level busy flag (spinner) |
+| `trace` | `{text}` | live tool activity during a turn (Rung 1) — one per tool use |
 | `error` | `{message}` | a turn failed |
+| `reset` | `{}` | the conversation was cleared (New chat) |
 
 ## Files
 
@@ -98,11 +100,14 @@ alive). If a container is ever wedged, free the port with
 **v1 (this):** architecture-correct skeleton — SDK session in-container, SSE + POST,
 multi-turn resume, per-session chat contract, one **whole plain-text** message per turn.
 
+**Shipped since v1:** a `trace` event per tool call for live progress (Rung 1) — the agent emits
+one per `tool_use` as a turn runs; the UI shows it as an activity line under the spinner.
+
 **Deferred — all additive, no rearchitecture:**
+- partial `message` deltas for token-level streaming (Rung 2 — iterate the SDK's partial messages
+  instead of reading only the final result);
 - a `reply(html)` SDK tool + rendering replies as **HTML fragments** with hypermedia controls
-  (forms as the refinement loop);
-- a `trace` event per tool call for live progress, and partial `message` deltas for
-  token-level streaming (iterate the SDK messages instead of reading only the final result).
+  (forms as the refinement loop).
 
 ## Notes / not-yet-verified
 

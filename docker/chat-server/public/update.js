@@ -10,6 +10,7 @@
 //   { type: 'assistant-said',     text }
 //   { type: 'error-raised',       text }
 //   { type: 'status-changed',     state: 'working'|'idle' }
+//   { type: 'trace-appended',     text }
 //   { type: 'conversation-reset' }
 //   { type: 'sidebar-toggled' }
 
@@ -22,9 +23,13 @@ export function update(state, event) {
     case 'error-raised':
       return addMessage(state, 'error', event.text);
     case 'status-changed':
-      return state.status === event.state ? state : { ...state, status: event.state };
+      // A status transition also resets the trace list: entering 'working' starts a fresh turn,
+      // leaving it clears the just-finished turn's activity. Same-value changes are a no-op.
+      return state.status === event.state ? state : { ...state, status: event.state, traces: [] };
+    case 'trace-appended':
+      return { ...state, traces: [...state.traces, event.text] };
     case 'conversation-reset':
-      return { ...state, messages: [], status: 'idle' };
+      return { ...state, messages: [], status: 'idle', traces: [] };
     case 'sidebar-toggled':
       return { ...state, sidebarCollapsed: !state.sidebarCollapsed };
     default:

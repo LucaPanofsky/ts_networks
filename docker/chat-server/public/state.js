@@ -8,6 +8,7 @@
 export const initialState = {
   messages: [],          // [{ id:number, role:'user'|'assistant'|'error', text:string }]
   status: 'idle',        // 'idle' | 'working'
+  traces: [],            // live tool activity for the current turn; reset each turn (Rung 1)
   sidebarCollapsed: false,
   seq: 0,                // monotonic counter → stable message ids (kept in state so ids stay pure)
 };

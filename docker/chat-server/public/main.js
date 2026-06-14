@@ -87,6 +87,7 @@ document.addEventListener('input', (e) => {
 const es = new EventSource('/events');
 es.addEventListener('user', (e) => dispatch({ type: 'user-said', text: JSON.parse(e.data).text }));
 es.addEventListener('message', (e) => dispatch({ type: 'assistant-said', text: JSON.parse(e.data).text }));
+es.addEventListener('trace', (e) => dispatch({ type: 'trace-appended', text: JSON.parse(e.data).text }));
 es.addEventListener('error', (e) => { if (e.data) dispatch({ type: 'error-raised', text: JSON.parse(e.data).message }); });
 es.addEventListener('status', (e) => dispatch({ type: 'status-changed', state: JSON.parse(e.data).state }));
 es.addEventListener('reset', () => dispatch({ type: 'conversation-reset' }));

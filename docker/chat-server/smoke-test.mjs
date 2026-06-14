@@ -11,11 +11,13 @@ import http from 'node:http';
 import assert from 'node:assert/strict';
 import { createServer } from './server.mjs';
 
-// A fake agent: echoes the prompt and advances a fake session id each turn.
+// A fake agent: echoes the prompt and advances a fake session id each turn. It also emits one
+// trace per turn via the onTrace sink, so the smoke test exercises the live-trace plumbing.
 let turns = 0;
 const fakeAgent = {
-  async runTurn({ prompt, sessionId }) {
+  async runTurn({ prompt, sessionId, onTrace }) {
     turns += 1;
+    onTrace?.('thinking');
     return { text: `echo[${prompt}] (resumed=${sessionId ?? 'none'})`, sessionId: `sess-${turns}` };
   },
 };
@@ -74,7 +76,7 @@ server.listen(0, '127.0.0.1', async () => {
 
     // open SSE, drive two turns, assert the event sequence
     const sse = await get('/events');
-    const want = 8; // (user, status, message, status) x2
+    const want = 10; // (user, status, trace, message, status) x2
     const eventsP = collectEvents(sse, want);
 
     const r1 = await postChat('first');
@@ -87,8 +89,9 @@ server.listen(0, '127.0.0.1', async () => {
     const seq = events.map((e) => `${e.event}:${e.data.state ?? ''}`);
     assert.deepEqual(
       seq,
-      ['user:', 'status:working', 'message:', 'status:idle', 'user:', 'status:working', 'message:', 'status:idle'],
-      'event sequence for two turns',
+      ['user:', 'status:working', 'trace:', 'message:', 'status:idle',
+       'user:', 'status:working', 'trace:', 'message:', 'status:idle'],
+      'event sequence for two turns (trace between working and message)',
     );
     // session continuity: second turn resumed the first turn's minted id
     const secondReply = events.filter((e) => e.event === 'message')[1].data.text;
@@ -100,7 +103,7 @@ server.listen(0, '127.0.0.1', async () => {
     const rs = await post('/reset', {});
     assert.equal(rs.statusCode, 204, 'POST /reset accepted');
     assert.equal((await resetEvP)[0].event, 'reset', 'reset broadcast to clients');
-    const afterReset = collectEvents(sse, 3); // user, status(working), message
+    const afterReset = collectEvents(sse, 4); // user, status(working), trace, message
     await postChat('again');
     const freshReply = (await afterReset).find((e) => e.event === 'message').data.text;
     assert.match(freshReply, /resumed=none/, 'turn after reset starts a fresh session');

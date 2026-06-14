@@ -45,7 +45,7 @@ function main(state) {
 
       <div class="content${empty ? ' empty' : ''}" id="content">
         <div class="thread" id="thread">
-          <div class="thread-inner" id="log">${state.messages.map(message).join('')}</div>
+          <div class="thread-inner" id="log">${state.messages.map(message).join('')}${activity(state)}</div>
         </div>
         ${dock(working)}
       </div>
@@ -54,6 +54,15 @@ function main(state) {
 
 function message(m) {
   return `<div class="msg ${m.role}" data-id="${m.id}">${esc(m.text)}</div>`;
+}
+
+// The live activity line (Rung 1): while a turn is working, show the latest tool-activity trace
+// (or a neutral "Working…" before the first trace lands). It sits at the end of the thread and
+// disappears when the turn ends — the real assistant message takes its place.
+function activity(state) {
+  if (state.status !== 'working') return '';
+  const latest = state.traces[state.traces.length - 1] || 'Working…';
+  return `<div class="activity"><span class="activity-dot"></span>${esc(latest)}</div>`;
 }
 
 function dock(working) {
