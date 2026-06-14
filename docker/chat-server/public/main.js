@@ -11,7 +11,7 @@
 import { initialState } from './state.js';
 import { update } from './update.js';
 import { view } from './view.js';
-import { sendChat, resetConversation, fetchFiles } from './effects.js';
+import { sendChat, resetConversation, fetchFiles, uploadFile } from './effects.js';
 import { Idiomorph } from './idiomorph.js';
 
 let state = initialState;
@@ -79,10 +79,57 @@ async function loadFiles() {
   } catch { /* offline / transient — leave the current list, wait for the next nudge */ }
 }
 
+// Upload dropped/picked files into /workspace/uploads/ (Rung C). Decoupled from a chat turn:
+// the files just land; on success we refetch the mirror so they appear in the Uploads section.
+// One upload pass at a time (busy guard); files go sequentially so one failure reports cleanly.
+async function uploadFiles(fileList) {
+  const files = Array.from(fileList || []);
+  if (!files.length || state.upload.busy) return;
+  dispatch({ type: 'upload-started' });
+  try {
+    for (const file of files) {
+      const res = await uploadFile(file);
+      if (!res.ok) {
+        const msg = await res.json().then((j) => j.error).catch(() => `upload failed (${res.status})`);
+        dispatch({ type: 'upload-failed', text: msg });
+        return; // stop on the first failure; the rest are abandoned
+      }
+    }
+    dispatch({ type: 'upload-succeeded' });
+    loadFiles(); // pull the mirror so the new uploads show (the server also nudges other tabs)
+  } catch {
+    dispatch({ type: 'upload-failed', text: 'upload failed — network error' });
+  }
+}
+
 // ---- raw DOM events (delegated on document → survive morphs) ----
 document.addEventListener('click', (e) => {
   if (e.target.closest('#collapse')) dispatch({ type: 'sidebar-toggled' });
   else if (e.target.closest('#newChat')) newChat();
+  else if (e.target.closest('#dropzone')) document.getElementById('filePicker')?.click();
+});
+document.addEventListener('change', (e) => {
+  if (e.target.id === 'filePicker') { uploadFiles(e.target.files); e.target.value = ''; }
+});
+// Drag-and-drop onto the dropzone. We preventDefault on dragover at the window level so a stray
+// drop never makes the browser navigate to the file; the drop only uploads when it lands on the
+// dropzone. The hover highlight is transient browser-only UI (toggled directly, like autogrow) —
+// it isn't application state, so it never goes through the reducer.
+document.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  e.target.closest('#dropzone')?.classList.add('dragover');
+});
+document.addEventListener('dragleave', (e) => {
+  if (e.target.closest('#dropzone') && !e.relatedTarget?.closest('#dropzone')) {
+    e.target.closest('#dropzone').classList.remove('dragover');
+  }
+});
+document.addEventListener('drop', (e) => {
+  e.preventDefault();
+  const zone = e.target.closest('#dropzone');
+  if (!zone) return;
+  zone.classList.remove('dragover');
+  uploadFiles(e.dataTransfer?.files);
 });
 document.addEventListener('submit', (e) => {
   if (e.target.id === 'composer') { e.preventDefault(); submitTurn(); }

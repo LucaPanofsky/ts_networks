@@ -22,15 +22,19 @@
 // delivers one whole plain-text `message`; `trace` events are progress, not the reply.
 
 import http from 'node:http';
-import { readFile, readdir, stat } from 'node:fs/promises';
+import { readFile, readdir, stat, mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { dirname, join, normalize } from 'node:path';
+import { dirname, join, normalize, basename, resolve, sep } from 'node:path';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
 // The two workspace subdirs the UI mirrors (Rung B): user uploads (writable from the UI in
 // Rung C) and the agent's outputs (read-only — there is no endpoint that writes here).
 const WORKSPACE_SECTIONS = ['uploads', 'out'];
+
+// The upload size ceiling (Rung C): generous for a PDF, bounded so a client can't exhaust the
+// disk. The body is read with this cap and the socket is dropped the instant it's exceeded.
+const MAX_UPLOAD = 25 * 1024 * 1024; // 25 MB
 
 /**
  * Build (but do not start) the chat HTTP server.
@@ -129,6 +133,45 @@ export function createServer({
     res.end(JSON.stringify(body));
   }
 
+  // POST /upload — the ONLY client write path into the workspace, and it writes ONLY to
+  // uploads/ (never out/, which is the agent's output). This is the capability axis of the
+  // security model: the client can add inputs, it cannot touch the agent's artifacts. The
+  // filename rides url-encoded in X-Tsn-Filename; the body is the raw file bytes (no multipart
+  // — this is our own client, so the wire format is just header + body). Decoupled from a turn:
+  // the file just lands in uploads/; the agent sees it on its next `ls`, and the user references
+  // it in a later message. The path never rides the next chat turn.
+  async function handleUpload(req, res) {
+    const uploadsDir = join(workspaceDir, 'uploads');
+    const name = safeUploadName(req.headers['x-tsn-filename']);
+    if (!name) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'a valid X-Tsn-Filename header is required' }));
+      return;
+    }
+    // Belt-and-suspenders path-traversal guard: safeUploadName already strips directories, so
+    // this should always hold — but the endpoint is the one place a client can write, so we
+    // re-check that the resolved path stays inside uploads/ before touching the disk.
+    const dest = confine(uploadsDir, name);
+    if (!dest) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'filename escapes the uploads directory' }));
+      return;
+    }
+    let data;
+    try {
+      data = await readBody(req, MAX_UPLOAD);
+    } catch {
+      res.writeHead(413, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: `file exceeds the ${MAX_UPLOAD}-byte limit` }));
+      return;
+    }
+    await mkdir(uploadsDir, { recursive: true }); // may not exist until the first upload
+    await writeFile(dest, data);
+    broadcast('workspace', {}); // nudge every client (incl. other tabs) to refetch GET /files
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ name, size: data.length }));
+  }
+
   async function handleStatic(req, res) {
     // Only ever serve index.html in v1 (single page). Map "/" to it.
     const rel = req.url === '/' ? 'index.html' : normalize(req.url).replace(/^(\.\.[/\\])+/, '');
@@ -152,6 +195,7 @@ export function createServer({
     if (req.method === 'POST' && url === '/chat') return handleChat(req, res).catch((e) => fail(res, e));
     if (req.method === 'POST' && url === '/reset') return handleReset(req, res);
     if (req.method === 'GET' && url === '/files') return handleFiles(req, res).catch((e) => fail(res, e));
+    if (req.method === 'POST' && url === '/upload') return handleUpload(req, res).catch((e) => fail(res, e));
     if (req.method === 'GET' && url === '/healthz') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify({ ok: true, clients: clients.size, busy }));
@@ -178,6 +222,51 @@ function readJson(req) {
     });
     req.on('error', reject);
   });
+}
+
+// Read a request body into a Buffer, rejecting the moment it passes `limit` bytes (so an upload
+// can't exhaust memory/disk). Destroys the socket on overflow rather than draining the rest.
+function readBody(req, limit) {
+  return new Promise((ok, reject) => {
+    const chunks = [];
+    let len = 0;
+    req.on('data', (c) => {
+      len += c.length;
+      if (len > limit) {
+        req.destroy();
+        reject(new Error('body too large'));
+        return;
+      }
+      chunks.push(c);
+    });
+    req.on('end', () => ok(Buffer.concat(chunks)));
+    req.on('error', reject);
+  });
+}
+
+// Reduce a client-supplied filename to a safe basename, or null if it isn't a usable name.
+// basename() strips any directory components (so "../../etc/passwd" -> "passwd"); we then reject
+// empties, the dot dirs, and stray control chars / separators. The caller still confines the
+// resolved path under uploads/ as a second line of defense.
+function safeUploadName(header) {
+  if (typeof header !== 'string' || !header) return null;
+  let decoded;
+  try {
+    decoded = decodeURIComponent(header);
+  } catch {
+    return null; // malformed percent-encoding
+  }
+  const name = basename(decoded.trim());
+  if (!name || name === '.' || name === '..') return null;
+  if (/[\p{Cc}/\\]/u.test(name)) return null; // reject control chars and stray separators
+  return name;
+}
+
+// Resolve `name` under `root` and confirm it stays inside it (path-traversal guard). Returns the
+// absolute path, or null if it would escape. The `+ sep` stops a sibling like /workspace-evil.
+function confine(root, name) {
+  const p = resolve(root, name);
+  return p === root || p.startsWith(root + sep) ? p : null;
 }
 
 // List a single workspace dir: files only (no subdirs in v1), name + size, sorted by name.

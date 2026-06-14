@@ -64,6 +64,16 @@ button { font: inherit; color: inherit; cursor: pointer; background: none; borde
 .file-row .file-size { margin-left: auto; flex: 0 0 auto; color: var(--muted); font-size: 11px;
                        font-variant-numeric: tabular-nums; }
 
+/* dropzone (Rung C): click to browse or drag a file in; uploads land in /workspace/uploads/.
+   The `.dragover` class is toggled transiently by main.js during a drag (not via state). */
+.dropzone { margin: 4px 6px 6px; padding: 12px 10px; border: 1px dashed var(--border); border-radius: 9px;
+            text-align: center; color: var(--muted); font-size: 12.5px; cursor: pointer; transition: border-color .15s, background .15s; }
+.dropzone:hover, .dropzone:focus-visible { background: var(--panel-hi); outline: none; }
+.dropzone.dragover { border-color: var(--accent); background: var(--panel-hi); color: var(--text); }
+.dropzone .dz-link { color: var(--accent); text-decoration: underline; }
+.upload-msg { margin: 0 6px 6px; padding: 2px 6px; font-size: 12px; color: var(--muted); }
+.upload-msg.error { color: #f0a3a3; }
+
 .sidebar-foot { margin-top: auto; border-top: 1px solid var(--border); padding: 12px 16px; color: var(--muted);
                 font-size: 12.5px; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
 .sidebar-foot .dot { width: 7px; height: 7px; border-radius: 50%; background: #3fb950; flex: 0 0 auto; }

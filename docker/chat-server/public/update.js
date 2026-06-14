@@ -12,6 +12,9 @@
 //   { type: 'status-changed',     state: 'working'|'idle' }
 //   { type: 'trace-appended',     text }
 //   { type: 'files-loaded',       files }   // { uploads:[{name,size}], out:[…] } — the workspace mirror
+//   { type: 'upload-started' }              // a dropzone upload is in flight (Rung C)
+//   { type: 'upload-succeeded' }            // it landed; main.js refetches the file list
+//   { type: 'upload-failed',      text }    // it was rejected/failed; show the reason
 //   { type: 'conversation-reset' }
 //   { type: 'sidebar-toggled' }
 
@@ -32,6 +35,13 @@ export function update(state, event) {
     case 'files-loaded':
       // The workspace mirror (Rung B). Wholesale replace — GET /files is the source of truth.
       return { ...state, files: event.files };
+    case 'upload-started':
+      // A dropzone upload began (Rung C): mark busy and clear any stale error.
+      return { ...state, upload: { busy: true, error: null } };
+    case 'upload-succeeded':
+      return { ...state, upload: { busy: false, error: null } };
+    case 'upload-failed':
+      return { ...state, upload: { busy: false, error: event.text } };
     case 'conversation-reset':
       // New chat clears the SESSION, not the workspace: uploads/outputs live on disk and persist.
       // So `files` is deliberately left intact here (main.js refetches after the reset anyway).

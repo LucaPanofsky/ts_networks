@@ -217,4 +217,47 @@ test('sidebar escapes file names (no injection)', () => {
   assert.ok(html.includes('&lt;img src=x&gt;.txt'), 'name must be escaped');
 });
 
+// ---------- reducer + view: upload (Rung C) ----------
+test('initial state carries an idle upload status', () => {
+  assert.deepEqual(initialState.upload, { busy: false, error: null });
+});
+
+test('upload-started marks busy and clears any prior error', () => {
+  const s0 = update(initialState, { type: 'upload-failed', text: 'old error' });
+  const s = update(s0, { type: 'upload-started' });
+  assert.deepEqual(s.upload, { busy: true, error: null });
+});
+
+test('upload-succeeded clears busy (and leaves no error)', () => {
+  const s = update(update(initialState, { type: 'upload-started' }), { type: 'upload-succeeded' });
+  assert.deepEqual(s.upload, { busy: false, error: null });
+});
+
+test('upload-failed clears busy and records the error', () => {
+  const s = update(update(initialState, { type: 'upload-started' }), { type: 'upload-failed', text: 'file too large' });
+  assert.deepEqual(s.upload, { busy: false, error: 'file too large' });
+});
+
+test('upload events do not mutate their input', () => {
+  const frozen = deepFreeze(structuredClone(initialState));
+  const next = update(frozen, { type: 'upload-started' });
+  assert.notEqual(next, frozen);
+  assert.deepEqual(frozen.upload, { busy: false, error: null }); // original untouched
+});
+
+test('sidebar renders a dropzone in the Uploads section', () => {
+  assert.ok(view(initialState).includes('id="dropzone"'), 'dropzone present');
+});
+
+test('view shows an uploading note while an upload is in flight', () => {
+  const html = view(update(initialState, { type: 'upload-started' }));
+  assert.ok(/uploading/i.test(html), 'uploading note shown while busy');
+});
+
+test('view shows and escapes an upload error', () => {
+  const html = view(update(initialState, { type: 'upload-failed', text: '<b>nope</b>' }));
+  assert.ok(!html.includes('<b>nope</b>'), 'raw html must not appear');
+  assert.ok(html.includes('&lt;b&gt;nope&lt;/b&gt;'), 'error text must be escaped');
+});
+
 console.log(`REDUCER/VIEW OK — ${passed} tests (pure layer, ran with no DOM)`);

@@ -28,11 +28,35 @@ function sidebar(state) {
       </div>
       <button class="new-chat" id="newChat"><span class="plus">+</span><span class="label">New chat</span></button>
       <nav class="nav">
-        ${fileSection('Uploads', 'uploads', state.files.uploads)}
+        ${uploadsSection(state)}
         ${fileSection('Outputs', 'out', state.files.out)}
       </nav>
       <div class="sidebar-foot"><span class="dot"></span><span class="foot-text">/workspace</span></div>
     </aside>`;
+}
+
+// The Uploads section (Rung C): the file list, plus a dropzone that uploads into
+// /workspace/uploads/. Uploading is DECOUPLED from a chat turn — a dropped file just lands;
+// the agent sees it on its next `ls` and the user references it in a later message. A small note
+// reflects upload progress / the last error (the hidden <input> is the click-to-browse fallback).
+function uploadsSection(state) {
+  const { busy, error } = state.upload;
+  const note = error
+    ? `<div class="upload-msg error">${esc(error)}</div>`
+    : busy
+      ? `<div class="upload-msg">uploading…</div>`
+      : '';
+  const rows = state.files.uploads.length
+    ? state.files.uploads.map((f) => fileRow('uploads', f)).join('')
+    : `<div class="empty-note">empty</div>`;
+  return `
+    <h3>Uploads</h3>
+    <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Upload a file">
+      <span class="dz-hint">Drop a file or <span class="dz-link">browse</span></span>
+      <input type="file" id="filePicker" class="dz-input" multiple hidden>
+    </div>
+    ${note}
+    ${rows}`;
 }
 
 // One labelled workspace section. `dir` is the on-disk subdir (carried on each row for the

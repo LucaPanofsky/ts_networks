@@ -19,3 +19,14 @@ export function resetConversation() {
 export function fetchFiles() {
   return fetch('/files');
 }
+
+// Upload one file into /workspace/uploads/ (Rung C). No multipart: the filename rides url-encoded
+// in a header and the body is the raw File (fetch streams it). The server is the only writer and
+// only ever writes uploads/. Returns the raw Response; main.js decides the follow-up events.
+export function uploadFile(file) {
+  return fetch('/upload', {
+    method: 'POST',
+    headers: { 'X-Tsn-Filename': encodeURIComponent(file.name) },
+    body: file,
+  });
+}

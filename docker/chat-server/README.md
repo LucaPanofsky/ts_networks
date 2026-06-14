@@ -17,6 +17,7 @@ land at `/workspace/out/program.tsn` exactly as in `author` mode.
 
 ```
 browser ──POST /chat {message}──▶ server        (a user turn)
+browser ──POST /upload (bytes) ─▶ server        (drop a file into uploads/)
 browser ──GET  /files ──────────▶ server        (pull the /workspace mirror)
 browser ◀──── GET /events (SSE) ── server        (server→browser stream)
 ```
@@ -37,10 +38,23 @@ SSE event types:
 | `reset` | `{}` | the conversation was cleared (New chat) |
 | `workspace` | `{}` | `/workspace` may have changed (Rung B) — a dataless **signal**; the client refetches `GET /files`. Sent after each turn. |
 
-HTTP routes (besides SSE): `POST /chat`, `POST /reset`, `GET /healthz`, and **`GET /files`** —
+HTTP routes (besides SSE): `POST /chat`, `POST /reset`, `GET /healthz`, **`GET /files`** —
 a flat, read-only mirror of the workspace, `{ uploads:[{name,size}], out:[{name,size}] }`
-(a missing dir is simply an empty section). Push the signal (`workspace`), pull the data
-(`/files`); file contents are never streamed over SSE.
+(a missing dir is simply an empty section) — and **`POST /upload`** (Rung C): the **only**
+client write path, and it writes **only** to `uploads/`. The filename rides url-encoded in
+`X-Tsn-Filename`; the body is the raw file bytes (no multipart — it's our own client). The
+server reduces the name to a safe basename, confines the resolved path under `uploads/`
+(path-traversal guard), caps the size (25 MB → `413`), then nudges `workspace`. Push the
+signal (`workspace`), pull the data (`/files`); file contents are never streamed over SSE.
+
+**Security model (three axes).** (1) *Path traversal* — `POST /upload` basenames the filename
+and re-confines the resolved path under `uploads/`, so a `../`-laden name can never escape the
+workspace subtree (defense-in-depth inside the container, which already confines to itself).
+(2) *Capability* — the client can **add inputs** (`uploads/`) but has **no** endpoint that
+writes or deletes `out/` (the agent's artifacts) or any other path. (3) *Uploads ← agent* —
+the agent is told (via the per-session chat contract) to treat `uploads/` as read-only input;
+server and agent share the `node` uid, so this is convention now, hardenable later by running
+the SDK subprocess as a distinct lower-privilege uid.
 
 ## Files
 
@@ -58,7 +72,7 @@ a flat, read-only mirror of the workspace, `{ uploads:[{name,size}], out:[{name,
 - `state.js` — the single source of truth (plain data). Pure.
 - `update.js` — the reducer `update(state, event) → state`. **Pure** (no DOM/IO/mutation).
 - `view.js` — `view(state) → html string`. **Pure** (no DOM). HTML-escapes message text.
-- `effects.js` — the `fetch` boundary (`/chat`, `/reset`, `/files`).
+- `effects.js` — the `fetch` boundary (`/chat`, `/reset`, `/files`, `/upload`).
 - `main.js` — the **only** module that touches the DOM / EventSource / fetch. Holds `dispatch`,
   delegates DOM events on `document` (so they survive morphs), and morphs `#app` with idiomorph.
 - `idiomorph.js` — vendored (npm `idiomorph` 0.7.4, ESM build; dependency-free, no build).
@@ -113,10 +127,13 @@ multi-turn resume, per-session chat contract, one **whole plain-text** message p
   a turn runs; the UI shows it as an activity line under the spinner;
 - the **workspace mirror** (Rungs A+B) — the left column mirrors `/workspace` (Uploads + Outputs)
   via `GET /files` + the post-turn `workspace` nudge; the old "Recents" stub is gone.
+- the **upload dropzone** (Rung C) — the Uploads section takes a drop or a file picker and `POST`s
+  into `uploads/`, **decoupled from the turn** (the file just lands; the agent sees it on its next
+  `ls`, the user references it in a later message — the path never rides the chat message).
 
 **Deferred — all additive, no rearchitecture** (see `report/gavagai-ui-roadmap.md`):
-- **Rung C — a dropzone** that uploads into `/workspace/uploads/` (decoupled from the turn);
-- **Rung D — a right-side file viewer** rendering a clicked file as escaped plain text;
+- **Rung D — a right-side file viewer** rendering a clicked file as escaped plain text
+  (this is the rung that needs a read endpoint with the path-traversal guard);
 - a `reply(html)` SDK tool + rendering replies as **HTML fragments** (needs a KB/skill change and
   an XSS threat model — the harder, later branch).
 

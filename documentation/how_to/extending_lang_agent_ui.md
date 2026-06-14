@@ -238,6 +238,20 @@ that emits the agent's raw html instead of `esc(text)` for assistant messages.
   (the workspace persists across New chat). Verified via the fake-agent preview (Playwright: the
   Outputs section fills in live after a turn) + the smoke test (`GET /files` shape, the `workspace`
   event in the per-turn sequence).
+- **Upload dropzone (Rung C).** The Uploads section now takes a drop or a file picker and uploads
+  into `/workspace/uploads/`, **decoupled from the turn** — the file just lands; the agent sees it
+  on its next `ls` and the user references it in a later message (the path never rides the chat
+  message). Server adds `POST /upload`: the **only** client write path, and it writes **only** to
+  `uploads/`. Filename rides url-encoded in `X-Tsn-Filename`, body is the raw bytes (no multipart —
+  our own client); the server basenames the name + re-confines the resolved path under `uploads/`
+  (path-traversal guard), caps the size (25 MB → `413`), writes, then nudges `workspace`. New state
+  field `upload {busy,error}`, reducer cases `upload-started|succeeded|failed`, an `uploadsSection`
+  view with the dropzone, `effects.uploadFile`, and `main.js` picker + drag/drop wiring (the drag
+  *highlight* is transient browser-only UI, toggled directly like autogrow — it never goes through
+  the reducer). The per-session **chat contract** (`agent.mjs`) now tells the agent to treat
+  `uploads/` as read-only input. Verified via the fake-agent preview (Playwright: a picked file
+  appears in Uploads, lands in `uploads/` on disk, `out/` untouched) + the smoke test (`POST /upload`
+  round-trip, traversal name confined to its basename, empty filename → `400`).
 - **Integration testing (live image).** Verified end-to-end against the built container.
 
   Verified:
@@ -251,4 +265,6 @@ that emits the agent's raw html instead of `esc(text)` for assistant messages.
   - [ ] **Multi-tab + SSE reconnect** — multiple tabs share the conversation; the stream auto-reconnects.
   - [ ] **Live trace on the real image (Rung 1)** — confirm the real SDK's `tool_use` blocks surface
     as `activity` lines in the built container (the fake-agent pipeline is already verified).
+  - [ ] **Upload on the real image (Rung C)** — confirm `POST /upload` writes into the container's
+    `/workspace/uploads/` and the agent reads the file from there (the fake-agent path is verified).
   - [ ] **Program authoring** — generating a new `.tsn` extractor end-to-end (its own later pass).

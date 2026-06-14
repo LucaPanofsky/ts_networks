@@ -50,6 +50,28 @@ function post(path, obj) {
 }
 const postChat = (message) => post('/chat', { message });
 
+// GET a JSON endpoint, resolving { status, body }.
+function getJson(path) {
+  return new Promise((r) => get(path).then((res) => {
+    let b = ''; res.on('data', (c) => (b += c));
+    res.on('end', () => r({ status: res.statusCode, body: b ? JSON.parse(b) : null }));
+  }));
+}
+
+// Upload raw bytes with the filename carried in a header (Rung C — no multipart; this is our
+// own client, so the wire format is just header + body).
+function upload(name, body) {
+  return new Promise((resolve, reject) => {
+    const req = http.request(
+      { port, path: '/upload', method: 'POST',
+        headers: { 'X-Tsn-Filename': encodeURIComponent(name), 'Content-Type': 'application/octet-stream', 'Content-Length': Buffer.byteLength(body) } },
+      (res) => { let b = ''; res.on('data', (c) => (b += c)); res.on('end', () => resolve({ status: res.statusCode, body: b ? JSON.parse(b) : null })); },
+    );
+    req.on('error', reject);
+    req.end(body);
+  });
+}
+
 // Collect SSE events from a long-lived response, resolving once we've seen `count` of them.
 function collectEvents(res, count) {
   return new Promise((resolve) => {
@@ -91,6 +113,26 @@ server.listen(0, '127.0.0.1', async () => {
     assert.equal(filesRes.status, 200, 'GET /files ok');
     assert.deepEqual(filesRes.body.uploads.map((f) => f.name), ['note.txt'], 'lists uploads/');
     assert.deepEqual(filesRes.body.out.map((f) => f.name), ['program.tsn'], 'lists out/');
+
+    // POST /upload writes into uploads/ (Rung C). Decoupled from a turn: the file just lands.
+    const up = await upload('data.txt', 'hello world');
+    assert.equal(up.status, 200, 'upload accepted');
+    assert.deepEqual(up.body, { name: 'data.txt', size: Buffer.byteLength('hello world') }, 'upload returns {name,size}');
+
+    // Path-traversal confinement: a name with .. / separators is reduced to its basename and
+    // stays in uploads/ — it can never reach out/ or escape the workspace.
+    const evil = await upload('../../out/evil.tsn', 'x');
+    assert.equal(evil.status, 200, 'traversal-named upload accepted (sanitized)');
+    assert.equal(evil.body.name, 'evil.tsn', 'name reduced to basename');
+
+    const afterUpload = await getJson('/files');
+    assert.ok(afterUpload.body.uploads.map((f) => f.name).includes('data.txt'), 'upload landed in uploads/');
+    assert.ok(afterUpload.body.uploads.map((f) => f.name).includes('evil.tsn'), 'traversal upload confined to uploads/');
+    assert.deepEqual(afterUpload.body.out.map((f) => f.name), ['program.tsn'], 'out/ never written by an upload');
+
+    // An empty / missing filename is rejected (the only client write path must be well-formed).
+    const bad = await upload('', 'x');
+    assert.equal(bad.status, 400, 'empty filename rejected');
 
     // open SSE, drive two turns, assert the event sequence
     const sse = await get('/events');
