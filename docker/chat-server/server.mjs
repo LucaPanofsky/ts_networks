@@ -170,7 +170,20 @@ if (isMain) {
   const port = Number(process.env.PORT ?? 8787);
   const { createSdkAgent } = await import('./agent.mjs');
   const agent = createSdkAgent();
-  createServer({ agent }).listen(port, '0.0.0.0', () => {
+  const server = createServer({ agent }).listen(port, '0.0.0.0', () => {
     console.log(`tsn chat server listening on http://0.0.0.0:${port}`);
   });
+
+  // Exit cleanly on Ctrl-C / `docker stop`. The container runs with an init (tini as PID 1,
+  // see docker/bin/tsn-agent) that forwards these signals; without an explicit handler a
+  // process can still linger because open SSE connections keep the event loop alive. We stop
+  // accepting connections, then force-exit on a short timer in case a client socket is slow
+  // to drop (server.close() waits for all keep-alive connections to end).
+  for (const sig of ['SIGINT', 'SIGTERM']) {
+    process.on(sig, () => {
+      console.log(`\n${sig} received — shutting down`);
+      server.close(() => process.exit(0));
+      setTimeout(() => process.exit(0), 1000).unref();
+    });
+  }
 }

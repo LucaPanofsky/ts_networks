@@ -85,6 +85,14 @@ tsn-agent chat            # -> http://localhost:8787
 `PORT` (default 8787) and `TSN_CLAUDE_PATH` (default `/usr/local/bin/claude`) are set in the
 image; override `TSN_AGENT_PORT` on the host to publish a different port.
 
+**Stopping it.** `Ctrl-C` (and `docker stop`) stop the container cleanly. This requires the
+`docker run --init` flag in `tsn-agent` (tini as PID 1): the server's `node` would otherwise be
+PID 1, where the kernel masks default signal actions, so `SIGINT`/`SIGTERM` are ignored and the
+container hangs. `server.mjs` also installs an explicit `SIGINT`/`SIGTERM` handler for a graceful
+shutdown (stop accepting connections, then exit — SSE connections otherwise keep the event loop
+alive). If a container is ever wedged, free the port with
+`docker kill $(docker ps -q --filter publish=8787)`.
+
 ## v1 scope (and what's deferred)
 
 **v1 (this):** architecture-correct skeleton — SDK session in-container, SSE + POST,

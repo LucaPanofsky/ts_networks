@@ -60,7 +60,10 @@ case "$cmd" in
     require_key
     mkdir -p "$WORKDIR"
     echo "tsn-agent: chat UI on http://localhost:$PORT  (Ctrl-C to stop)" >&2
-    exec docker run -it --rm \
+    # --init runs tini as PID 1 so SIGINT/SIGTERM reach the node server (a process running
+    # as PID 1 has its default signal actions masked by the kernel — without an init, Ctrl-C
+    # and `docker stop` are ignored). It also reaps any child processes the SDK spawns.
+    exec docker run -it --rm --init \
       -e ANTHROPIC_API_KEY \
       -e "PORT=$PORT" \
       -p "$PORT:$PORT" \
