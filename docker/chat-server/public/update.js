@@ -15,6 +15,10 @@
 //   { type: 'upload-started' }              // a dropzone upload is in flight (Rung C)
 //   { type: 'upload-succeeded' }            // it landed; main.js refetches the file list
 //   { type: 'upload-failed',      text }    // it was rejected/failed; show the reason
+//   { type: 'viewer-opened',      dir, name }            // open the file viewer, start loading (Rung D)
+//   { type: 'viewer-loaded',      text, size, binary, truncated }  // the file content arrived
+//   { type: 'viewer-failed',      text }    // the read failed (404/403/network)
+//   { type: 'viewer-closed' }               // close the offcanvas
 //   { type: 'conversation-reset' }
 //   { type: 'sidebar-toggled' }
 
@@ -42,6 +46,15 @@ export function update(state, event) {
       return { ...state, upload: { busy: false, error: null } };
     case 'upload-failed':
       return { ...state, upload: { busy: false, error: event.text } };
+    case 'viewer-opened':
+      // Open the offcanvas and start loading; clear any prior file's content/error (Rung D).
+      return { ...state, viewer: { open: true, dir: event.dir, name: event.name, loading: true, error: null, text: '', size: 0, binary: false, truncated: false } };
+    case 'viewer-loaded':
+      return { ...state, viewer: { ...state.viewer, loading: false, error: null, text: event.text, size: event.size, binary: event.binary, truncated: event.truncated } };
+    case 'viewer-failed':
+      return { ...state, viewer: { ...state.viewer, loading: false, error: event.text } };
+    case 'viewer-closed':
+      return { ...state, viewer: { ...state.viewer, open: false } };
     case 'conversation-reset':
       // New chat clears the SESSION, not the workspace: uploads/outputs live on disk and persist.
       // So `files` is deliberately left intact here (main.js refetches after the reset anyway).

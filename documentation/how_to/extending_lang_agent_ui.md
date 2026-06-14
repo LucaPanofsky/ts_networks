@@ -252,6 +252,23 @@ that emits the agent's raw html instead of `esc(text)` for assistant messages.
   `uploads/` as read-only input. Verified via the fake-agent preview (Playwright: a picked file
   appears in Uploads, lands in `uploads/` on disk, `out/` untouched) + the smoke test (`POST /upload`
   round-trip, traversal name confined to its basename, empty filename → `400`).
+- **File viewer (Rung D).** Clicking a workspace file opens a **right-side offcanvas** that reads it
+  via `GET /files/<dir>/<name>` and renders it as **escaped plain text** in a `<pre>`. This is the
+  rung that puts a **read** path behind the same `confine()` traversal guard the upload write uses:
+  `dir` must be a known section, the name is one url-encoded segment, the resolved path is confined
+  under `<dir>/` (`../` → `403`, unknown section / missing → `404`). The endpoint returns JSON
+  `{dir,name,size,truncated,binary,text}`; a **binary** file (NUL byte) reports `binary:true` and a
+  "not previewable" note instead of mojibake, and a file over 256 KB is read up to the cap and shown
+  `truncated`. New state field `viewer`, reducer cases `viewer-opened|loaded|failed|closed`, a
+  `viewer` view branch (offcanvas + backdrop **always in the DOM** so the slide-in transition
+  survives morphs — `.open`/`.show` toggled from state, `inert` while closed so there's no off-screen
+  tab stop), `effects.fetchFileContent`, and `main.js` row-click + close (×/backdrop/`Esc`). File
+  content is escaped at render, so a malicious upload can't inject markup. Verified via the
+  fake-agent preview (Playwright: open shows the text, `Esc` closes, `inert` blocks focus on the
+  closed panel) + the smoke test (read round-trip for `uploads/` and `out/`, traversal → `403`,
+  unknown section / missing → `404`, NUL-byte file → `binary:true`). PDF/kind-aware preview is
+  **deferred** — the viewer shows text; rendering a PDF needs a viewer lib + a raw-bytes route, a
+  later layer on top (see `report/gavagai-ui-roadmap.md`, decision 6).
 - **Integration testing (live image).** Verified end-to-end against the built container.
 
   Verified:
@@ -267,4 +284,6 @@ that emits the agent's raw html instead of `esc(text)` for assistant messages.
     as `activity` lines in the built container (the fake-agent pipeline is already verified).
   - [ ] **Upload on the real image (Rung C)** — confirm `POST /upload` writes into the container's
     `/workspace/uploads/` and the agent reads the file from there (the fake-agent path is verified).
+  - [ ] **Viewer on the real image (Rung D)** — confirm `GET /files/<dir>/<name>` reads a real
+    `out/program.tsn` the agent wrote, and binary uploads show the note (fake-agent path verified).
   - [ ] **Program authoring** — generating a new `.tsn` extractor end-to-end (its own later pass).

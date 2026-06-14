@@ -59,7 +59,8 @@ button { font: inherit; color: inherit; cursor: pointer; background: none; borde
 /* workspace mirror (Rung B): a flat file list per section. Display-only for now; the file
    viewer rung makes rows clickable. */
 .file-row { display: flex; align-items: baseline; gap: 8px; padding: 5px 6px; border-radius: 7px;
-            font-size: 13px; color: var(--text); }
+            font-size: 13px; color: var(--text); cursor: pointer; }
+.file-row:hover { background: var(--panel-hi); } /* clickable → opens the viewer (Rung D) */
 .file-row .file-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .file-row .file-size { margin-left: auto; flex: 0 0 auto; color: var(--muted); font-size: 11px;
                        font-variant-numeric: tabular-nums; }
@@ -165,3 +166,25 @@ button { font: inherit; color: inherit; cursor: pointer; background: none; borde
             background: var(--accent); color: var(--accent-ink); font-size: 15px; font-weight: 700; }
 .send-btn:hover:not(:disabled) { filter: brightness(1.07); }
 .send-btn:disabled { opacity: .4; cursor: default; }
+
+/* ---------- file viewer offcanvas (Rung D) ---------- */
+/* Slides in from the right; always in the DOM so the transition plays (main.js toggles the
+   .open/.show classes from state, never presence). Content is escaped at render. */
+.offcanvas-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, .45); opacity: 0;
+                      pointer-events: none; transition: opacity .18s ease; z-index: 40; }
+.offcanvas-backdrop.show { opacity: 1; pointer-events: auto; }
+.offcanvas { position: fixed; top: 0; right: 0; height: 100%; width: min(560px, 92vw); z-index: 50;
+             background: var(--sidebar); border-left: 1px solid var(--border);
+             display: flex; flex-direction: column; transform: translateX(100%);
+             transition: transform .2s ease; }
+.offcanvas.open { transform: translateX(0); }
+.oc-head { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; padding: 14px 16px;
+           border-bottom: 1px solid var(--border); }
+.oc-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.oc-dir { color: var(--muted); font-weight: 500; margin-right: 7px; }
+.oc-head .icon-btn { margin-left: auto; }
+.oc-body { flex: 1; min-height: 0; overflow: auto; padding: 14px 16px; }
+.oc-note { color: var(--muted); font-size: 13.5px; padding: 4px 0; }
+.oc-note.error { color: #f0a3a3; }
+.oc-pre { margin: 0; white-space: pre-wrap; word-wrap: break-word; color: var(--text);
+          font: 12.5px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }

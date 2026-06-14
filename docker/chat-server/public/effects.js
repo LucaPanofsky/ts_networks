@@ -30,3 +30,9 @@ export function uploadFile(file) {
     body: file,
   });
 }
+
+// Read one workspace file's content for the viewer (Rung D). The name is a single path segment,
+// url-encoded; the server confines it under <dir>/. Returns the raw Response; main.js parses it.
+export function fetchFileContent(dir, name) {
+  return fetch(`/files/${encodeURIComponent(dir)}/${encodeURIComponent(name)}`);
+}

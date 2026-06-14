@@ -260,4 +260,73 @@ test('view shows and escapes an upload error', () => {
   assert.ok(html.includes('&lt;b&gt;nope&lt;/b&gt;'), 'error text must be escaped');
 });
 
+// ---------- reducer + view: file viewer (Rung D) ----------
+test('initial state carries a closed viewer', () => {
+  assert.equal(initialState.viewer.open, false);
+});
+
+test('viewer-opened opens, marks loading, sets dir/name, and clears prior content', () => {
+  const seeded = update(initialState, { type: 'viewer-loaded', text: 'old', size: 3, binary: false, truncated: false });
+  const s = update(seeded, { type: 'viewer-opened', dir: 'out', name: 'program.tsn' });
+  assert.equal(s.viewer.open, true);
+  assert.equal(s.viewer.loading, true);
+  assert.equal(s.viewer.dir, 'out');
+  assert.equal(s.viewer.name, 'program.tsn');
+  assert.equal(s.viewer.text, '', 'prior text cleared');
+  assert.equal(s.viewer.error, null);
+});
+
+test('viewer-loaded fills content and clears loading', () => {
+  let s = update(initialState, { type: 'viewer-opened', dir: 'uploads', name: 'note.txt' });
+  s = update(s, { type: 'viewer-loaded', text: 'hello', size: 5, binary: false, truncated: false });
+  assert.equal(s.viewer.loading, false);
+  assert.equal(s.viewer.text, 'hello');
+  assert.equal(s.viewer.size, 5);
+  assert.equal(s.viewer.binary, false);
+});
+
+test('viewer-failed records the error and clears loading', () => {
+  let s = update(initialState, { type: 'viewer-opened', dir: 'uploads', name: 'x' });
+  s = update(s, { type: 'viewer-failed', text: 'not found' });
+  assert.equal(s.viewer.loading, false);
+  assert.equal(s.viewer.error, 'not found');
+});
+
+test('viewer-closed closes the panel', () => {
+  let s = update(initialState, { type: 'viewer-opened', dir: 'out', name: 'recap.md' });
+  s = update(s, { type: 'viewer-closed' });
+  assert.equal(s.viewer.open, false);
+});
+
+test('viewer events do not mutate their input', () => {
+  const frozen = deepFreeze(structuredClone(initialState));
+  const next = update(frozen, { type: 'viewer-opened', dir: 'out', name: 'a' });
+  assert.notEqual(next, frozen);
+  assert.equal(frozen.viewer.open, false); // original untouched
+});
+
+test('offcanvas is present always but only carries the open modifier when open', () => {
+  const closed = view(initialState);
+  assert.ok(closed.includes('class="offcanvas"'), 'panel in the DOM when closed (for the slide animation)');
+  assert.ok(closed.includes(' inert'), 'closed panel is inert (no off-screen tab stop / a11y leak)');
+  const open = view(update(initialState, { type: 'viewer-opened', dir: 'out', name: 'p.tsn' }));
+  assert.ok(open.includes('offcanvas open'), 'open modifier when open');
+  assert.ok(!open.includes(' inert'), 'open panel is interactive (not inert)');
+});
+
+test('viewer renders and ESCAPES file content (no injection from a malicious file)', () => {
+  let s = update(initialState, { type: 'viewer-opened', dir: 'uploads', name: 'evil.txt' });
+  s = update(s, { type: 'viewer-loaded', text: '<script>alert(1)</script>', size: 25, binary: false, truncated: false });
+  const html = view(s);
+  assert.ok(!html.includes('<script>alert(1)</script>'), 'raw file content must not appear');
+  assert.ok(html.includes('&lt;script&gt;'), 'file content must be escaped');
+});
+
+test('viewer shows a binary note instead of bytes for a binary file', () => {
+  let s = update(initialState, { type: 'viewer-opened', dir: 'uploads', name: 'doc.pdf' });
+  s = update(s, { type: 'viewer-loaded', text: '', size: 12345, binary: true, truncated: false });
+  const html = view(s);
+  assert.ok(/binary/i.test(html), 'binary note shown');
+});
+
 console.log(`REDUCER/VIEW OK — ${passed} tests (pure layer, ran with no DOM)`);

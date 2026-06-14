@@ -11,6 +11,9 @@ export const initialState = {
   traces: [],            // live tool activity for the current turn; reset each turn (Rung 1)
   files: { uploads: [], out: [] }, // workspace mirror (Rung B); each: [{ name, size }]
   upload: { busy: false, error: null }, // dropzone status (Rung C): in-flight + last error
+  // file viewer (Rung D): the right-side offcanvas. `open` drives the slide-in; the rest is the
+  // file being previewed. `text` is escaped at render; `binary` files show a note, not bytes.
+  viewer: { open: false, dir: null, name: null, loading: false, error: null, text: '', size: 0, binary: false, truncated: false },
   sidebarCollapsed: false,
   seq: 0,                // monotonic counter → stable message ids (kept in state so ids stay pure)
 };

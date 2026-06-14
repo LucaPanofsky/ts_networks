@@ -16,10 +16,11 @@ land at `/workspace/out/program.tsn` exactly as in `author` mode.
 ## Wire protocol
 
 ```
-browser ──POST /chat {message}──▶ server        (a user turn)
-browser ──POST /upload (bytes) ─▶ server        (drop a file into uploads/)
-browser ──GET  /files ──────────▶ server        (pull the /workspace mirror)
-browser ◀──── GET /events (SSE) ── server        (server→browser stream)
+browser ──POST /chat {message}──────▶ server    (a user turn)
+browser ──POST /upload (bytes) ─────▶ server    (drop a file into uploads/)
+browser ──GET  /files ──────────────▶ server    (pull the /workspace mirror)
+browser ──GET  /files/<dir>/<name> ─▶ server    (read one file for the viewer)
+browser ◀──── GET /events (SSE) ───── server    (server→browser stream)
 ```
 
 The server is the single source of truth; the UI is a pure projection of the SSE stream
@@ -47,9 +48,19 @@ server reduces the name to a safe basename, confines the resolved path under `up
 (path-traversal guard), caps the size (25 MB → `413`), then nudges `workspace`. Push the
 signal (`workspace`), pull the data (`/files`); file contents are never streamed over SSE.
 
-**Security model (three axes).** (1) *Path traversal* — `POST /upload` basenames the filename
-and re-confines the resolved path under `uploads/`, so a `../`-laden name can never escape the
-workspace subtree (defense-in-depth inside the container, which already confines to itself).
+Finally, **`GET /files/<dir>/<name>`** (Rung D) reads one file's text for the viewer: `dir`
+must be a known section (`uploads`/`out`), the name is one url-encoded segment, and the
+resolved path is confined under `<dir>/` (the same guard, now on a **read** — a `../`-laden
+name → `403`, an unknown section or missing file → `404`). It returns JSON
+`{ dir, name, size, truncated, binary, text }`; a **binary** file (a NUL byte) reports
+`binary:true` and omits `text` rather than dumping mojibake, and a file over 256 KB is read up
+to the cap with `truncated:true`. The client renders `text` **escaped** in a `<pre>`.
+
+**Security model (three axes).** (1) *Path traversal* — `POST /upload` and `GET /files/<dir>/<name>`
+both basename / single-segment the client-supplied name and re-confine the resolved path under
+the target dir, so a `../`-laden name can never escape the workspace subtree on either a write
+or a read (defense-in-depth inside the container, which already confines to itself). The viewer
+also escapes the returned text, so a malicious uploaded file can't inject markup.
 (2) *Capability* — the client can **add inputs** (`uploads/`) but has **no** endpoint that
 writes or deletes `out/` (the agent's artifacts) or any other path. (3) *Uploads ← agent* —
 the agent is told (via the per-session chat contract) to treat `uploads/` as read-only input;
@@ -72,7 +83,7 @@ the SDK subprocess as a distinct lower-privilege uid.
 - `state.js` — the single source of truth (plain data). Pure.
 - `update.js` — the reducer `update(state, event) → state`. **Pure** (no DOM/IO/mutation).
 - `view.js` — `view(state) → html string`. **Pure** (no DOM). HTML-escapes message text.
-- `effects.js` — the `fetch` boundary (`/chat`, `/reset`, `/files`, `/upload`).
+- `effects.js` — the `fetch` boundary (`/chat`, `/reset`, `/files`, `/upload`, `/files/<dir>/<name>`).
 - `main.js` — the **only** module that touches the DOM / EventSource / fetch. Holds `dispatch`,
   delegates DOM events on `document` (so they survive morphs), and morphs `#app` with idiomorph.
 - `idiomorph.js` — vendored (npm `idiomorph` 0.7.4, ESM build; dependency-free, no build).
@@ -130,10 +141,14 @@ multi-turn resume, per-session chat contract, one **whole plain-text** message p
 - the **upload dropzone** (Rung C) — the Uploads section takes a drop or a file picker and `POST`s
   into `uploads/`, **decoupled from the turn** (the file just lands; the agent sees it on its next
   `ls`, the user references it in a later message — the path never rides the chat message).
+- the **file viewer** (Rung D) — clicking a file opens a right-side offcanvas that reads it via
+  `GET /files/<dir>/<name>` and renders it as **escaped plain text** (binary files show a "not
+  previewable" note); closes on ×, backdrop, or `Esc`, and is `inert` while closed.
 
 **Deferred — all additive, no rearchitecture** (see `report/gavagai-ui-roadmap.md`):
-- **Rung D — a right-side file viewer** rendering a clicked file as escaped plain text
-  (this is the rung that needs a read endpoint with the path-traversal guard);
+- **PDF / kind-aware preview** — the viewer shows text only; a PDF (binary) shows a note. Rendering
+  the PDF itself (pdf.js or a raw-bytes route) and pretty-rendering by kind (Mermaid, JSON schema,
+  highlighted `.tsn`) is a later layer **on top of** the text viewer;
 - a `reply(html)` SDK tool + rendering replies as **HTML fragments** (needs a KB/skill change and
   an XSS threat model — the harder, later branch).
 

@@ -11,7 +11,7 @@
 import { initialState } from './state.js';
 import { update } from './update.js';
 import { view } from './view.js';
-import { sendChat, resetConversation, fetchFiles, uploadFile } from './effects.js';
+import { sendChat, resetConversation, fetchFiles, uploadFile, fetchFileContent } from './effects.js';
 import { Idiomorph } from './idiomorph.js';
 
 let state = initialState;
@@ -102,11 +102,36 @@ async function uploadFiles(fileList) {
   }
 }
 
+// Open the file viewer (Rung D): mark it opening, fetch the content, then fill it (or fail). The
+// content is escaped at render, so a malicious file can't inject markup. A failed read shows the
+// server's reason (404/403) rather than silently doing nothing.
+async function openViewer(dir, name) {
+  if (!dir || !name) return;
+  dispatch({ type: 'viewer-opened', dir, name });
+  try {
+    const res = await fetchFileContent(dir, name);
+    if (!res.ok) {
+      const msg = await res.json().then((j) => j.error).catch(() => `could not open (${res.status})`);
+      dispatch({ type: 'viewer-failed', text: msg });
+      return;
+    }
+    const f = await res.json();
+    dispatch({ type: 'viewer-loaded', text: f.text, size: f.size, binary: f.binary, truncated: f.truncated });
+  } catch {
+    dispatch({ type: 'viewer-failed', text: 'could not open — network error' });
+  }
+}
+
 // ---- raw DOM events (delegated on document → survive morphs) ----
 document.addEventListener('click', (e) => {
   if (e.target.closest('#collapse')) dispatch({ type: 'sidebar-toggled' });
   else if (e.target.closest('#newChat')) newChat();
   else if (e.target.closest('#dropzone')) document.getElementById('filePicker')?.click();
+  else if (e.target.closest('[data-close-viewer]')) dispatch({ type: 'viewer-closed' });
+  else {
+    const row = e.target.closest('.file-row'); // click a workspace file → open the viewer (Rung D)
+    if (row) openViewer(row.dataset.dir, row.dataset.name);
+  }
 });
 document.addEventListener('change', (e) => {
   if (e.target.id === 'filePicker') { uploadFiles(e.target.files); e.target.value = ''; }
@@ -136,6 +161,7 @@ document.addEventListener('submit', (e) => {
 });
 document.addEventListener('keydown', (e) => {
   if (e.target.id === 'input' && e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitTurn(); }
+  else if (e.key === 'Escape' && state.viewer.open) dispatch({ type: 'viewer-closed' }); // close the viewer
 });
 document.addEventListener('input', (e) => {
   if (e.target.id === 'input') autogrow(); // transient input UI; not application state

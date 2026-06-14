@@ -13,7 +13,34 @@ export function view(state) {
     <div id="app" class="app${state.sidebarCollapsed ? ' sidebar-collapsed' : ''}">
       ${sidebar(state)}
       ${main(state)}
+      ${viewer(state)}
     </div>`;
+}
+
+// The file viewer (Rung D): a right-side offcanvas + backdrop, ALWAYS in the DOM so the slide-in
+// CSS transition survives idiomorph morphs (we toggle `.open`/`.show`, not presence). The body is
+// loading / error / a binary note / the file's text. Content is ESCAPED here — a malicious
+// uploaded file can never inject markup into the page. `data-close-viewer` marks the closers
+// (the × and the backdrop), handled by the delegated click listener in main.js.
+function viewer(state) {
+  const v = state.viewer;
+  return `
+    <div class="offcanvas-backdrop${v.open ? ' show' : ''}" data-close-viewer></div>
+    <aside class="offcanvas${v.open ? ' open' : ''}"${v.open ? '' : ' inert'}>
+      <header class="oc-head">
+        <span class="oc-title"><span class="oc-dir">${esc(v.dir ?? '')}</span>${esc(v.name ?? '')}</span>
+        <button class="icon-btn" data-close-viewer aria-label="Close viewer">✕</button>
+      </header>
+      <div class="oc-body">${viewerBody(v)}</div>
+    </aside>`;
+}
+
+function viewerBody(v) {
+  if (v.loading) return `<div class="oc-note">loading…</div>`;
+  if (v.error) return `<div class="oc-note error">${esc(v.error)}</div>`;
+  if (v.binary) return `<div class="oc-note">Binary file (${humanSize(v.size)}) — not previewable as text.</div>`;
+  const trunc = v.truncated ? `<div class="oc-note">Truncated — showing the start of ${humanSize(v.size)}.</div>` : '';
+  return `${trunc}<pre class="oc-pre">${esc(v.text)}</pre>`;
 }
 
 // The sidebar mirrors the container's /workspace (Rung B): an Uploads section (what the user

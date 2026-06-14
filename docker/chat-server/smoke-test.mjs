@@ -134,6 +134,28 @@ server.listen(0, '127.0.0.1', async () => {
     const bad = await upload('', 'x');
     assert.equal(bad.status, 400, 'empty filename rejected');
 
+    // GET /files/<dir>/<name> reads a file's text for the viewer (Rung D).
+    const noteView = await getJson('/files/uploads/note.txt');
+    assert.equal(noteView.status, 200, 'read uploads/note.txt');
+    assert.equal(noteView.body.text, 'hello', 'returns the file text');
+    assert.equal(noteView.body.binary, false, 'text file not flagged binary');
+    const progView = await getJson('/files/out/program.tsn');
+    assert.equal(progView.body.text, '(network demo)', 'reads from out/ too');
+
+    // Path-traversal on the READ path is confined (this is what confine() guards). A ..-laden,
+    // url-encoded name must not escape uploads/ — no reading /etc/passwd or the agent's home.
+    const escape = await getJson('/files/uploads/' + encodeURIComponent('../../etc/passwd'));
+    assert.equal(escape.status, 403, 'traversal read rejected with 403');
+    // An unknown section and a missing file are both 404 (not a 500, not a silent empty).
+    assert.equal((await getJson('/files/secret/x')).status, 404, 'unknown section -> 404');
+    assert.equal((await getJson('/files/uploads/nope.txt')).status, 404, 'missing file -> 404');
+
+    // A binary file is detected (NUL byte) and reported as such — never dumped as mojibake.
+    await upload('blob.bin', Buffer.from([0x41, 0x00, 0x42]));
+    const binView = await getJson('/files/uploads/blob.bin');
+    assert.equal(binView.status, 200, 'binary read ok');
+    assert.equal(binView.body.binary, true, 'NUL byte -> binary:true');
+
     // open SSE, drive two turns, assert the event sequence
     const sse = await get('/events');
     const want = 12; // (user, status, trace, message, status, workspace) x2

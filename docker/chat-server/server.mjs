@@ -22,7 +22,7 @@
 // delivers one whole plain-text `message`; `trace` events are progress, not the reply.
 
 import http from 'node:http';
-import { readFile, readdir, stat, mkdir, writeFile } from 'node:fs/promises';
+import { readFile, readdir, stat, mkdir, writeFile, open } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, normalize, basename, resolve, sep } from 'node:path';
 
@@ -35,6 +35,10 @@ const WORKSPACE_SECTIONS = ['uploads', 'out'];
 // The upload size ceiling (Rung C): generous for a PDF, bounded so a client can't exhaust the
 // disk. The body is read with this cap and the socket is dropped the instant it's exceeded.
 const MAX_UPLOAD = 25 * 1024 * 1024; // 25 MB
+
+// The file viewer (Rung D) reads at most this many bytes; a larger file is shown truncated. The
+// viewer is a quick text peek, not a way to stream a whole upload into the browser.
+const VIEW_MAX = 256 * 1024; // 256 KB
 
 /**
  * Build (but do not start) the chat HTTP server.
@@ -133,6 +137,52 @@ export function createServer({
     res.end(JSON.stringify(body));
   }
 
+  // GET /files/<dir>/<name> — read one workspace file's text for the viewer (Rung D). This is the
+  // READ counterpart of the mirror, and the one place a client names a file to read, so it is
+  // guarded exactly like /upload guards writes: the dir must be a known section and the resolved
+  // path is confined under it (path-traversal guard — this is the axis confine() exists for).
+  // Returns JSON { dir, name, size, truncated, binary, text }; a binary file (a NUL byte) reports
+  // binary:true and omits text rather than dumping mojibake. Files over VIEW_MAX are truncated.
+  async function handleFileContent(req, res, rest) {
+    const slash = rest.indexOf('/');
+    const dir = slash === -1 ? rest : rest.slice(0, slash);
+    let name;
+    try {
+      name = decodeURIComponent(slash === -1 ? '' : rest.slice(slash + 1));
+    } catch {
+      name = ''; // malformed percent-encoding
+    }
+    if (!WORKSPACE_SECTIONS.includes(dir) || !name) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'no such file' }));
+      return;
+    }
+    const target = confine(join(workspaceDir, dir), name);
+    if (!target) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'path escapes the workspace' }));
+      return;
+    }
+    let info;
+    try {
+      info = await readCapped(target, VIEW_MAX);
+    } catch {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'no such file' }));
+      return;
+    }
+    const binary = info.buf.includes(0); // cheap, reliable text/binary heuristic (NUL byte)
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      dir,
+      name,
+      size: info.size,
+      truncated: info.truncated,
+      binary,
+      text: binary ? '' : info.buf.toString('utf8'),
+    }));
+  }
+
   // POST /upload — the ONLY client write path into the workspace, and it writes ONLY to
   // uploads/ (never out/, which is the agent's output). This is the capability axis of the
   // security model: the client can add inputs, it cannot touch the agent's artifacts. The
@@ -195,6 +245,8 @@ export function createServer({
     if (req.method === 'POST' && url === '/chat') return handleChat(req, res).catch((e) => fail(res, e));
     if (req.method === 'POST' && url === '/reset') return handleReset(req, res);
     if (req.method === 'GET' && url === '/files') return handleFiles(req, res).catch((e) => fail(res, e));
+    if (req.method === 'GET' && url.startsWith('/files/'))
+      return handleFileContent(req, res, url.slice('/files/'.length)).catch((e) => fail(res, e));
     if (req.method === 'POST' && url === '/upload') return handleUpload(req, res).catch((e) => fail(res, e));
     if (req.method === 'GET' && url === '/healthz') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -267,6 +319,23 @@ function safeUploadName(header) {
 function confine(root, name) {
   const p = resolve(root, name);
   return p === root || p.startsWith(root + sep) ? p : null;
+}
+
+// Read at most `max` bytes of a regular file (the viewer's quick text peek — Rung D). Returns
+// { buf, size, truncated }; throws if the path isn't a regular file (a dir / missing → the caller
+// turns it into a 404). Opening + capped read avoids slurping a whole 25 MB upload to show 256 KB.
+async function readCapped(path, max) {
+  const fh = await open(path, 'r');
+  try {
+    const st = await fh.stat();
+    if (!st.isFile()) throw new Error('not a regular file');
+    const len = Math.min(st.size, max);
+    const buf = Buffer.alloc(len);
+    if (len > 0) await fh.read(buf, 0, len, 0);
+    return { buf, size: st.size, truncated: st.size > max };
+  } finally {
+    await fh.close();
+  }
 }
 
 // List a single workspace dir: files only (no subdirs in v1), name + size, sorted by name.
