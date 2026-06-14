@@ -155,7 +155,9 @@ function dock(working) {
           <textarea id="input" rows="1" placeholder="Describe the document or extraction you want…" autofocus></textarea>
           <div class="composer-bar">
             <span class="composer-hint">Enter to send · Shift+Enter for newline</span>
-            <button id="send" class="send-btn" type="submit" aria-label="Send"${working ? ' disabled' : ''}>↑</button>
+            <button id="send" class="send-btn" type="submit" aria-label="Send"${working ? ' disabled' : ''}>
+              <svg class="send-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
           </div>
         </form>
       </div>

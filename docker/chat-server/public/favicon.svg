@@ -1,23 +1,10 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Gavagai · ts-networks lang agent</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <!-- Fonts are self-hosted (woff2 in public/fonts/, declared in styles.css) — no external CDN. -->
-    <link rel="stylesheet" href="/styles.css" />
-  </head>
-  <body>
-    <!-- Gavagai mark: a sitting hare with a question-mark face (Quine's gavagai).
-         Inlined from resources/rabbit.svg (the canonical source — re-extract to upgrade), defined
-         once and hidden; referenced with <use href="#gavagai-rabbit"> from view.js. Themeable via
-         custom properties that inherit into the <use> shadow: .r-body uses currentColor, .r-q uses
-         --q-fill (fill) and --q-display (the topbar instance sets --q-display:none to drop the ?). -->
-    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-      <symbol id="gavagai-rabbit" viewBox="0 0 400 400">
-        <style>.r-body{fill:currentColor}.r-q{fill:var(--q-fill,#e30613);display:var(--q-display,inline)}</style><g transform="translate(0.000000,400.000000) scale(0.100000,-0.100000)">
-    <path class="r-body" fill-rule="evenodd" d="M3402 3873 c-80 -39 -195 -179 -271 -330 -23 -46 -45 -83 -49 -83 -4
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <!-- Gavagai favicon: the rabbit body only (no question mark), ink on a paper tile.
+       Path reused from the inline #gavagai-rabbit symbol in index.html. -->
+  <rect width="400" height="400" rx="88" fill="#f3efe6"/>
+  <g transform="translate(200,200) scale(0.86) translate(-200,-200)">
+    <g transform="translate(0,400) scale(0.1,-0.1)" fill="#111111" fill-rule="evenodd">
+      <path d="M3402 3873 c-80 -39 -195 -179 -271 -330 -23 -46 -45 -83 -49 -83 -4
 0 -32 28 -62 63 -122 139 -300 269 -451 327 -97 37 -123 38 -158 3 -79 -79
 -105 -422 -48 -645 44 -179 120 -357 213 -500 43 -67 74 -122 74 -132 0 -3
 -30 -39 -67 -78 -36 -40 -90 -110 -120 -155 -61 -95 -63 -96 -178 -63 -498
@@ -48,19 +35,6 @@ c-173 0 -270 101 -268 281 1 102 24 149 92 185 48 26 54 33 57 64 44 580 379
 134 -40 203 -120 181 -209 -7 -29 -27 -34 -161 -42 -135 -7 -145 -2 -181 100
 -21 60 -72 119 -136 155 l-48 28 68 46 c37 25 96 75 132 111 36 35 66 63 68
 62 1 -2 -11 -33 -28 -69z"/>
+    </g>
   </g>
-  <g transform="translate(0.000000,400.000000) scale(0.100000,-0.100000)">
-    <path class="r-q" fill-rule="evenodd" d="M2975 2466 c-189 -36 -405 -189 -430 -303 -15 -71 65 -167 122 -147
-34 13 84 69 134 150 89 148 168 198 309 198 321 -1 440 -313 177 -463 -29 -16
--117 -52 -197 -81 -212 -76 -284 -117 -329 -190 -29 -48 -30 -190 -1 -281 35
--114 132 -239 185 -239 76 0 89 35 91 243 1 165 2 168 32 230 65 130 223 250
-394 297 89 24 246 100 293 142 73 64 66 142 -20 213 -200 164 -552 271 -760
-231z M2920 991 c-137 -44 -163 -180 -51 -271 48 -40 85 -39 125 3 81 87
-112 227 56 254 -36 17 -100 24 -130 14z"/>
-  </g>      </symbol>
-    </svg>
-    <!-- The entire app is rendered from state by view() and morphed in by main.js. -->
-    <div id="app"></div>
-    <script type="module" src="/main.js"></script>
-  </body>
-</html>
+</svg>
