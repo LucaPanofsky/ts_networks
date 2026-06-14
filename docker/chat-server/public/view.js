@@ -11,12 +11,15 @@
 export function view(state) {
   return `
     <div id="app" class="app${state.sidebarCollapsed ? ' sidebar-collapsed' : ''}">
-      ${sidebar()}
+      ${sidebar(state)}
       ${main(state)}
     </div>`;
 }
 
-function sidebar() {
+// The sidebar mirrors the container's /workspace (Rung B): an Uploads section (what the user
+// shared) and an Outputs section (what the agent wrote). There is no chat history yet, so the
+// old "Recents" stub is gone — the UI no longer implies a history it doesn't have (Rung A).
+function sidebar(state) {
   return `
     <aside class="sidebar">
       <div class="sidebar-head">
@@ -25,11 +28,34 @@ function sidebar() {
       </div>
       <button class="new-chat" id="newChat"><span class="plus">+</span><span class="label">New chat</span></button>
       <nav class="nav">
-        <h3>Recents</h3>
-        <div class="empty-note" id="recents">No conversations yet</div>
+        ${fileSection('Uploads', 'uploads', state.files.uploads)}
+        ${fileSection('Outputs', 'out', state.files.out)}
       </nav>
       <div class="sidebar-foot"><span class="dot"></span><span class="foot-text">/workspace</span></div>
     </aside>`;
+}
+
+// One labelled workspace section. `dir` is the on-disk subdir (carried on each row for the
+// later file-viewer rung); rows are display-only for now. Empty dirs show a quiet note.
+function fileSection(label, dir, files) {
+  const body = files.length
+    ? files.map((f) => fileRow(dir, f)).join('')
+    : `<div class="empty-note">empty</div>`;
+  return `<h3>${esc(label)}</h3>${body}`;
+}
+
+function fileRow(dir, f) {
+  return `<div class="file-row" data-dir="${esc(dir)}" data-name="${esc(f.name)}">
+            <span class="file-name">${esc(f.name)}</span>
+            <span class="file-size">${humanSize(f.size)}</span>
+          </div>`;
+}
+
+function humanSize(n) {
+  if (!Number.isFinite(n)) return '';
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function main(state) {

@@ -9,7 +9,17 @@
 
 import http from 'node:http';
 import assert from 'node:assert/strict';
+import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { createServer } from './server.mjs';
+
+// A throwaway workspace so GET /files (Rung B) has real dirs to mirror: one upload, one output.
+const workspaceDir = mkdtempSync(join(tmpdir(), 'tsn-ws-'));
+mkdirSync(join(workspaceDir, 'uploads'), { recursive: true });
+mkdirSync(join(workspaceDir, 'out'), { recursive: true });
+writeFileSync(join(workspaceDir, 'uploads', 'note.txt'), 'hello');
+writeFileSync(join(workspaceDir, 'out', 'program.tsn'), '(network demo)');
 
 // A fake agent: echoes the prompt and advances a fake session id each turn. It also emits one
 // trace per turn via the onTrace sink, so the smoke test exercises the live-trace plumbing.
@@ -22,7 +32,7 @@ const fakeAgent = {
   },
 };
 
-const server = createServer({ agent: fakeAgent });
+const server = createServer({ agent: fakeAgent, workspaceDir });
 
 function get(path) {
   return new Promise((resolve) => http.get({ port, path }, resolve));
@@ -74,9 +84,17 @@ server.listen(0, '127.0.0.1', async () => {
     const indexRes = await get('/');
     assert.equal(indexRes.statusCode, 200, '/ serves index.html');
 
+    // GET /files mirrors the workspace (Rung B): uploads/ and out/, flat, files only
+    const filesRes = await new Promise((r) => get('/files').then((res) => {
+      let b = ''; res.on('data', (c) => (b += c)); res.on('end', () => r({ status: res.statusCode, body: JSON.parse(b) }));
+    }));
+    assert.equal(filesRes.status, 200, 'GET /files ok');
+    assert.deepEqual(filesRes.body.uploads.map((f) => f.name), ['note.txt'], 'lists uploads/');
+    assert.deepEqual(filesRes.body.out.map((f) => f.name), ['program.tsn'], 'lists out/');
+
     // open SSE, drive two turns, assert the event sequence
     const sse = await get('/events');
-    const want = 10; // (user, status, trace, message, status) x2
+    const want = 12; // (user, status, trace, message, status, workspace) x2
     const eventsP = collectEvents(sse, want);
 
     const r1 = await postChat('first');
@@ -89,9 +107,9 @@ server.listen(0, '127.0.0.1', async () => {
     const seq = events.map((e) => `${e.event}:${e.data.state ?? ''}`);
     assert.deepEqual(
       seq,
-      ['user:', 'status:working', 'trace:', 'message:', 'status:idle',
-       'user:', 'status:working', 'trace:', 'message:', 'status:idle'],
-      'event sequence for two turns (trace between working and message)',
+      ['user:', 'status:working', 'trace:', 'message:', 'status:idle', 'workspace:',
+       'user:', 'status:working', 'trace:', 'message:', 'status:idle', 'workspace:'],
+      'event sequence for two turns (trace before message; workspace nudge after the turn)',
     );
     // session continuity: second turn resumed the first turn's minted id
     const secondReply = events.filter((e) => e.event === 'message')[1].data.text;

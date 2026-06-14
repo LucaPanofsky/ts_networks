@@ -70,8 +70,9 @@ the rabbit running past, the `?` standing in for the indeterminacy. It heads the
 
 - **Server** ([`docker/chat-server/`](../docker/chat-server)) — a bare `node:http` app that holds
   the SDK session and bridges it to the browser over **SSE + POST** (`GET /events`, `POST /chat`,
-  `POST /reset`). One container = one conversation. The agent runs against the same runtime and
-  knowledge dirs as the other modes, so it still cannot edit the language source.
+  `POST /reset`, `GET /files`). One container = one conversation. The agent runs against the same
+  runtime and knowledge dirs as the other modes, so it still cannot edit the language source. The
+  left column mirrors the container's `/workspace` (Uploads + Outputs), refreshed after each turn.
 - **Client** — a vanilla, no-build, event-driven single-page app (a re-frame-style loop:
   *events → pure reducer → state → pure view → idiomorph morph*).
 

@@ -11,6 +11,7 @@
 //   { type: 'error-raised',       text }
 //   { type: 'status-changed',     state: 'working'|'idle' }
 //   { type: 'trace-appended',     text }
+//   { type: 'files-loaded',       files }   // { uploads:[{name,size}], out:[…] } — the workspace mirror
 //   { type: 'conversation-reset' }
 //   { type: 'sidebar-toggled' }
 
@@ -28,7 +29,12 @@ export function update(state, event) {
       return state.status === event.state ? state : { ...state, status: event.state, traces: [] };
     case 'trace-appended':
       return { ...state, traces: [...state.traces, event.text] };
+    case 'files-loaded':
+      // The workspace mirror (Rung B). Wholesale replace — GET /files is the source of truth.
+      return { ...state, files: event.files };
     case 'conversation-reset':
+      // New chat clears the SESSION, not the workspace: uploads/outputs live on disk and persist.
+      // So `files` is deliberately left intact here (main.js refetches after the reset anyway).
       return { ...state, messages: [], status: 'idle', traces: [] };
     case 'sidebar-toggled':
       return { ...state, sidebarCollapsed: !state.sidebarCollapsed };

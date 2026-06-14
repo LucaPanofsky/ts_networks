@@ -172,4 +172,49 @@ test('activity line escapes trace text (no injection)', () => {
   assert.ok(html.includes('&lt;b&gt;x&lt;/b&gt;'), 'trace text must be escaped');
 });
 
+// ---------- reducer + view: workspace mirror (Rungs A+B) ----------
+test('initial state carries an empty workspace file map', () => {
+  assert.deepEqual(initialState.files, { uploads: [], out: [] });
+});
+
+test('files-loaded replaces the workspace file map', () => {
+  const files = { uploads: [{ name: 'invoice.pdf', size: 10 }], out: [{ name: 'program.tsn', size: 20 }] };
+  const s = update(initialState, { type: 'files-loaded', files });
+  assert.deepEqual(s.files, files);
+});
+
+test('files-loaded does not mutate its input', () => {
+  const frozen = deepFreeze(structuredClone(initialState));
+  const next = update(frozen, { type: 'files-loaded', files: { uploads: [{ name: 'a', size: 1 }], out: [] } });
+  assert.notEqual(next, frozen);
+  assert.deepEqual(frozen.files, { uploads: [], out: [] }); // original untouched
+});
+
+test('conversation-reset leaves the file list intact (files reflect disk, not the session)', () => {
+  let s = update(initialState, { type: 'files-loaded', files: { uploads: [{ name: 'a', size: 1 }], out: [] } });
+  s = update(s, { type: 'conversation-reset' });
+  assert.deepEqual(s.files.uploads, [{ name: 'a', size: 1 }]);
+});
+
+test('sidebar shows Uploads and Outputs sections, not the old Recents stub (Rung A)', () => {
+  const html = view(initialState);
+  assert.ok(html.includes('Uploads'), 'Uploads section present');
+  assert.ok(html.includes('Outputs'), 'Outputs section present');
+  assert.ok(!html.includes('Recents'), 'Recents stub removed');
+});
+
+test('sidebar lists file names from state', () => {
+  const files = { uploads: [{ name: 'invoice.pdf', size: 10 }], out: [{ name: 'program.tsn', size: 20 }] };
+  const html = view(update(initialState, { type: 'files-loaded', files }));
+  assert.ok(html.includes('invoice.pdf'), 'upload listed');
+  assert.ok(html.includes('program.tsn'), 'output listed');
+});
+
+test('sidebar escapes file names (no injection)', () => {
+  const files = { uploads: [{ name: '<img src=x>.txt', size: 1 }], out: [] };
+  const html = view(update(initialState, { type: 'files-loaded', files }));
+  assert.ok(!html.includes('<img src=x>.txt'), 'raw name must not appear');
+  assert.ok(html.includes('&lt;img src=x&gt;.txt'), 'name must be escaped');
+});
+
 console.log(`REDUCER/VIEW OK — ${passed} tests (pure layer, ran with no DOM)`);

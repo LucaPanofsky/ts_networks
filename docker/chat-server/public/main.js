@@ -11,7 +11,7 @@
 import { initialState } from './state.js';
 import { update } from './update.js';
 import { view } from './view.js';
-import { sendChat, resetConversation } from './effects.js';
+import { sendChat, resetConversation, fetchFiles } from './effects.js';
 import { Idiomorph } from './idiomorph.js';
 
 let state = initialState;
@@ -65,7 +65,18 @@ async function submitTurn() {
 async function newChat() {
   const res = await resetConversation();
   if (res.ok) dispatch({ type: 'conversation-reset' }); // server also broadcasts `reset`
+  loadFiles(); // the workspace persists across New chat; refetch so the mirror is current
   document.getElementById('input')?.focus();
+}
+
+// Pull the workspace mirror (Rung B). Driven on boot, after a reset, and on every `workspace`
+// nudge from the server (push the signal, pull the data). Failures are non-fatal — the next
+// nudge retries; a stale list is better than a crash.
+async function loadFiles() {
+  try {
+    const res = await fetchFiles();
+    if (res.ok) dispatch({ type: 'files-loaded', files: await res.json() });
+  } catch { /* offline / transient — leave the current list, wait for the next nudge */ }
 }
 
 // ---- raw DOM events (delegated on document → survive morphs) ----
@@ -91,7 +102,9 @@ es.addEventListener('trace', (e) => dispatch({ type: 'trace-appended', text: JSO
 es.addEventListener('error', (e) => { if (e.data) dispatch({ type: 'error-raised', text: JSON.parse(e.data).message }); });
 es.addEventListener('status', (e) => dispatch({ type: 'status-changed', state: JSON.parse(e.data).state }));
 es.addEventListener('reset', () => dispatch({ type: 'conversation-reset' }));
+es.addEventListener('workspace', () => loadFiles()); // a turn may have changed /workspace — refetch
 
 // ---- boot ----
 render();
+loadFiles(); // populate the workspace mirror on first paint
 document.getElementById('input')?.focus();

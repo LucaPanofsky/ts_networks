@@ -14,3 +14,8 @@ export function sendChat(message) {
 export function resetConversation() {
   return fetch('/reset', { method: 'POST' });
 }
+
+// The workspace mirror (Rung B). Returns the raw Response; main.js parses + dispatches.
+export function fetchFiles() {
+  return fetch('/files');
+}

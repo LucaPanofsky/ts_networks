@@ -10,28 +10,40 @@
 //   - user    { text }            an accepted user turn (echoed to every client)
 //   - message { text }            the assistant's complete reply for a turn
 //   - status  { state }           "working" | "idle" — a turn-level busy flag (spinner toggle)
-//   - trace   { text }            live tool activity during a turn (Rung 1) — one per tool use
-//   - error   { message }         a turn failed
-//   - reset   {}                  the conversation was cleared (New chat)
+//   - trace     { text }          live tool activity during a turn (Rung 1) — one per tool use
+//   - error     { message }       a turn failed
+//   - reset     {}                the conversation was cleared (New chat)
+//   - workspace {}                the /workspace files may have changed (Rung B) — a nudge to
+//                                 refetch GET /files; sent after each turn (push the signal,
+//                                 pull the data). The UI never receives file contents over SSE.
 //
 // Deferred (additive, no rearchitecture): partial `message` deltas for token-level streaming
 // (Rung 2), and rendering replies as HTML fragments with hypermedia controls. Each turn still
 // delivers one whole plain-text `message`; `trace` events are progress, not the reply.
 
 import http from 'node:http';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir, stat } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, normalize } from 'node:path';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
+
+// The two workspace subdirs the UI mirrors (Rung B): user uploads (writable from the UI in
+// Rung C) and the agent's outputs (read-only — there is no endpoint that writes here).
+const WORKSPACE_SECTIONS = ['uploads', 'out'];
 
 /**
  * Build (but do not start) the chat HTTP server.
  * @param {object} cfg
  * @param {{ runTurn: (t:{prompt:string, sessionId?:string}) => Promise<{text:string, sessionId?:string}> }} cfg.agent
  * @param {string} [cfg.publicDir]  directory of static assets (index.html)
+ * @param {string} [cfg.workspaceDir]  the bind-mounted /workspace (mirrored by GET /files)
  */
-export function createServer({ agent, publicDir = join(HERE, 'public') }) {
+export function createServer({
+  agent,
+  publicDir = join(HERE, 'public'),
+  workspaceDir = process.env.TSN_WORKSPACE ?? '/workspace',
+}) {
   /** @type {Set<import('node:http').ServerResponse>} */
   const clients = new Set();
   let sessionId; // the live conversation; undefined until the first turn mints one
@@ -90,6 +102,9 @@ export function createServer({ agent, publicDir = join(HERE, 'public') }) {
     } finally {
       busy = false;
       broadcast('status', { state: 'idle' });
+      // A turn may have produced/changed files (the agent writes to out/). Push a signal so
+      // clients refetch GET /files; the data itself is pulled, never streamed over SSE (Rung B).
+      broadcast('workspace', {});
     }
   }
 
@@ -102,6 +117,16 @@ export function createServer({ agent, publicDir = join(HERE, 'public') }) {
     sessionId = undefined; // drop the conversation; the next turn mints a fresh session
     broadcast('reset', {});
     res.writeHead(204).end();
+  }
+
+  // GET /files — a flat, read-only mirror of the workspace: { uploads:[{name,size}], out:[…] }.
+  // One trip per section; a missing dir is simply an empty section (it may not exist until the
+  // first upload / first agent output). The UI pulls this on boot and on every `workspace` nudge.
+  async function handleFiles(req, res) {
+    const entries = await Promise.all(WORKSPACE_SECTIONS.map((s) => listDir(join(workspaceDir, s))));
+    const body = Object.fromEntries(WORKSPACE_SECTIONS.map((s, i) => [s, entries[i]]));
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(body));
   }
 
   async function handleStatic(req, res) {
@@ -126,6 +151,7 @@ export function createServer({ agent, publicDir = join(HERE, 'public') }) {
     if (req.method === 'GET' && url === '/events') return handleEvents(req, res);
     if (req.method === 'POST' && url === '/chat') return handleChat(req, res).catch((e) => fail(res, e));
     if (req.method === 'POST' && url === '/reset') return handleReset(req, res);
+    if (req.method === 'GET' && url === '/files') return handleFiles(req, res).catch((e) => fail(res, e));
     if (req.method === 'GET' && url === '/healthz') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify({ ok: true, clients: clients.size, busy }));
@@ -152,6 +178,29 @@ function readJson(req) {
     });
     req.on('error', reject);
   });
+}
+
+// List a single workspace dir: files only (no subdirs in v1), name + size, sorted by name.
+// A non-existent dir yields [] — the section just renders empty rather than erroring.
+async function listDir(dir) {
+  let entries;
+  try {
+    entries = await readdir(dir, { withFileTypes: true });
+  } catch {
+    return []; // dir doesn't exist yet (e.g. nothing uploaded / no output written)
+  }
+  const files = [];
+  for (const d of entries) {
+    if (!d.isFile()) continue;
+    try {
+      const s = await stat(join(dir, d.name));
+      files.push({ name: d.name, size: s.size });
+    } catch {
+      /* file vanished between readdir and stat — skip it */
+    }
+  }
+  files.sort((a, b) => a.name.localeCompare(b.name));
+  return files;
 }
 
 function fail(res, err) {

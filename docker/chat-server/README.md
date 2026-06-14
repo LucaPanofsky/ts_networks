@@ -17,11 +17,13 @@ land at `/workspace/out/program.tsn` exactly as in `author` mode.
 
 ```
 browser ──POST /chat {message}──▶ server        (a user turn)
+browser ──GET  /files ──────────▶ server        (pull the /workspace mirror)
 browser ◀──── GET /events (SSE) ── server        (server→browser stream)
 ```
 
 The server is the single source of truth; the UI is a pure projection of the SSE stream
-(it renders nothing it didn't receive over `/events`). One container = one conversation.
+(it renders nothing it didn't receive over `/events`, except the file list it pulls from
+`/files`). One container = one conversation.
 
 SSE event types:
 
@@ -33,6 +35,12 @@ SSE event types:
 | `trace` | `{text}` | live tool activity during a turn (Rung 1) — one per tool use |
 | `error` | `{message}` | a turn failed |
 | `reset` | `{}` | the conversation was cleared (New chat) |
+| `workspace` | `{}` | `/workspace` may have changed (Rung B) — a dataless **signal**; the client refetches `GET /files`. Sent after each turn. |
+
+HTTP routes (besides SSE): `POST /chat`, `POST /reset`, `GET /healthz`, and **`GET /files`** —
+a flat, read-only mirror of the workspace, `{ uploads:[{name,size}], out:[{name,size}] }`
+(a missing dir is simply an empty section). Push the signal (`workspace`), pull the data
+(`/files`); file contents are never streamed over SSE.
 
 ## Files
 
@@ -50,7 +58,7 @@ SSE event types:
 - `state.js` — the single source of truth (plain data). Pure.
 - `update.js` — the reducer `update(state, event) → state`. **Pure** (no DOM/IO/mutation).
 - `view.js` — `view(state) → html string`. **Pure** (no DOM). HTML-escapes message text.
-- `effects.js` — the `fetch` boundary (`/chat`, `/reset`).
+- `effects.js` — the `fetch` boundary (`/chat`, `/reset`, `/files`).
 - `main.js` — the **only** module that touches the DOM / EventSource / fetch. Holds `dispatch`,
   delegates DOM events on `document` (so they survive morphs), and morphs `#app` with idiomorph.
 - `idiomorph.js` — vendored (npm `idiomorph` 0.7.4, ESM build; dependency-free, no build).
@@ -100,14 +108,20 @@ alive). If a container is ever wedged, free the port with
 **v1 (this):** architecture-correct skeleton — SDK session in-container, SSE + POST,
 multi-turn resume, per-session chat contract, one **whole plain-text** message per turn.
 
-**Shipped since v1:** a `trace` event per tool call for live progress (Rung 1) — the agent emits
-one per `tool_use` as a turn runs; the UI shows it as an activity line under the spinner.
+**Shipped since v1:**
+- a `trace` event per tool call for live progress (Rung 1) — the agent emits one per `tool_use` as
+  a turn runs; the UI shows it as an activity line under the spinner;
+- the **workspace mirror** (Rungs A+B) — the left column mirrors `/workspace` (Uploads + Outputs)
+  via `GET /files` + the post-turn `workspace` nudge; the old "Recents" stub is gone.
 
-**Deferred — all additive, no rearchitecture:**
-- partial `message` deltas for token-level streaming (Rung 2 — iterate the SDK's partial messages
-  instead of reading only the final result);
-- a `reply(html)` SDK tool + rendering replies as **HTML fragments** with hypermedia controls
-  (forms as the refinement loop).
+**Deferred — all additive, no rearchitecture** (see `report/gavagai-ui-roadmap.md`):
+- **Rung C — a dropzone** that uploads into `/workspace/uploads/` (decoupled from the turn);
+- **Rung D — a right-side file viewer** rendering a clicked file as escaped plain text;
+- a `reply(html)` SDK tool + rendering replies as **HTML fragments** (needs a KB/skill change and
+  an XSS threat model — the harder, later branch).
+
+Token-level streaming of the reply (the old Rung 2) was **dropped**: the live trace already
+delivers perceived responsiveness, and Gavagai's substantive output is the program, not prose.
 
 ## Notes / not-yet-verified
 

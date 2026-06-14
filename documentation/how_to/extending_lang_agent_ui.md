@@ -34,11 +34,17 @@ live DOM
 Side effects sit at the **edges**, never in the middle:
 
 - **Inbound** effects — the server pushes events over SSE
-  ([`server.mjs`](../../docker/chat-server/server.mjs): `user` / `message` / `status` / `error` /
-  `reset`), produced by the agent turn in [`agent.mjs`](../../docker/chat-server/agent.mjs).
+  ([`server.mjs`](../../docker/chat-server/server.mjs): `user` / `message` / `status` / `trace` /
+  `error` / `reset` / `workspace`), produced by the agent turn in
+  [`agent.mjs`](../../docker/chat-server/agent.mjs).
 - **Outbound** effects — the browser calls `fetch`
-  ([`effects.js`](../../docker/chat-server/public/effects.js): `/chat`, `/reset`), orchestrated by
-  `main.js`.
+  ([`effects.js`](../../docker/chat-server/public/effects.js): `/chat`, `/reset`, `/files`),
+  orchestrated by `main.js`.
+
+A note on the **`workspace` event** (Rung B): it carries *no data* — it is a pure **signal** that
+the server's `/workspace` may have changed, and the client responds by **pulling** `GET /files`.
+"Push the signal, pull the data" keeps file contents off the SSE stream and out of state churn;
+it is the pattern to copy for any "something on disk changed" feature.
 
 **The middle is pure.** `state.js` / `update.js` / `view.js` import nothing from the browser. That
 is not a style preference — it is the property that makes the loop testable and is enforced
@@ -192,8 +198,11 @@ that emits the agent's raw html instead of `esc(text)` for assistant messages.
 ## Changelog
 
 > **Status: under ongoing development.** The chat UI is functional and verified against a live
-> built image for its core flows, but it is not yet feature-complete — expect refinements
-> (e.g. a chat-contract tweak and file upload from the UI are planned next).
+> built image for its core flows, but it is not yet feature-complete. The next arc (see
+> `report/gavagai-ui-roadmap.md`, "Rungs 3 & 4 — REDESIGNED") makes the **left column a live mirror
+> of `/workspace`**: A (drop the Recents stub) and B (the file mirror) are shipped; C (a dropzone →
+> `/workspace/uploads/`) and D (a right-side plain-text file viewer) are next. Token streaming
+> (the old Rung 2) was dropped — the live trace already covers perceived responsiveness.
 
 - **Initial functional UI.** The chat client was refactored from a single inline script into the
   event-driven loop above: `state.js` / `update.js` / `view.js` / `effects.js` / `main.js`, with
@@ -216,7 +225,19 @@ that emits the agent's raw html instead of `esc(text)` for assistant messages.
   `activity` line under the working indicator (cleared when the reply lands). The worked example
   above is exactly this feature. **Verified through the fake-agent preview + the smoke test; the
   real-SDK `tool_use` path is not yet exercised on the built image** (integration test deferred,
-  below). Token-level streaming of the reply is the next rung (Rung 2).
+  below). Token-level streaming of the reply (the old Rung 2) was **dropped** — the trace already
+  delivers perceived responsiveness, and Gavagai's real output is the program, not prose.
+- **Workspace mirror (Rungs A+B).** The left column stopped pretending to hold a chat history and
+  now mirrors the container's `/workspace`. **Rung A:** removed the "Recents" stub. **Rung B:** a
+  read-only file list in two sections — **Uploads** (`/workspace/uploads/`) and **Outputs**
+  (`/workspace/out/`, what the agent writes). Server adds `GET /files` (a flat `{uploads, out}` of
+  `{name,size}`, missing dirs → empty) and broadcasts a dataless `workspace` SSE event after each
+  turn; the client pulls `/files` on boot, after a reset, and on every `workspace` nudge
+  (push-signal/pull-data). New state field `files`, reducer case `files-loaded`, a `sidebar(state)`
+  file-list view, and `effects.fetchFiles`. `conversation-reset` deliberately leaves `files` intact
+  (the workspace persists across New chat). Verified via the fake-agent preview (Playwright: the
+  Outputs section fills in live after a turn) + the smoke test (`GET /files` shape, the `workspace`
+  event in the per-turn sequence).
 - **Integration testing (live image).** Verified end-to-end against the built container.
 
   Verified:
