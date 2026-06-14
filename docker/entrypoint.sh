@@ -3,6 +3,7 @@
 #
 #   shell            -> interactive Claude Code session (you drive it)
 #   author <prompt>  -> headless `claude -p` authoring run, harvested from /workspace/out
+#   chat             -> web chat front-end (Agent SDK session, served on $PORT, default 8787)
 #   exec <cmd...>    -> run an arbitrary command in the container (debugging / tooling)
 #
 # In every mode the agent has read access to the runtime (/app/ts-networks) and the
@@ -32,11 +33,17 @@ case "$mode" in
         $ADD_DIRS \
         "$@"
     ;;
+  chat)
+    # The chat server holds one Agent SDK session and serves the single-page UI. It uses the
+    # same runtime/knowledge dirs as the other modes (via the SDK's additionalDirectories),
+    # so the read-only-source boundary still holds. Binds 0.0.0.0:$PORT inside the container.
+    exec node /app/chat-server/server.mjs
+    ;;
   exec)
     exec "$@"
     ;;
   *)
-    echo "usage: entrypoint.sh {shell | author <prompt> | exec <cmd...>}" >&2
+    echo "usage: entrypoint.sh {shell | author <prompt> | chat | exec <cmd...>}" >&2
     exit 2
     ;;
 esac

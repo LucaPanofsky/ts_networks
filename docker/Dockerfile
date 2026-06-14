@@ -34,7 +34,20 @@ RUN npm install -g @anthropic-ai/claude-code tsx \
  && npm cache clean --force
 
 ENV TSN_WORKSPACE=/workspace \
-    NODE_ENV=production
+    NODE_ENV=production \
+    PORT=8787 \
+    TSN_CLAUDE_PATH=/usr/local/bin/claude
+
+# The web chat front-end (Agent SDK session in-container). Its single dependency is the
+# Agent SDK, pinned in lockstep with the global CLI above. `--omit=optional` skips the SDK's
+# bundled native CLI binary: the chat server reuses the already-installed global `claude`
+# (TSN_CLAUDE_PATH), so a second copy would just bloat the image.
+COPY docker/chat-server/package.json /app/chat-server/package.json
+RUN cd /app/chat-server \
+ && npm install --omit=dev --omit=optional \
+ && npm cache clean --force
+COPY docker/chat-server/agent.mjs docker/chat-server/server.mjs /app/chat-server/
+COPY docker/chat-server/public /app/chat-server/public
 
 # The language runtime: root-owned, read-only to the agent (the security boundary).
 COPY --from=build /app/ts-networks /app/ts-networks
@@ -58,6 +71,9 @@ RUN mkdir -p /workspace \
 # Claude Code refuses --dangerously-skip-permissions as root, and non-root is the point.
 USER node
 WORKDIR /workspace
+
+# Chat mode binds this port; published by `tsn-agent chat`. Other modes ignore it.
+EXPOSE 8787
 
 ENTRYPOINT ["entrypoint.sh"]
 CMD ["shell"]

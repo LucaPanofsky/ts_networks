@@ -61,6 +61,7 @@ npx tsx scripts/parse.ts my-program.tsn | jq '.networks[0]'
 ## Contents
 
 - [Language Reference](language.md) — the DSL: networks, records, functions, LLM functions, expressions, and special forms
+- [The language agent](lang_agent.md) — Claude Code in a container that authors `.tsn` programs; the modes, the isolation model, and the Gavagai chat
 - [Status](status.md) — what is implemented, what is pending
 
 **How-to guides**
@@ -69,4 +70,5 @@ npx tsx scripts/parse.ts my-program.tsn | jq '.networks[0]'
 - [Extracting documents](how_to/extracting_documents.md) — compose grammars into a `defextract` that produces a nested tree of records
 - [Extracting tables](how_to/extracting_tables.md) — read delimited text tables into records with a `TTable`, standalone or as a `defextract` leaf
 - [Extending the language](how_to/extending_the_language.md) — add a new construct to the DSL, stage by stage
+- [Extending the language agent UI](how_to/extending_lang_agent_ui.md) — add a feature to the Gavagai chat, through its event-driven functional architecture
 - [Running the MCP server](how_to/mcp_server.md) — expose the program-reasoning tools to an external agent over stdio

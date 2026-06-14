@@ -1,0 +1,38 @@
+// The reducer: update(state, event) -> state. PURE.
+//
+// No DOM, no I/O, no mutation — always returns a new state (or the same reference when nothing
+// changes). Events are domain-level and normalized by main.js from raw SSE / DOM events, so
+// this file never knows about EventSource, fetch, or the browser. That is what makes it
+// testable in plain Node (reducer-test.mjs) and is the enforcement point for "pure handlers".
+//
+// Events:
+//   { type: 'user-said',          text }
+//   { type: 'assistant-said',     text }
+//   { type: 'error-raised',       text }
+//   { type: 'status-changed',     state: 'working'|'idle' }
+//   { type: 'conversation-reset' }
+//   { type: 'sidebar-toggled' }
+
+export function update(state, event) {
+  switch (event.type) {
+    case 'user-said':
+      return addMessage(state, 'user', event.text);
+    case 'assistant-said':
+      return addMessage(state, 'assistant', event.text);
+    case 'error-raised':
+      return addMessage(state, 'error', event.text);
+    case 'status-changed':
+      return state.status === event.state ? state : { ...state, status: event.state };
+    case 'conversation-reset':
+      return { ...state, messages: [], status: 'idle' };
+    case 'sidebar-toggled':
+      return { ...state, sidebarCollapsed: !state.sidebarCollapsed };
+    default:
+      return state; // unknown event: identity (no-op)
+  }
+}
+
+function addMessage(state, role, text) {
+  const seq = state.seq + 1;
+  return { ...state, seq, messages: [...state.messages, { id: seq, role, text }] };
+}
