@@ -2,7 +2,6 @@
 // Oracle-parity parse + eval-and-run the predicate. Reuses the strip-and-eval harness.
 
 import { emitJs, parseProgram } from "../../src/language/index.js";
-import { parseProgramLezer as oracleParse } from "../../src/data-network/tree-to-network.js";
 import * as rt from "../../src/language/runtime/index.js";
 import type { Registry } from "../../src/language/core/runtime-api.js";
 
@@ -22,9 +21,9 @@ end
 `;
 
 describe("defenum slice — parse → emitted .js → run", () => {
-  test("parses to an EnumNode equal to the Lezer oracle's", () => {
+  test("parses to an EnumNode matching its frozen golden (Lezer-validated at capture)", () => {
     const node = parseProgram(enumSrc).nodes.find((n) => n.kind === "enum");
-    expect(node).toEqual(oracleParse(enumSrc).enums[0]);
+    expect(node).toMatchSnapshot();
   });
 
   test("registers a membership predicate `Name?`", () => {

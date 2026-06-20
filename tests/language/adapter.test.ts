@@ -1,18 +1,18 @@
-// adapter — the bridge proof. `toProgramAST(modularParse(src))` must deep-equal the Lezer
-// oracle's `ProgramAST` for a realistic multi-construct program, exercising all ten arrays.
-// This is what justifies the adapter's structural casts and underpins the choke-point swap
-// that removes Lezer: the modular parser feeds the unchanged engine through this function.
+// adapter — the bridge proof. `toProgramAST(modularParse(src))` must match its frozen golden
+// `ProgramAST` for a realistic multi-construct program, exercising all ten arrays. The golden
+// was captured (and reviewed) while the Lezer oracle still existed and the two agreed, so it
+// encodes the Lezer-validated shape. This justifies the adapter's structural casts and
+// underpins the choke-point swap: the modular parser feeds the unchanged engine through here.
 //
 // (Parse-only parity — no `combine`/merge runs here, so cross-construct name clashes and
 // unresolved leaf refs are irrelevant; both front ends just parse the source as written.)
 
 import { parseProgram } from "../../src/language/index.js";
-import { parseProgramLezer as oracleParse } from "../../src/data-network/tree-to-network.js";
 import { toProgramAST } from "../../src/language/adapter.js";
 import type { ProgramAST } from "../../src/data-network/types.js";
 
 // One program touching every construct (predicate folds into a `fn`). Blocks are verbatim
-// adaptations of the per-slice oracle fixtures, so each is known-valid in both front ends.
+// adaptations of the per-slice fixtures, so each is known-valid in both front ends.
 const src = `
 defrecord Pair
   key: String?;
@@ -98,8 +98,8 @@ end
 `;
 
 describe("adapter — modular Program → engine ProgramAST", () => {
-  test("toProgramAST(modular) deep-equals the Lezer oracle's ProgramAST (all ten arrays)", () => {
-    expect(toProgramAST(parseProgram(src))).toEqual(oracleParse(src));
+  test("toProgramAST(modular) matches its frozen golden ProgramAST (Lezer-validated at capture) (all ten arrays)", () => {
+    expect(toProgramAST(parseProgram(src))).toMatchSnapshot();
   });
 
   test("an empty program maps to ten empty arrays", () => {

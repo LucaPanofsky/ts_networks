@@ -3,7 +3,6 @@
 // defrecord test (top-level import/export stripped, `rt` injected).
 
 import { emitJs, parseProgram } from "../../src/language/index.js";
-import { parseProgramLezer as oracleParse } from "../../src/data-network/tree-to-network.js";
 import * as rt from "../../src/language/runtime/index.js";
 import type { Registry } from "../../src/language/core/runtime-api.js";
 import type { FnNode } from "../../src/language/constructs/defn/ast.js";
@@ -104,11 +103,11 @@ defn greet
 end
 `;
 
-  test("parses to an interpolate Expr (oracle parity)", () => {
+  test("parses to an interpolate Expr (golden snapshot)", () => {
     const node = parseProgram(interpSrc).nodes[0] as FnNode;
     expect(node.body).toEqual({ kind: "interpolate", template: "Hi {{who}}, welcome!" });
     // ...and exactly what the existing (Lezer) parser produces for the same body.
-    expect(node.body).toEqual(oracleParse(interpSrc).fns[0]!.body);
+    expect(node.body).toMatchSnapshot();
   });
 
   test("the body renders against its argument at run time (__interp wired)", () => {

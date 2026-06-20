@@ -1,0 +1,24 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`defparameter slice — parse + carry + no-op emit an absent value clause parses to its frozen golden (default is Nothing — carried as no value) 1`] = `
+{
+  "kind": "parameter",
+  "name": "pending",
+  "type": {
+    "kind": "scalar",
+    "predicate": "Text?",
+  },
+}
+`;
+
+exports[`defparameter slice — parse + carry + no-op emit parses to a ParameterNode matching its frozen golden (Lezer-validated at capture) (name, scalar type, trimmed value) 1`] = `
+{
+  "kind": "parameter",
+  "name": "myArticle",
+  "type": {
+    "kind": "scalar",
+    "predicate": "Text?",
+  },
+  "value": "Article 12(1)-(2) GDPR",
+}
+`;

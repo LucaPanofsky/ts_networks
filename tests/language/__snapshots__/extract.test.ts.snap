@@ -1,0 +1,34 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`defextract slice — parse → emitted .js → run parses to an ExtractNode matching its frozen golden (Lezer-validated at capture) 1`] = `
+{
+  "kind": "extract",
+  "name": "GdprArticle",
+  "root": {
+    "body": [
+      {
+        "as": "paragraphs",
+        "grammar": "grammar/Paragraph",
+        "kind": "scan",
+        "record": "Paragraph",
+      },
+      {
+        "body": [
+          {
+            "as": "points",
+            "grammar": "grammar/Point",
+            "kind": "scan",
+            "record": "Point",
+          },
+        ],
+        "grammar": undefined,
+        "kind": "within",
+        "target": "paragraphs",
+      },
+    ],
+    "grammar": "grammar/Article",
+    "kind": "within",
+    "target": "Article",
+  },
+}
+`;

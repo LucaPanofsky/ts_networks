@@ -10,7 +10,6 @@ jest.mock("../../src/sandbox/llmfn-client.js", () => ({ callLLMFn: jest.fn() }))
 
 import { callLLMFn } from "../../src/sandbox/llmfn-client.js";
 import { emitJs, parseProgram } from "../../src/language/index.js";
-import { parseProgramLezer as oracleParse } from "../../src/data-network/tree-to-network.js";
 import * as rt from "../../src/language/runtime/index.js";
 import { APromise } from "../../src/information-structures/apromise.js";
 import { Something, Contradiction } from "../../src/info-structure.js";
@@ -51,12 +50,12 @@ function fakeAnalysis(): Record<string, unknown> {
 beforeEach(() => mockCall.mockReset());
 
 describe("defllmfn slice — parse + emit + the memoized async leaf", () => {
-  test("parses to an llmfn node equal to the Lezer oracle's (signature, with:, prompt)", () => {
+  test("parses to an llmfn node matching its frozen golden (Lezer-validated at capture) (signature, with:, prompt)", () => {
     const node = parseProgram(src).nodes.find((n) => n.kind === "llmfn");
-    expect(node).toEqual(oracleParse(src).llmFns[0]);
+    expect(node).toMatchSnapshot();
   });
 
-  test("a multi-pair `with:` with an underscore key parses like the oracle (regression)", () => {
+  test("a multi-pair `with:` with an underscore key parses to its frozen golden (regression)", () => {
     // `max_tokens` exercises `_` in a config key (identChar) and comma-separated pairs —
     // the form the original slice fixture (single `model = …`) didn't cover.
     const multi = `
@@ -67,14 +66,14 @@ defllmfn classify
 end
 `;
     const node = parseProgram(multi).nodes.find((n) => n.kind === "llmfn");
-    expect(node).toEqual(oracleParse(multi).llmFns[0]);
+    expect(node).toMatchSnapshot();
     expect((node as { config: Record<string, string> }).config).toEqual({
       model: "claude-opus-4-7",
       max_tokens: "4096",
     });
   });
 
-  test("a system clause + a bare-prompt shorthand parse like the oracle (system stable, bare → user)", () => {
+  test("a system clause + a bare-prompt shorthand parse to their frozen golden (system stable, bare → user)", () => {
     const withSystem = `
 defrecord R
   v: String?;
@@ -87,7 +86,7 @@ defllmfn ask
 end
 `;
     const node = parseProgram(withSystem).nodes.find((n) => n.kind === "llmfn");
-    expect(node).toEqual(oracleParse(withSystem).llmFns[0]);
+    expect(node).toMatchSnapshot();
     // the bare block populated `user`, the labelled block populated `system`.
     expect((node as { user: string }).user).toBe("Answer: {{q}}");
     expect((node as { system?: string }).system).toBe("You are terse.");

@@ -2,10 +2,9 @@
 // stores it but consumes it NOWHERE yet (no registry entry, no emission, no run-wiring —
 // the teeth land later with defnetwork + the `run` entry point). So here it is parse +
 // carry + no-op emit: the pipeline carries a ParameterNode for that future slice and emits
-// only a documenting comment. Asserts oracle-parity parse and a clean no-op at run.
+// only a documenting comment. Asserts golden-snapshot parse and a clean no-op at run.
 
 import { emitJs, parseProgram } from "../../src/language/index.js";
-import { parseProgramLezer as oracleParse } from "../../src/data-network/tree-to-network.js";
 import * as rt from "../../src/language/runtime/index.js";
 import type { Registry } from "../../src/language/core/runtime-api.js";
 
@@ -35,16 +34,16 @@ end
 `;
 
 describe("defparameter slice — parse + carry + no-op emit", () => {
-  test("parses to a ParameterNode equal to the Lezer oracle's (name, scalar type, trimmed value)", () => {
+  test("parses to a ParameterNode matching its frozen golden (Lezer-validated at capture) (name, scalar type, trimmed value)", () => {
     const node = parseProgram(withValue).nodes.find((n) => n.kind === "parameter");
-    expect(node).toEqual(oracleParse(withValue).parameters[0]);
+    expect(node).toMatchSnapshot();
   });
 
-  test("an absent value clause parses like the oracle (default is Nothing — carried as no value)", () => {
+  test("an absent value clause parses to its frozen golden (default is Nothing — carried as no value)", () => {
     const node = parseProgram(noValue).nodes.find((n) => n.kind === "parameter") as
       | { kind: string; name: string; value?: string }
       | undefined;
-    expect(node).toEqual(oracleParse(noValue).parameters[0]);
+    expect(node).toMatchSnapshot();
     expect(node!.value).toBeUndefined();
   });
 

@@ -1,0 +1,8 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`defn slice — interpolate body parses to an interpolate Expr (golden snapshot) 1`] = `
+{
+  "kind": "interpolate",
+  "template": "Hi {{who}}, welcome!",
+}
+`;

@@ -10,7 +10,6 @@ jest.mock("../../src/sandbox/llmfn-client.js", () => ({ callLLMFn: jest.fn() }))
 
 import { callLLMFn } from "../../src/sandbox/llmfn-client.js";
 import { emitJs, parseProgram } from "../../src/language/index.js";
-import { parseProgramLezer as oracleParse } from "../../src/data-network/tree-to-network.js";
 import * as rt from "../../src/language/runtime/index.js";
 import { APromise } from "../../src/information-structures/apromise.js";
 import { Something } from "../../src/info-structure.js";
@@ -40,7 +39,7 @@ end
 `;
 
 describe("defnetwork slice — parse + emit + runnable propagator graph", () => {
-  test("parses to a network node equal to the Lezer oracle's (all four term kinds, as + with)", () => {
+  test("parses to a network node matching its frozen golden (Lezer-validated at capture) (all four term kinds, as + with)", () => {
     const src = `
 defnetwork pipeline
   signature: from [a, b] to out;
@@ -52,10 +51,10 @@ defnetwork pipeline
 end
 `;
     const node = parseProgram(src).nodes.find((n) => n.kind === "network");
-    expect(node).toEqual(oracleParse(src).networks[0]);
+    expect(node).toMatchSnapshot();
   });
 
-  test("a predicate-less `switch from […]` parses (fn: null) like the oracle (regression)", () => {
+  test("a predicate-less `switch from […]` parses (fn: null) to its frozen golden (regression)", () => {
     // The optional fnRef must not swallow the `from` keyword in the bare form. Guarded by a
     // `~fromKw` lookahead in the grammar; this is the case the original slice fixtures missed.
     const src = `
@@ -65,7 +64,7 @@ defnetwork gate
 end
 `;
     const node = parseProgram(src).nodes.find((n) => n.kind === "network");
-    expect(node).toEqual(oracleParse(src).networks[0]);
+    expect(node).toMatchSnapshot();
     const term = (node as { terms: { kind: string; fn: string | null }[] }).terms[0]!;
     expect(term).toMatchObject({ kind: "switch", fn: null });
   });

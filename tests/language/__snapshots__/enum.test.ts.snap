@@ -1,0 +1,13 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`defenum slice — parse → emitted .js → run parses to an EnumNode matching its frozen golden (Lezer-validated at capture) 1`] = `
+{
+  "kind": "enum",
+  "name": "Sentiment",
+  "values": [
+    "positive",
+    "negative",
+    "neutral",
+  ],
+}
+`;

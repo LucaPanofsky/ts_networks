@@ -1,11 +1,10 @@
 import { parseProgram } from "../../src/data-network/tree-to-network.js";
-import { parser } from "../../src/data-network/parser.js";
 import type { BinaryExpr, CallExpr, FieldExpr, FnAST, LetExpr, MatchExpr, RecordAST, UnaryExpr } from "../../src/data-network/types.js";
 
+// `parseProgram` is the modular front end now; a well-formed program parses without throwing
+// (the engine's Lezer parser, which surfaced errors as `⚠` nodes, is gone).
 function noErrorNodes(src: string) {
-  const tree = parser.parse(src.trim());
-  const cursor = tree.cursor();
-  do { expect(cursor.name).not.toBe("⚠"); } while (cursor.next());
+  expect(() => parseProgram(src.trim())).not.toThrow();
 }
 
 function parseFnBody(expr: string) {
@@ -777,9 +776,7 @@ end
 `.trim();
 
   test("no error nodes", () => {
-    let hasError = false;
-    parser.parse(src).iterate({ enter: n => { if (n.name === "⚠") hasError = true; } });
-    expect(hasError).toBe(false);
+    expect(() => parseProgram(src)).not.toThrow();
   });
 
   test("field names are parsed whole", () => {

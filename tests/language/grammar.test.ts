@@ -1,10 +1,9 @@
 // defgrammar slice — emit the .js, eval it against the runtime, and run the compiled
 // grammar leaf. The runtime ADAPTS the existing `compileGrammar`, so these assert the
-// adapter wires record construction + scan correctly. Plus an oracle-parity parse check
+// adapter wires record construction + scan correctly. Plus an golden-snapshot parse check
 // against the existing (Lezer) parser. Reuses the strip-and-eval harness from defn.test.ts.
 
 import { emitJs, parseProgram } from "../../src/language/index.js";
-import { parseProgramLezer as oracleParse } from "../../src/data-network/tree-to-network.js";
 import * as rt from "../../src/language/runtime/index.js";
 import type { Registry } from "../../src/language/core/runtime-api.js";
 import { Contradiction } from "../../src/info-structure.js";
@@ -37,9 +36,9 @@ end
 `;
 
 describe("defgrammar slice — parse → emitted .js → run", () => {
-  test("parses to a GrammarNode equal to the Lezer oracle's", () => {
+  test("parses to a GrammarNode matching its frozen golden (Lezer-validated at capture)", () => {
     const node = parseProgram(pairSrc).nodes.find((n) => n.kind === "grammar");
-    expect(node).toEqual(oracleParse(pairSrc).grammars[0]);
+    expect(node).toMatchSnapshot();
   });
 
   test("a scalar `to Rec?` grammar parses the whole string into a record", () => {

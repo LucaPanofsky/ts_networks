@@ -1,0 +1,84 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`defnetwork slice — parse + emit + runnable propagator graph a predicate-less \`switch from […]\` parses (fn: null) to its frozen golden (regression) 1`] = `
+{
+  "kind": "network",
+  "name": "gate",
+  "signature": {
+    "from": [
+      "flag",
+      "v",
+    ],
+    "to": "out",
+  },
+  "terms": [
+    {
+      "fn": null,
+      "from": [
+        "flag",
+        "v",
+      ],
+      "kind": "switch",
+      "to": "out",
+    },
+  ],
+}
+`;
+
+exports[`defnetwork slice — parse + emit + runnable propagator graph parses to a network node matching its frozen golden (Lezer-validated at capture) (all four term kinds, as + with) 1`] = `
+{
+  "kind": "network",
+  "name": "pipeline",
+  "signature": {
+    "from": [
+      "a",
+      "b",
+    ],
+    "to": "out",
+  },
+  "terms": [
+    {
+      "kind": "cell",
+      "name": "scratch",
+      "value": "0",
+    },
+    {
+      "kind": "constant",
+      "name": "k",
+      "value": "x",
+    },
+    {
+      "fn": "add2",
+      "from": [
+        "a",
+        "b",
+      ],
+      "kind": "propagate",
+      "params": {},
+      "to": "scratch",
+    },
+    {
+      "fn": "tag",
+      "from": [
+        "scratch",
+      ],
+      "kind": "propagate",
+      "params": {
+        "as": "mapping",
+        "lang": "en",
+        "n": "3",
+      },
+      "to": "out",
+    },
+    {
+      "fn": "positive?",
+      "from": [
+        "a",
+        "out",
+      ],
+      "kind": "switch",
+      "to": "gated",
+    },
+  ],
+}
+`;

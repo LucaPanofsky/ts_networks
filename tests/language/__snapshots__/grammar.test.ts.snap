@@ -1,0 +1,25 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`defgrammar slice — parse → emitted .js → run parses to a GrammarNode matching its frozen golden (Lezer-validated at capture) 1`] = `
+{
+  "kind": "grammar",
+  "name": "Pair",
+  "signature": {
+    "params": [
+      {
+        "name": "text",
+        "predicate": "String?",
+      },
+    ],
+    "returnType": {
+      "kind": "scalar",
+      "predicate": "Pair?",
+    },
+  },
+  "source": "Pair {
+    pair  = key "=" value
+    key   = letter+
+    value = digit+
+  }",
+}
+`;

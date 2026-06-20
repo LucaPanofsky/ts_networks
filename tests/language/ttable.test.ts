@@ -1,9 +1,8 @@
 // TTable slice — emit + eval + run the compiled table leaf (text → [Row?]). The runtime
 // ADAPTS the existing `compileTTable`, so these assert the adapter inlines the row record +
-// builds rows correctly, in both positional and located modes, plus oracle-parity parse.
+// builds rows correctly, in both positional and located modes, plus golden-snapshot parse.
 
 import { emitJs, parseProgram } from "../../src/language/index.js";
-import { parseProgramLezer as oracleParse } from "../../src/data-network/tree-to-network.js";
 import * as rt from "../../src/language/runtime/index.js";
 import type { Registry } from "../../src/language/core/runtime-api.js";
 import { Contradiction } from "../../src/info-structure.js";
@@ -32,9 +31,9 @@ end
 `;
 
 describe("TTable slice — parse → emitted .js → run", () => {
-  test("parses to a TTableNode equal to the Lezer oracle's", () => {
+  test("parses to a TTableNode matching its frozen golden (Lezer-validated at capture)", () => {
     const node = parseProgram(positionalSrc).nodes.find((n) => n.kind === "ttable");
-    expect(node).toEqual(oracleParse(positionalSrc).ttables[0]);
+    expect(node).toMatchSnapshot();
   });
 
   test("positional mode: first delimiter-line is the header, rows map by order", () => {

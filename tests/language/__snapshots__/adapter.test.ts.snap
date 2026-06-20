@@ -1,0 +1,298 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`adapter — modular Program → engine ProgramAST toProgramAST(modular) matches its frozen golden ProgramAST (Lezer-validated at capture) (all ten arrays) 1`] = `
+{
+  "derives": [
+    {
+      "kind": "derive",
+      "sub": "Adult",
+      "sup": "Person",
+    },
+  ],
+  "enums": [
+    {
+      "kind": "enum",
+      "name": "Sentiment",
+      "values": [
+        "positive",
+        "negative",
+        "neutral",
+      ],
+    },
+  ],
+  "extracts": [
+    {
+      "kind": "extract",
+      "name": "GdprArticle",
+      "root": {
+        "body": [
+          {
+            "as": "paragraphs",
+            "grammar": "grammar/Paragraph",
+            "kind": "scan",
+            "record": "Paragraph",
+          },
+          {
+            "body": [
+              {
+                "as": "points",
+                "grammar": "grammar/Point",
+                "kind": "scan",
+                "record": "Point",
+              },
+            ],
+            "grammar": undefined,
+            "kind": "within",
+            "target": "paragraphs",
+          },
+        ],
+        "grammar": "grammar/Article",
+        "kind": "within",
+        "target": "Article",
+      },
+    },
+  ],
+  "fns": [
+    {
+      "body": {
+        "kind": "binary",
+        "left": {
+          "kind": "var",
+          "name": "a",
+        },
+        "op": "+",
+        "right": {
+          "kind": "var",
+          "name": "b",
+        },
+      },
+      "isPredicate": false,
+      "kind": "fn",
+      "name": "add2",
+      "params": [
+        {
+          "name": "a",
+          "predicate": "Number?",
+        },
+        {
+          "name": "b",
+          "predicate": "Number?",
+        },
+      ],
+      "returnType": {
+        "kind": "scalar",
+        "predicate": "Number?",
+      },
+    },
+    {
+      "body": {
+        "kind": "binary",
+        "left": {
+          "kind": "var",
+          "name": "n",
+        },
+        "op": ">",
+        "right": {
+          "kind": "literal",
+          "value": 0,
+        },
+      },
+      "isPredicate": true,
+      "kind": "fn",
+      "name": "positive?",
+      "params": [
+        {
+          "name": "n",
+          "predicate": "Number?",
+        },
+      ],
+      "returnType": {
+        "kind": "scalar",
+        "predicate": "Boolean?",
+      },
+    },
+  ],
+  "grammars": [
+    {
+      "kind": "grammar",
+      "name": "Pair",
+      "signature": {
+        "params": [
+          {
+            "name": "text",
+            "predicate": "String?",
+          },
+        ],
+        "returnType": {
+          "kind": "scalar",
+          "predicate": "Pair?",
+        },
+      },
+      "source": "Pair {
+    pair  = key "=" value
+    key   = letter+
+    value = digit+
+  }",
+    },
+  ],
+  "llmFns": [
+    {
+      "config": {
+        "model": "claude-opus-4-7",
+      },
+      "kind": "llmfn",
+      "name": "analyzeDocument",
+      "params": [
+        {
+          "name": "text",
+          "predicate": "String?",
+        },
+      ],
+      "returnType": {
+        "kind": "scalar",
+        "predicate": "DocumentAnalysis?",
+      },
+      "user": "Analyze: {{text}}",
+    },
+  ],
+  "networks": [
+    {
+      "kind": "network",
+      "name": "pipeline",
+      "signature": {
+        "from": [
+          "a",
+          "b",
+        ],
+        "to": "out",
+      },
+      "terms": [
+        {
+          "kind": "cell",
+          "name": "scratch",
+          "value": "0",
+        },
+        {
+          "kind": "constant",
+          "name": "k",
+          "value": "x",
+        },
+        {
+          "fn": "add2",
+          "from": [
+            "a",
+            "b",
+          ],
+          "kind": "propagate",
+          "params": {},
+          "to": "scratch",
+        },
+        {
+          "fn": "tag",
+          "from": [
+            "scratch",
+          ],
+          "kind": "propagate",
+          "params": {
+            "as": "mapping",
+            "lang": "en",
+            "n": "3",
+          },
+          "to": "out",
+        },
+        {
+          "fn": "positive?",
+          "from": [
+            "a",
+            "out",
+          ],
+          "kind": "switch",
+          "to": "gated",
+        },
+      ],
+    },
+  ],
+  "parameters": [
+    {
+      "kind": "parameter",
+      "name": "myArticle",
+      "type": {
+        "kind": "scalar",
+        "predicate": "Text?",
+      },
+      "value": "Article 12(1)-(2) GDPR",
+    },
+  ],
+  "records": [
+    {
+      "fields": [
+        {
+          "name": "key",
+          "type": {
+            "kind": "scalar",
+            "predicate": "String?",
+          },
+        },
+        {
+          "name": "value",
+          "type": {
+            "kind": "scalar",
+            "predicate": "String?",
+          },
+        },
+      ],
+      "kind": "record",
+      "name": "Pair",
+    },
+    {
+      "fields": [
+        {
+          "name": "name",
+          "type": {
+            "kind": "scalar",
+            "predicate": "String?",
+          },
+        },
+      ],
+      "kind": "record",
+      "name": "Person",
+    },
+    {
+      "fields": [
+        {
+          "name": "old",
+          "type": {
+            "kind": "scalar",
+            "predicate": "String?",
+          },
+        },
+        {
+          "name": "newNum",
+          "type": {
+            "kind": "scalar",
+            "predicate": "String?",
+          },
+        },
+      ],
+      "kind": "record",
+      "name": "Equivalence",
+    },
+  ],
+  "ttables": [
+    {
+      "cell": "|",
+      "headers": [
+        {
+          "field": "old",
+        },
+        {
+          "field": "newNum",
+        },
+      ],
+      "kind": "ttable",
+      "name": "Rows",
+      "row": "Equivalence",
+    },
+  ],
+}
+`;

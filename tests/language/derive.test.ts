@@ -1,9 +1,8 @@
 // derive slice — a TYPE-LEVEL declaration: parsed and carried, but a no-op at runtime
-// (the engine consumes derives nowhere yet). Asserts oracle-parity parse and that it emits
+// (the engine consumes derives nowhere yet). Asserts golden-snapshot parse and that it emits
 // no registry artifact while the rest of the program still works.
 
 import { emitJs, parseProgram } from "../../src/language/index.js";
-import { parseProgramLezer as oracleParse } from "../../src/data-network/tree-to-network.js";
 import * as rt from "../../src/language/runtime/index.js";
 import type { Registry } from "../../src/language/core/runtime-api.js";
 
@@ -25,12 +24,12 @@ derive Adult from Person;
 `;
 
 describe("derive slice — parse + carry + no-op emit", () => {
-  test("parses to a DeriveNode carrying sub/sup (oracle parity on those fields)", () => {
+  test("parses to a DeriveNode carrying sub/sup (golden snapshot of those fields)", () => {
     const node = parseProgram(src).nodes.find((n) => n.kind === "derive") as
       | { kind: string; sub: string; sup: string }
       | undefined;
     expect(node).toBeDefined();
-    expect({ kind: node!.kind, sub: node!.sub, sup: node!.sup }).toEqual(oracleParse(src).derives[0]);
+    expect({ kind: node!.kind, sub: node!.sub, sup: node!.sup }).toMatchSnapshot();
   });
 
   test("emits a documenting comment, not a runtime artifact", () => {

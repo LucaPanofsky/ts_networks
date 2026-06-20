@@ -1,0 +1,64 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`defllmfn slice — parse + emit + the memoized async leaf a multi-pair \`with:\` with an underscore key parses to its frozen golden (regression) 1`] = `
+{
+  "config": {
+    "max_tokens": "4096",
+    "model": "claude-opus-4-7",
+  },
+  "kind": "llmfn",
+  "name": "classify",
+  "params": [
+    {
+      "name": "text",
+      "predicate": "String?",
+    },
+  ],
+  "returnType": {
+    "kind": "scalar",
+    "predicate": "String?",
+  },
+  "user": "Classify {{text}}",
+}
+`;
+
+exports[`defllmfn slice — parse + emit + the memoized async leaf a system clause + a bare-prompt shorthand parse to their frozen golden (system stable, bare → user) 1`] = `
+{
+  "config": {},
+  "kind": "llmfn",
+  "name": "ask",
+  "params": [
+    {
+      "name": "q",
+      "predicate": "String?",
+    },
+  ],
+  "returnType": {
+    "kind": "scalar",
+    "predicate": "R?",
+  },
+  "system": "You are terse.",
+  "user": "Answer: {{q}}",
+}
+`;
+
+exports[`defllmfn slice — parse + emit + the memoized async leaf parses to an llmfn node matching its frozen golden (Lezer-validated at capture) (signature, with:, prompt) 1`] = `
+{
+  "config": {
+    "model": "claude-opus-4-7",
+  },
+  "kind": "llmfn",
+  "name": "analyzeDocument",
+  "params": [
+    {
+      "name": "text",
+      "predicate": "String?",
+    },
+  ],
+  "returnType": {
+    "kind": "scalar",
+    "predicate": "DocumentAnalysis?",
+  },
+  "user": "Analyze: {{text}}",
+}
+`;

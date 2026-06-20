@@ -5,7 +5,6 @@
 // network wrapper — slice 5 resolves `extract/<name>` directly.
 
 import { emitJs, parseProgram } from "../../src/language/index.js";
-import { parseProgramLezer as oracleParse } from "../../src/data-network/tree-to-network.js";
 import * as rt from "../../src/language/runtime/index.js";
 import type { Registry } from "../../src/language/core/runtime-api.js";
 
@@ -88,9 +87,9 @@ end
 const input = "Article 33 Data breach\n1. controller shall (a) nature; (b) name;\n2. processor notifies.\n";
 
 describe("defextract slice — parse → emitted .js → run", () => {
-  test("parses to an ExtractNode equal to the Lezer oracle's", () => {
+  test("parses to an ExtractNode matching its frozen golden (Lezer-validated at capture)", () => {
     const node = parseProgram(gdprSrc).nodes.find((n) => n.kind === "extract");
-    expect(node).toEqual(oracleParse(gdprSrc).extracts[0]);
+    expect(node).toMatchSnapshot();
   });
 
   test("builds the nested record tree, with span-scoped nested scans", () => {

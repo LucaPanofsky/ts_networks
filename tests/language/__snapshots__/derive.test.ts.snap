@@ -1,0 +1,9 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`derive slice — parse + carry + no-op emit parses to a DeriveNode carrying sub/sup (golden snapshot of those fields) 1`] = `
+{
+  "kind": "derive",
+  "sub": "Adult",
+  "sup": "Person",
+}
+`;
