@@ -13,7 +13,7 @@
 // The contract speaks only AstNodeBase, never the concrete union — that is what keeps
 // `core/` from depending on `constructs/`. The pipeline narrows to the real union.
 
-import type { Block, AstNodeBase, RecordDescriptor } from "./types.js";
+import type { Block, AstNodeBase, RecordDescriptor, LlmTypeEnv } from "./types.js";
 import type { ConstructKind } from "./enums.js";
 
 // What a module is given while emitting. Construct-agnostic: the runtime import alias to
@@ -34,6 +34,10 @@ export interface EmitCtx {
   // the reused engine compiler can build it; the constructor itself stays late-bound via
   // `ref`. Populated by the emitter from the program's record nodes; pure modules ignore it.
   record(name: string): RecordDescriptor | undefined;
+  // The whole program's type environment (records + enums + predicate fns), inlined by a
+  // `defllmfn` so the reused engine `deriveProtocol` can build the model's structured-output
+  // schema. The same for every llmfn in the program; only the llmfn module reads it.
+  typeEnv(): LlmTypeEnv;
 }
 
 export interface ConstructModule<N extends AstNodeBase = AstNodeBase> {

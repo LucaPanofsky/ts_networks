@@ -19,6 +19,25 @@ export type FieldDecl = { name: string; type: TypeRef };
 // the defrecord module.
 export type RecordDescriptor = { name: string; fields: FieldDecl[] };
 
+// The type environment a `defllmfn` inlines so the reused engine `deriveProtocol` can
+// build the model's structured-output JSON schema. The schema walks the return type
+// through nested records, enums, and PREDICATE fns (a field typed `Probability?` resolves
+// to its base primitive + a description), so all three are carried. `body` is the
+// predicate's expression — opaque here (an engine `Expr`), used only for the schema's
+// description text; typed `unknown` so `core/` need not depend on the engine AST.
+export type EnumDescriptor = { name: string; values: string[] };
+export type PredicateDescriptor = {
+  name: string;
+  params: { predicate: string; name: string }[];
+  returnType: TypeRef;
+  body: unknown;
+};
+export type LlmTypeEnv = {
+  records: RecordDescriptor[];
+  enums: EnumDescriptor[];
+  predicates: PredicateDescriptor[];
+};
+
 // A network/extract-style port list: input cells and the single output cell. (A `defn`
 // signature is richer — typed, named params — so that shape lives in the defn module.)
 export type Signature = { from: string[]; to: string };

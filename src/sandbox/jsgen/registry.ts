@@ -20,7 +20,7 @@ const trueP = (v: unknown): boolean => v === true;
 // structurally-equal records (in any key order) map to the same entry — consistent with
 // the value-equality the merge protocol uses. JSON limits (NaN/Infinity collapse to
 // null) are immaterial for the string/record inputs an llmfn leaf takes.
-function canonicalKey(args: unknown[]): string {
+export function canonicalKey(args: unknown[]): string {
   return JSON.stringify(args, (_k, v) =>
     v && typeof v === "object" && !Array.isArray(v)
       ? Object.fromEntries(Object.keys(v).sort().map(k => [k, (v as Record<string, unknown>)[k]]))

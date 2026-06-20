@@ -3,10 +3,13 @@
 // everything construct-specific lives in the modules' emit(). The module assembled here
 // imports only the runtime (core/runtime-api.ts) and builds a single registry.
 
-import type { Program } from "./program.js";
+import type { Program, AstNode } from "./program.js";
+import type { RecordNode } from "../constructs/defrecord/ast.js";
+import type { FnNode } from "../constructs/defn/ast.js";
+import type { EnumNode } from "../constructs/defenum/ast.js";
 import type { EmitCtx } from "../core/module.js";
 import { ConstructKind } from "../core/enums.js";
-import type { RecordDescriptor } from "../core/types.js";
+import type { RecordDescriptor, LlmTypeEnv } from "../core/types.js";
 import { MODULES } from "./registry.js";
 import { withPrelude } from "./prelude.js";
 import { emitBuiltins } from "./builtins.js";
@@ -22,9 +25,10 @@ export const defaultCtx: EmitCtx = {
   rt: RT,
   mangle: (name) => name.replace(/\?/g, "$").replace(/!/g, "_").replace(/\//g, "$"),
   ref: (name) => `__reg.resolve(${JSON.stringify(name)})`,
-  // Base: no program context. `emitProgram` overrides this with a real lookup so heavy
-  // constructs can inline a record they produce.
+  // Base: no program context. `emitProgram` overrides these with real lookups so heavy
+  // constructs can inline a record they produce / the type env a `defllmfn` needs.
   record: () => undefined,
+  typeEnv: () => ({ records: [], enums: [], predicates: [] }),
 };
 
 // The frozen preamble: import the runtime, open a registry, and bind the host helpers an
@@ -47,7 +51,19 @@ export function emitProgram(program: Program, ctx: EmitCtx = defaultCtx): string
   // stays late-bound via `ref`).
   const recordsByName = new Map<string, RecordDescriptor>();
   for (const node of nodes) if (node.kind === ConstructKind.Record) recordsByName.set(node.name, node);
-  const ectx: EmitCtx = { ...ctx, record: (name) => recordsByName.get(name) };
+
+  // The whole-program type environment a `defllmfn` inlines: every record + enum, and the
+  // PREDICATE fns (the schema resolves a field typed by a predicate to its base type). The
+  // pipeline nodes are structurally the engine ASTs, so this is a filter, not a conversion.
+  const isRecord = (n: AstNode): n is RecordNode => n.kind === ConstructKind.Record;
+  const isEnum = (n: AstNode): n is EnumNode => n.kind === ConstructKind.Enum;
+  const isPredicate = (n: AstNode): n is FnNode => n.kind === ConstructKind.Fn && n.isPredicate;
+  const typeEnv: LlmTypeEnv = {
+    records: nodes.filter(isRecord).map((n) => ({ name: n.name, fields: n.fields })),
+    enums: nodes.filter(isEnum).map((n) => ({ name: n.name, values: n.values })),
+    predicates: nodes.filter(isPredicate).map((n) => ({ name: n.name, params: n.params, returnType: n.returnType, body: n.body })),
+  };
+  const ectx: EmitCtx = { ...ctx, record: (name) => recordsByName.get(name), typeEnv: () => typeEnv };
 
   const fragments = nodes.map((node) => MODULES[node.kind].emit(node, ectx));
   const parts = [HEADER, ...(builtins ? [builtins] : []), ...fragments, FOOTER];

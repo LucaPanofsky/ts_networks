@@ -48,7 +48,7 @@
 //
 // Status: first cut. A boundary to refine, not a final ABI.
 
-import type { Morphism, TypeRef, ScanMatch, RecordDescriptor } from "./types.js";
+import type { Morphism, TypeRef, ScanMatch, RecordDescriptor, LlmTypeEnv } from "./types.js";
 
 // ── Foundational value protocol (the merge algebra) ───────────────────────────────
 // The crown jewel. Emitted code never reimplements merge; it calls into it. `Info` is
@@ -118,9 +118,11 @@ export interface ConstructRuntime {
   // inlined descriptor (constructor late-bound via `resolve`).
   ttable(spec: TTableSpec, record: RecordDescriptor | undefined, resolve: Registry["resolve"]): CompiledLeaf;
 
-  // defllmfn — an async, memoized LLM-backed leaf. Config (model, key) is injected by
-  // the host, never emitted into the file.
-  llmFn(spec: LlmFnSpec, config: LlmConfig): Impl;
+  // defllmfn — an async, memoized LLM-backed leaf. The spec is self-contained: the `with:`
+  // clause carries the model (and max_tokens/tools), and the type environment is inlined so
+  // the reused engine `deriveProtocol` can build the structured-output schema. The API key
+  // is ambient (env, via the engine's `getClient()`) — never emitted into the file.
+  llmFn(spec: LlmFnSpec): Impl;
 
   // defnetwork — COMPILE a propagator graph (eagerly, at this call) into an Impl that
   // runs the graph to a fixpoint when invoked. Referenced leaves (fns, grammars, other
@@ -165,5 +167,18 @@ export type ExtractStmtSpec = ExtractWithinSpec | ExtractBindSpec;
 export type ExtractSpec = { kind: string; name: string; root: ExtractWithinSpec };
 
 export type NetworkSpec = unknown;
-export type LlmFnSpec = unknown;
-export type LlmConfig = { model: string; [k: string]: unknown };
+
+// What a `defllmfn` inlines — its node (structurally the engine's LLMFnAST) plus the
+// program's type environment, so `rt.llmFn` can reuse `deriveProtocol` verbatim. `config`
+// is the `with:` clause (model / max_tokens / tools); `user`/`system` are the rendered-at-
+// run-time prompt templates (the system channel is stable, the user channel data-bearing).
+export type LlmFnSpec = {
+  kind: string;
+  name: string;
+  params: { predicate: string; name: string }[];
+  returnType: TypeRef;
+  user: string;
+  system?: string;
+  config: Record<string, string>;
+  typeEnv: LlmTypeEnv;
+};

@@ -14,6 +14,14 @@ import { renderPrompt } from "../../sandbox/prompt-template.js";
 import { compileGrammar } from "../../sandbox/grammar-runtime.js";
 import { compileTTable } from "../../sandbox/ttable-runtime.js";
 import { compileExtract, type GrammarLeaves } from "../../sandbox/extract-runtime.js";
+import { canonicalKey } from "../../sandbox/jsgen/registry.js";
+import { callLLMFn } from "../../sandbox/llmfn-client.js";
+import { toolsFromConfig } from "../../sandbox/tools.js";
+import { deriveProtocol } from "../../data-network/schema.js";
+import { Something, Contradiction } from "../../info-structure.js";
+import { Deferred } from "../../information-structures/deferred.js";
+import { APromise } from "../../information-structures/apromise.js";
+import { defaultExecutor } from "../../network-impl/executor.js";
 import type { Sandbox } from "../../sandbox/jsgen/runtime.js";
 import type {
   GrammarAST,
@@ -21,8 +29,12 @@ import type {
   ExtractAST,
   ProgramAST,
   RecordAST,
+  FnAST,
+  EnumAST,
+  Expr,
+  TypeRef,
 } from "../../data-network/types.js";
-import type { Registry, RegistryEntry, Impl, CompiledLeaf, GrammarSpec, TTableSpec, ExtractSpec, ExtractWithinSpec } from "../core/runtime-api.js";
+import type { Registry, RegistryEntry, Impl, CompiledLeaf, GrammarSpec, TTableSpec, ExtractSpec, ExtractWithinSpec, LlmFnSpec } from "../core/runtime-api.js";
 import type { ScanMatch, RecordDescriptor } from "../core/types.js";
 
 // The interpolation renderer (see runtime-api.ts `Interp`). Reuses the existing pure
@@ -74,11 +86,13 @@ export function registry(): Registry {
 // they want from the inlined spec + late-bound registry resolution. No Ohm capture/scan/
 // orchestration logic is reimplemented.
 
-// The engine compilers read only `program.records`; the other collections are unused here.
-function programWith(records: RecordAST[]): ProgramAST {
+// A minimal ProgramAST carrying only the type collections a reused compiler reads. Grammar/
+// ttable need just `records`; `deriveProtocol` (for llmfn) also walks `enums` and predicate
+// `fns`. Everything else stays empty.
+function programWith(parts: { records?: RecordAST[]; enums?: EnumAST[]; fns?: FnAST[] }): ProgramAST {
   return {
-    networks: [], records, fns: [], derives: [], llmFns: [],
-    enums: [], grammars: [], extracts: [], ttables: [], parameters: [],
+    networks: [], records: parts.records ?? [], fns: parts.fns ?? [], derives: [], llmFns: [],
+    enums: parts.enums ?? [], grammars: [], extracts: [], ttables: [], parameters: [],
   };
 }
 
@@ -100,7 +114,7 @@ export function grammar(
   resolve: Registry["resolve"],
 ): CompiledLeaf {
   const { records, sandbox } = recordEnv(record, resolve);
-  const compiled = compileGrammar(spec as unknown as GrammarAST, programWith(records), sandbox);
+  const compiled = compileGrammar(spec as unknown as GrammarAST, programWith({ records }), sandbox);
   return { arity: compiled.arity, impl: compiled.impl, scan: compiled.scan };
 }
 
@@ -110,7 +124,7 @@ export function ttable(
   resolve: Registry["resolve"],
 ): CompiledLeaf {
   const { records, sandbox } = recordEnv(record, resolve);
-  const compiled = compileTTable(spec as unknown as TTableAST, programWith(records), sandbox);
+  const compiled = compileTTable(spec as unknown as TTableAST, programWith({ records }), sandbox);
   return { arity: compiled.arity, impl: compiled.impl };
 }
 
@@ -144,4 +158,48 @@ export function extract(
     };
   }
   return compileExtract(ast, leaves).impl;
+}
+
+// defllmfn — the async, memoized LLM-backed leaf. Unlike grammar/extract/ttable there is no
+// standalone engine compiler; the engine builds this leaf inline in `buildRegistry`
+// (src/sandbox/jsgen/registry.ts). We REPLICATE that closure verbatim, reusing every engine
+// piece (`deriveProtocol`, `callLLMFn`, `toolsFromConfig`, the bounded `defaultExecutor`, and
+// the `Deferred`/`APromise`/`Something`/`Contradiction` protocol). No algebra is reimplemented.
+//
+//   • protocol — the structured-output JSON schema, derived from the return type over the
+//     inlined type env (records + enums + predicate fns).
+//   • config — model / max_tokens / tools from the `with:` clause + the stable `system` prompt.
+//   • memoize — a re-fire over identical inputs shares the in-flight APromise (one model
+//     call, same reference), so re-merging the result can never self-contradict.
+export function llmFn(spec: LlmFnSpec): Impl {
+  const program = programWith({
+    records: spec.typeEnv.records.map((r) => ({ kind: "record", name: r.name, fields: r.fields })),
+    enums: spec.typeEnv.enums.map((e) => ({ kind: "enum", name: e.name, values: e.values }) satisfies EnumAST),
+    fns: spec.typeEnv.predicates.map(
+      (p) => ({ kind: "fn", isPredicate: true, name: p.name, params: p.params, returnType: p.returnType, body: p.body as Expr }) satisfies FnAST,
+    ),
+  });
+  const protocol = deriveProtocol(spec.returnType as TypeRef, program);
+  const config = {
+    model: spec.config["model"],
+    maxTokens: spec.config["max_tokens"] !== undefined ? parseInt(spec.config["max_tokens"], 10) : undefined,
+    tools: toolsFromConfig(spec.config["tools"]),
+    system: spec.system,
+  };
+  const paramNames = spec.params.map((p) => p.name);
+  const memo = new Map<string, APromise<unknown>>();
+  return (...args: unknown[]) => {
+    const key = canonicalKey(args);
+    const cached = memo.get(key);
+    if (cached) return cached;
+    const namedArgs = Object.fromEntries(paramNames.map((n, i) => [n, args[i]]));
+    const d = new Deferred<unknown>();
+    const ap = new APromise(d);
+    memo.set(key, ap);
+    defaultExecutor
+      .submit(() => callLLMFn(spec.user, namedArgs, protocol, config))
+      .then((v) => d.resolve(new Something(v)))
+      .catch((e) => d.resolve(new Contradiction("llmfn/error", new Set(), e)));
+    return ap;
+  };
 }
