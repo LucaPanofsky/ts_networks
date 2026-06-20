@@ -1,4 +1,5 @@
-import { parseProgram } from "../../src/data-network/tree-to-network.js";
+import { parseProgramStrict as parseProgram } from "../../src/language/parse-strict.js";
+import { llmFnsOf, recordsOf } from "../../src/language/select.js";
 import { validateLLMFn } from "../../src/data-network/type-checker.js";
 import { typecheck } from "../../src/operations/typecheck.js";
 
@@ -22,7 +23,7 @@ describe("parse: system / user / bare prompt clauses", () => {
         """;
       end
     `);
-    const f = p.llmFns[0]!;
+    const f = llmFnsOf(p)[0]!;
     expect(f.system).toBe("You are a careful analyst.");
     expect(f.user).toBe("Analyze: {{text}}");
   });
@@ -36,7 +37,7 @@ describe("parse: system / user / bare prompt clauses", () => {
         """;
       end
     `);
-    const f = p.llmFns[0]!;
+    const f = llmFnsOf(p)[0]!;
     expect(f.user).toBe("Analyze: {{text}}");
     expect(f.system).toBeUndefined();
   });
@@ -53,7 +54,7 @@ describe("parse: system / user / bare prompt clauses", () => {
         """;
       end
     `);
-    const f = p.llmFns[0]!;
+    const f = llmFnsOf(p)[0]!;
     expect(f.system).toBe("Be terse.");
     expect(f.user).toBe("{{text}}");
   });
@@ -66,7 +67,7 @@ describe("parse: system / user / bare prompt clauses", () => {
         system """Be terse.""";
       end
     `);
-    const f = p.llmFns[0]!;
+    const f = llmFnsOf(p)[0]!;
     expect(f.system).toBe("Be terse.");
     expect(f.user).toBe("{{text}}");
   });
@@ -79,7 +80,7 @@ describe("parse: system / user / bare prompt clauses", () => {
         user: String?;
       end
     `);
-    expect(p.records[0]!.fields.map(f => f.name)).toEqual(["system", "user"]);
+    expect(recordsOf(p)[0]!.fields.map(f => f.name)).toEqual(["system", "user"]);
   });
 });
 

@@ -1,12 +1,13 @@
 import { typeCheck, typeCheckProgram, validateInterpolate } from "../../src/data-network/type-checker.js";
-import { parseProgram } from "../../src/data-network/tree-to-network.js";
+import { parseProgramStrict as parseProgram } from "../../src/language/parse-strict.js";
+import { networksOf } from "../../src/language/select.js";
 import { readFileSync } from "fs";
 
 // ── Happy path ────────────────────────────────────────────────────────────────
 
 describe("typeCheck: happy path — documentPipeline", () => {
   const src = readFileSync("tests/fixtures/document-analysis.tsn", "utf-8");
-  const enriched = typeCheck(parseProgram(src).networks[0]!, parseProgram(src));
+  const enriched = typeCheck(networksOf(parseProgram(src))[0]!, parseProgram(src));
 
   test("no cell errors", () => {
     for (const cell of enriched.cells.values()) expect(cell._errors).toHaveLength(0);
@@ -43,7 +44,7 @@ defnetwork conflict
   propagate numFn from [input] to output;
 end
 `;
-  const cell = typeCheck(parseProgram(src).networks[0]!, parseProgram(src)).cells.get("output")!;
+  const cell = typeCheck(networksOf(parseProgram(src))[0]!, parseProgram(src)).cells.get("output")!;
 
   test("output cell has conflicting-cell-types error and two writer types", () => {
     expect(cell._errors.some(e => e.kind === "conflicting-cell-types")).toBe(true);
@@ -71,7 +72,7 @@ defnetwork mismatch
   propagate consumer from [middle] to done;
 end
 `;
-  const enriched = typeCheck(parseProgram(src).networks[0]!, parseProgram(src));
+  const enriched = typeCheck(networksOf(parseProgram(src))[0]!, parseProgram(src));
 
   test("middle cell has type conflict (written as String?, read as Number?)", () => {
     const cell = enriched.cells.get("middle")!;
@@ -100,7 +101,7 @@ defnetwork ghostnet
   propagate weirdFn from [input] to output;
 end
 `;
-  const prop = typeCheck(parseProgram(src).networks[0]!, parseProgram(src))
+  const prop = typeCheck(networksOf(parseProgram(src))[0]!, parseProgram(src))
     .propagators.find(p => p.fn === "weirdFn")!;
 
   test("propagator has unknown-predicate errors", () => {
@@ -127,7 +128,7 @@ defnetwork switches
   switch isGood from [input] to flag;
 end
 `;
-  const enriched = typeCheck(parseProgram(src).networks[0]!, parseProgram(src));
+  const enriched = typeCheck(networksOf(parseProgram(src))[0]!, parseProgram(src));
 
   test("no errors", () => {
     for (const cell of enriched.cells.values()) expect(cell._errors).toHaveLength(0);
@@ -152,7 +153,7 @@ defnetwork switches2
   switch from [cond, data] to done;
 end
 `;
-  const enriched = typeCheck(parseProgram(src).networks[0]!, parseProgram(src));
+  const enriched = typeCheck(networksOf(parseProgram(src))[0]!, parseProgram(src));
 
   test("done cell writtenBy is String?", () => {
     expect(enriched.cells.get("done")!.writtenBy).toContain("String?");
@@ -177,7 +178,7 @@ defnetwork inputinfer
   propagate process from [text] to result;
 end
 `;
-  const enriched = typeCheck(parseProgram(src).networks[0]!, parseProgram(src));
+  const enriched = typeCheck(networksOf(parseProgram(src))[0]!, parseProgram(src));
 
   test("text has no writers and is inferred as String? from its consumer", () => {
     const cell = enriched.cells.get("text")!;
@@ -208,7 +209,7 @@ defnetwork readerconflict
   propagate numConsumer from [input] to done;
 end
 `;
-  const cell = typeCheck(parseProgram(src).networks[0]!, parseProgram(src)).cells.get("input")!;
+  const cell = typeCheck(networksOf(parseProgram(src))[0]!, parseProgram(src)).cells.get("input")!;
 
   test("input cell has conflicting-cell-types error and two reader types", () => {
     expect(cell._errors.some(e => e.kind === "conflicting-cell-types")).toBe(true);
@@ -230,7 +231,7 @@ defnetwork aritynet
   propagate twoArgs from [a] to b;
 end
 `;
-  const prop = typeCheck(parseProgram(src).networks[0]!, parseProgram(src))
+  const prop = typeCheck(networksOf(parseProgram(src))[0]!, parseProgram(src))
     .propagators.find(p => p.fn === "twoArgs")!;
 
   test("propagator has arity-mismatch error", () => {
@@ -308,7 +309,7 @@ defnetwork outerMixed
 end
 `;
   const program = parseProgram(src);
-  const net = (name: string) => typeCheck(program.networks.find(n => n.name === name)!, program);
+  const net = (name: string) => typeCheck(networksOf(program).find(n => n.name === name)!, program);
 
   test("correct arity → no propagator or cell errors", () => {
     const enriched = net("outer");
@@ -371,8 +372,8 @@ defnetwork scanAll
 end
 `;
   const program = parseProgram(src);
-  const one = typeCheck(program.networks.find(n => n.name === "parseOne")!, program);
-  const scan = typeCheck(program.networks.find(n => n.name === "scanAll")!, program);
+  const one = typeCheck(networksOf(program).find(n => n.name === "parseOne")!, program);
+  const scan = typeCheck(networksOf(program).find(n => n.name === "scanAll")!, program);
 
   test("scalar grammar: input read as String?, output written as the record type", () => {
     expect(one.cells.get("text")!.readBy).toContain("String?");
@@ -412,7 +413,7 @@ defnetwork bad
 end
 `;
   const program = parseProgram(src);
-  const enriched = typeCheck(program.networks[0]!, program);
+  const enriched = typeCheck(networksOf(program)[0]!, program);
 
   test("passing 2 args to a 1-arg grammar is an arity-mismatch", () => {
     const prop = enriched.propagators.find(p => p.fn === "grammar/Citation")!;
@@ -456,7 +457,7 @@ defnetwork pipe
 end
 `;
   const program = parseProgram(src);
-  const enriched = typeCheck(program.networks[0]!, program);
+  const enriched = typeCheck(networksOf(program)[0]!, program);
 
   test("no cell errors (the scanned vector feeds the mapping cleanly)", () => {
     for (const cell of enriched.cells.values()) expect(cell._errors).toHaveLength(0);
@@ -490,7 +491,7 @@ defnetwork filt
 end
 `;
   const program = parseProgram(src);
-  const enriched = typeCheck(program.networks[0]!, program);
+  const enriched = typeCheck(networksOf(program)[0]!, program);
 
   test("no errors; input and output are vectors of the element type", () => {
     for (const cell of enriched.cells.values()) expect(cell._errors).toHaveLength(0);
@@ -522,7 +523,7 @@ defnetwork sum
 end
 `;
     const program = parseProgram(src);
-    const enriched = typeCheck(program.networks[0]!, program);
+    const enriched = typeCheck(networksOf(program)[0]!, program);
     for (const cell of enriched.cells.values()) expect(topoWarnings(cell)).toHaveLength(0);
   });
 
@@ -538,7 +539,7 @@ defnetwork broken
 end
 `;
     const program = parseProgram(src);
-    const enriched = typeCheck(program.networks[0]!, program);
+    const enriched = typeCheck(networksOf(program)[0]!, program);
     const x = enriched.cells.get("x")!;
     expect(x._errors).toContainEqual({
       kind: "non-source-input",
@@ -564,7 +565,7 @@ defnetwork broken
 end
 `;
     const program = parseProgram(src);
-    const enriched = typeCheck(program.networks[0]!, program);
+    const enriched = typeCheck(networksOf(program)[0]!, program);
     const z = enriched.cells.get("z")!;
     expect(z._errors).toContainEqual({
       kind: "non-terminal-output",
@@ -581,7 +582,7 @@ defnetwork routing
 end
 `;
     const program = parseProgram(src);
-    const enriched = typeCheck(program.networks[0]!, program);
+    const enriched = typeCheck(networksOf(program)[0]!, program);
     const cond = enriched.cells.get("cond")!;
     // `cond` is a signature input written by the switch → non-source warning.
     expect(topoWarnings(cond).some(e => e.kind === "non-source-input")).toBe(true);
@@ -599,7 +600,7 @@ defnetwork broken
 end
 `;
     const program = parseProgram(src);
-    const enriched = typeCheck(program.networks[0]!, program);
+    const enriched = typeCheck(networksOf(program)[0]!, program);
     const all = [...enriched.cells.values()].flatMap(c => c._errors);
     const topo = all.filter(e => e.kind === "non-source-input" || e.kind === "non-terminal-output");
     expect(topo.length).toBeGreaterThan(0);

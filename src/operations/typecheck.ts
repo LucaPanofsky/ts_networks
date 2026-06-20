@@ -1,4 +1,5 @@
-import { parseProgram } from "../data-network/tree-to-network.js";
+import { parseProgramStrict } from "../language/parse-strict.js";
+import { toProgramAST } from "../language/adapter.js";
 import { typeCheckProgram, validateInterpolate, validateLLMFn } from "../data-network/type-checker.js";
 import { validateGrammarSyntax, validateGrammarSignature } from "../sandbox/grammar-runtime.js";
 import { validateExtract } from "../sandbox/extract-runtime.js";
@@ -42,7 +43,10 @@ export const typecheck: Operation<TypecheckInput, TypecheckOutput> = {
   },
   handle(input) {
     try {
-      const program = parseProgram(input.source);
+      const nodes = parseProgramStrict(input.source);
+      // Bridge: the grammar/extract/ttable/reserved-word validators still read a ProgramAST
+      // (their Part-2 conversion drops this line); the type-checker passes read `nodes`.
+      const program = toProgramAST(nodes);
       // Grammar bodies are opaque to the parser and the type checker. Run the structural
       // checks (as `check` does) plus the semantic signature check (the bound record must
       // exist) before type-checking. First error wins.
@@ -67,13 +71,13 @@ export const typecheck: Operation<TypecheckInput, TypecheckOutput> = {
       if (reservedError) return { ok: false, error: reservedError };
       // An `interpolate` body's {{path}} placeholders must resolve against the
       // function's parameter types — otherwise the gap only surfaces at run time.
-      const [interpolateError] = validateInterpolate(program);
+      const [interpolateError] = validateInterpolate(nodes);
       if (interpolateError) return { ok: false, error: interpolateError };
       // A `defllmfn` system prompt must be stable (no placeholders) and a user prompt
       // is required — reject violations here, not at run time.
-      const [llmFnError] = validateLLMFn(program);
+      const [llmFnError] = validateLLMFn(nodes);
       if (llmFnError) return { ok: false, error: llmFnError };
-      const enrichedMap = typeCheckProgram(program);
+      const enrichedMap = typeCheckProgram(nodes);
       const networks = [...enrichedMap.values()].map(serializeNetwork);
       return { ok: true, networks };
     } catch (e) {

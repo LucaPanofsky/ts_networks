@@ -1,6 +1,8 @@
-import type { ProgramAST, DataNetworkAST } from "./types.js";
+import type { DataNetworkAST } from "./types.js";
 import { typeRefToString } from "./types.js";
 import { placeholderPaths } from "./placeholders.js";
+import type { Program } from "../language/pipeline/program.js";
+import { fnsOf, llmFnsOf, grammarsOf, recordsOf, enumsOf, networksOf } from "../language/select.js";
 
 // ── Public types ──────────────────────────────────────────────────────────────
 
@@ -49,15 +51,15 @@ export type EnrichedNetwork = {
 
 type FnSignature = { params: string[]; returnType: string };
 
-function buildFnMap(program: ProgramAST): Map<string, FnSignature> {
+function buildFnMap(program: Program): Map<string, FnSignature> {
   const map = new Map<string, FnSignature>();
-  for (const fn of program.fns) {
+  for (const fn of fnsOf(program)) {
     map.set(fn.name, {
       params: fn.params.map(p => p.predicate),
       returnType: typeRefToString(fn.returnType),
     });
   }
-  for (const llmFn of program.llmFns) {
+  for (const llmFn of llmFnsOf(program)) {
     map.set(llmFn.name, {
       params: llmFn.params.map(p => p.predicate),
       returnType: typeRefToString(llmFn.returnType),
@@ -66,7 +68,7 @@ function buildFnMap(program: ProgramAST): Map<string, FnSignature> {
   // A signed grammar is callable as `grammar/<name>` and is fully typed like a fn: its
   // params and (scalar or vector) return type drive the same checks. Unsigned grammars
   // (bare recognizers) carry no types and are handled arity-only below.
-  for (const grammar of program.grammars) {
+  for (const grammar of grammarsOf(program)) {
     if (!grammar.signature) continue;
     map.set(`grammar/${grammar.name}`, {
       params: grammar.signature.params.map(p => p.predicate),
@@ -76,11 +78,11 @@ function buildFnMap(program: ProgramAST): Map<string, FnSignature> {
   return map;
 }
 
-function buildKnownPredicates(program: ProgramAST): Set<string> {
+function buildKnownPredicates(program: Program): Set<string> {
   const known = new Set(["String?", "Number?", "Boolean?"]);
-  for (const r of program.records) known.add(`${r.name}?`);
-  for (const e of program.enums) known.add(`${e.name}?`);
-  for (const f of program.fns) if (f.isPredicate) known.add(f.name);
+  for (const r of recordsOf(program)) known.add(`${r.name}?`);
+  for (const e of enumsOf(program)) known.add(`${e.name}?`);
+  for (const f of fnsOf(program)) if (f.isPredicate) known.add(f.name);
   return known;
 }
 
@@ -96,9 +98,9 @@ function buildKnownPredicates(program: ProgramAST): Set<string> {
 //
 // Sandbox-independent (AST + record shapes only), so the typecheck operation calls it
 // statically. Returns one message per unresolved path (empty = clean).
-export function validateInterpolate(program: ProgramAST): string[] {
+export function validateInterpolate(program: Program): string[] {
   const errors: string[] = [];
-  const recordIndex = new Map(program.records.map(r => [r.name, r]));
+  const recordIndex = new Map(recordsOf(program).map(r => [r.name, r]));
   // The record an interpolate path can descend into: a scalar record type like `GF?`
   // (or `GF`). A primitive (`String?`), an enum, or a list (`[GF?]`) has no fields.
   const recordOf = (typeStr: string) => {
@@ -107,7 +109,7 @@ export function validateInterpolate(program: ProgramAST): string[] {
     return recordIndex.get(name) ?? null;
   };
 
-  for (const fn of program.fns) {
+  for (const fn of fnsOf(program)) {
     if (fn.body.kind !== "interpolate") continue;
     const paramType = new Map(fn.params.map(p => [p.name, p.predicate]));
 
@@ -152,9 +154,9 @@ export function validateInterpolate(program: ProgramAST): string[] {
 //     than what it says.
 //   - a `user` prompt is required (a bare unlabeled block satisfies it).
 // Returns one message per violation (empty = clean).
-export function validateLLMFn(program: ProgramAST): string[] {
+export function validateLLMFn(program: Program): string[] {
   const errors: string[] = [];
-  for (const fn of program.llmFns) {
+  for (const fn of llmFnsOf(program)) {
     if (fn.system !== undefined) {
       for (const path of placeholderPaths(fn.system)) {
         errors.push(
@@ -171,7 +173,7 @@ export function validateLLMFn(program: ProgramAST): string[] {
 
 // ── Core pass ─────────────────────────────────────────────────────────────────
 
-export function typeCheck(network: DataNetworkAST, program: ProgramAST): EnrichedNetwork {
+export function typeCheck(network: DataNetworkAST, program: Program): EnrichedNetwork {
   const fnMap = buildFnMap(program);
   const known = buildKnownPredicates(program);
 
@@ -180,10 +182,10 @@ export function typeCheck(network: DataNetworkAST, program: ProgramAST): Enriche
   // it deliberately contributes nothing to cell type-inference (adding a synthetic
   // type here would create false "conflicting types" errors on shared cells).
   const networkArity = new Map<string, number>();
-  for (const n of program.networks) networkArity.set(`network/${n.name}`, n.signature.from.length);
+  for (const n of networksOf(program)) networkArity.set(`network/${n.name}`, n.signature.from.length);
   // Unsigned grammars (bare recognizers) are arity-only callables, like networks: a
   // signature would have typed them into fnMap above. Their arity is always 1 (a string).
-  for (const g of program.grammars) if (!g.signature) networkArity.set(`grammar/${g.name}`, 1);
+  for (const g of grammarsOf(program)) if (!g.signature) networkArity.set(`grammar/${g.name}`, 1);
 
   // A declared type is known if it is a known scalar predicate, or a vector `[X]`
   // whose element `X` is a known scalar (grammar scan returns and vector-valued fns).
@@ -384,9 +386,9 @@ export function typeCheck(network: DataNetworkAST, program: ProgramAST): Enriche
   return { name: network.name, cells, propagators };
 }
 
-export function typeCheckProgram(program: ProgramAST): Map<string, EnrichedNetwork> {
+export function typeCheckProgram(program: Program): Map<string, EnrichedNetwork> {
   const result = new Map<string, EnrichedNetwork>();
-  for (const network of program.networks) {
+  for (const network of networksOf(program)) {
     result.set(network.name, typeCheck(network, program));
   }
   return result;
