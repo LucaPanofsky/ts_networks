@@ -57,10 +57,5 @@ export const MODULES: ModuleDef[] = [
   { name: "operations", dir: "src/operations", kind: "runtime" },
 
   // ---- tooling ----
-  { name: "cli", dir: "src/cli.ts", kind: "tooling" },
   { name: "mcp", dir: "src/mcp", kind: "tooling" },
-
-  // ---- stale (excluded from ranking) ----
-  { name: "editor", dir: "src/editor", kind: "stale" },
-  { name: "ui-server", dir: "src/ui-server", kind: "stale" },
 ];
