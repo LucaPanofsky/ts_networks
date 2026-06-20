@@ -14,8 +14,9 @@ import { runCompiled } from "../../src/operations/run-compiled.js";
 const mockCall = callLLMFn as jest.MockedFunction<typeof callLLMFn>;
 
 // Run a network both ways (engine in-memory compile vs compiled artifact) and assert the
-// artifact's output equals the engine run's value for the network's output cell.
-async function bothMatch(source: string, network: string, cells: Record<string, string>, outputCell: string) {
+// artifact's cells equal the engine run's cells — ALL cells, not just the output, so the
+// artifact path is a true superset of `run`.
+async function bothMatch(source: string, network: string, cells: Record<string, string>) {
   const eng = await run.handle({ source, network, cells });
   const compiled = compileJs.handle({ source });
   expect(compiled.ok).toBe(true);
@@ -23,7 +24,7 @@ async function bothMatch(source: string, network: string, cells: Record<string, 
   const art = await runCompiled.handle({ code: compiled.code, network, cells });
   expect(eng.ok).toBe(true);
   expect(art.ok).toBe(true);
-  if (eng.ok && art.ok) expect(art.output).toEqual(eng.cells[outputCell]);
+  if (eng.ok && art.ok) expect(art.cells).toEqual(eng.cells);
   return art;
 }
 
@@ -92,19 +93,19 @@ describe("compiled artifact — compile-js → run-compiled", () => {
   });
 
   test("round-trip: a pure network matches the engine run", async () => {
-    const art = await bothMatch(PURE, "sum", { a: "2", b: "3" }, "c");
-    if (art.ok) expect(art.output).toBe(5);
+    const art = await bothMatch(PURE, "sum", { a: "2", b: "3" });
+    if (art.ok) expect(art.cells.c).toBe(5);
   });
 
   test("round-trip: a grammar-in-network matches the engine run", async () => {
-    const art = await bothMatch(GRAMMAR, "parsePair", { text: "'a=1'" }, "pair");
-    if (art.ok) expect(art.output).toEqual({ __type: "Pair", key: "a", value: "1" });
+    const art = await bothMatch(GRAMMAR, "parsePair", { text: "'a=1'" });
+    if (art.ok) expect(art.cells.pair).toEqual({ __type: "Pair", key: "a", value: "1" });
   });
 
   test("round-trip: an async llmfn leaf flows through the artifact (callLLMFn mocked)", async () => {
     mockCall.mockResolvedValue({ __type: "Analysis", label: "ok" });
-    const art = await bothMatch(LLM, "qa", { text: "'hi'" }, "result");
-    if (art.ok) expect(art.output).toEqual({ __type: "Analysis", label: "ok" });
+    const art = await bothMatch(LLM, "qa", { text: "'hi'" });
+    if (art.ok) expect(art.cells.result).toEqual({ __type: "Analysis", label: "ok" });
   });
 
   test("a missing network in the artifact is a clean error", async () => {

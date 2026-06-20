@@ -229,14 +229,24 @@ export function llmFn(spec: LlmFnSpec): Impl {
 // and every leaf (with its arity) is in the backing registry — makes emit order irrelevant
 // and lets mutual recursion / network-as-leaf resolve through the registry. (runtime-api.ts
 // sanctions lazy+memoized as a valid alternative to eager; here it is what buys order-independence.)
-export function network(spec: NetworkSpec, reg: Registry): Impl {
+// A network leaf is a normal `Impl` (composable: maps positional args, returns the single
+// OUTPUT cell), PLUS a `cells` accessor used by a TOP-LEVEL run: it seeds cells BY NAME and
+// returns the FULL cell map. The accessor returns each cell's raw `knows()` (an InfoStructure
+// or APromise); the caller projects them — so this engine-boundary file stays operations-
+// agnostic, and the projection (`operations/project.ts`) is shared with the engine `run`,
+// keeping artifact output identical to `run`. Both share the same lazy `NetworkRuntime`.
+export type NetworkImpl = Impl & {
+  cells: (inputs: Record<string, unknown>) => Promise<Map<string, unknown>>;
+};
+
+export function network(spec: NetworkSpec, reg: Registry): NetworkImpl {
   const ast = spec as unknown as DataNetworkAST;
   const inputCells = ast.signature.from;
   const outputCell = ast.signature.to;
   const engine = (reg as AdaptedRegistry).backing;
   let runtime: NetworkRuntime | undefined;
   const ensure = (): NetworkRuntime => (runtime ??= new NetworkRuntime(astToDataNetwork(ast), engine));
-  return (...args: unknown[]) => {
+  const leaf = ((...args: unknown[]) => {
     const d = new Deferred<unknown>();
     const inputs: Record<string, unknown> = {};
     for (let i = 0; i < inputCells.length; i++) inputs[inputCells[i]!] = args[i];
@@ -257,5 +267,16 @@ export function network(spec: NetworkSpec, reg: Registry): Impl {
       }
     })();
     return new APromise(d);
+  }) as NetworkImpl;
+  // Top-level all-cells run: seed BY NAME (any cell, not just signature inputs) and return
+  // every cell's raw `knows()`. Mirrors the engine `run` (which iterates `result.cells`
+  // regardless of done/exit, projecting each) — a contradicted cell surfaces as a
+  // Contradiction here and is projected to `{ __contradiction }` by the caller.
+  leaf.cells = async (inputs: Record<string, unknown>) => {
+    const res = await ensure().invokeAsync(inputs);
+    const out = new Map<string, unknown>();
+    for (const [name, cell] of res.cells) out.set(name, cell.knows());
+    return out;
   };
+  return leaf;
 }

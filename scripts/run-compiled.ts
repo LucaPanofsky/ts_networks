@@ -31,4 +31,6 @@ if (!result.ok) {
   process.exit(1);
 }
 
-console.log(`${result.network} = ${result.output === null ? "∅" : JSON.stringify(result.output)}`);
+for (const [name, value] of Object.entries(result.cells)) {
+  console.log(`${name} = ${value === null ? "∅" : JSON.stringify(value)}`);
+}

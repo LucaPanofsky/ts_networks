@@ -1,20 +1,22 @@
 import { loadProgram } from "../language/runtime/load.js";
+import type { NetworkImpl } from "../language/runtime/index.js";
 import { Workspace, WorkspaceError, workspaceRoot } from "../fs/workspace.js";
 import { projectInfo } from "./project.js";
 import type { Operation } from "./types.js";
 
 // The "run anywhere" half: load a compiled ts-networks artifact (from `compile-js`) and run
-// one of its networks in-process, seeding its input cells. This mirrors the engine `run`
-// operation against the modular artifact instead of an in-memory compile — the proof that a
-// program compiled once to a .js file runs separately and produces the same result.
+// one of its networks in-process, seeding its cells. This mirrors the engine `run` operation
+// against the modular artifact instead of an in-memory compile — the proof that a program
+// compiled once to a .js file runs separately and produces the same result. The output shape
+// matches `run` exactly: every cell, projected through the shared `projectInfo`.
 //
-// Cell seeding mirrors `run` minus the program-sandbox: a value is `@filename` (read verbatim
-// from the workspace) or a JS literal/JSON expression. Inputs are seeded BY NAME and mapped to
-// the network leaf's positional args via the artifact's manifest (`signature.from` order).
+// Cell seeding mirrors `run`: a value is `@filename` (read verbatim from the workspace) or a
+// JS expression evaluated with the program's value bindings (fns / record constructors) in
+// scope. Inputs are seeded BY NAME — any cell, not just the network's signature inputs.
 
 type RunCompiledInput = { code: string; network: string; cells: Record<string, string> };
 type RunCompiledOutput =
-  | { ok: true; network: string; output: unknown }
+  | { ok: true; network: string; cells: Record<string, unknown> }
   | { ok: false; error: string };
 
 export const runCompiled: Operation<RunCompiledInput, Promise<RunCompiledOutput>> = {
@@ -75,17 +77,22 @@ export const runCompiled: Operation<RunCompiledInput, Promise<RunCompiledOutput>
       }
     }
 
-    // Map named inputs to the network leaf's positional args (its signature `from` order).
-    const args = sig.from.map((cell) => inputs[cell]);
+    // Reach the network leaf's all-cells accessor through the backing entry — `resolve()`
+    // returns a thunk that would drop the function's attached `cells`. Seed BY NAME (the
+    // accessor passes the map straight to the runtime, so any cell can be seeded) and project
+    // every cell through the shared `projectInfo`, exactly as `run` does.
+    const entry = loaded.registry.backing.get(`network/${networkName}`);
+    if (!entry) return { ok: false, error: `network "${networkName}" not found in the artifact` };
 
-    let output;
+    const cells: Record<string, unknown> = {};
     try {
-      const leaf = loaded.registry.resolve(`network/${networkName}`);
-      output = await projectInfo(leaf(...args));
+      const leaf = entry.impl as NetworkImpl;
+      const raw = await leaf.cells(inputs);
+      for (const [name, info] of raw) cells[name] = await projectInfo(info);
     } catch (e) {
       return { ok: false, error: `runtime error: ${e}` };
     }
 
-    return { ok: true, network: networkName, output };
+    return { ok: true, network: networkName, cells };
   },
 };

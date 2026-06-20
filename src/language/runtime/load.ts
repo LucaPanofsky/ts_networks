@@ -13,13 +13,23 @@
 // operation can execute artifacts the same way the tests do.
 
 import * as rt from "./index.js";
-import type { Registry } from "../core/runtime-api.js";
+import type { AdaptedRegistry } from "./index.js";
 
 // What an emitted artifact's `__manifest` carries: each network's input cells (in order)
-// and its output cell. Lets a caller seed inputs BY NAME without the original source.
-export type Manifest = { networks: Record<string, { from: string[]; to: string }> };
+// and its output cell, plus `values` — the JS-identifier-legal names of the program's value
+// bindings (fns + record constructors). The networks let a caller seed inputs BY NAME; the
+// values let it evaluate cell expressions that reference the program's own functions (e.g.
+// `cell=myFn(3)`), mirroring the engine `run`'s sandbox.
+export type Manifest = {
+  networks: Record<string, { from: string[]; to: string }>;
+  values?: string[];
+};
 
-export type LoadedProgram = { registry: Registry; manifest: Manifest };
+// The loaded program exposes the ADAPTED registry (not just the frozen core surface): the
+// `run-compiled` operation reaches `backing.get("network/<name>").impl` to call a network's
+// all-cells accessor (a `resolve()` thunk would drop the function's attached `cells`), and
+// sets `toolResolver` to inject the full program-reasoning tools.
+export type LoadedProgram = { registry: AdaptedRegistry; manifest: Manifest };
 
 // Evaluate an emitted `.js` module string in-process, returning its registry and manifest.
 // The emitted code references `rt.*`; we bind `rt` to the runtime implementation.
