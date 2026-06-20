@@ -79,6 +79,25 @@ defnetwork qa
 end
 `;
 
+// An llmfn asking for an operation-backed tool (`typecheck`) — only resolvable via the FULL
+// program-reasoning resolver, which `run-compiled` injects. The sandbox default would throw.
+const LLM_TOOLS = `
+defrecord Analysis
+  label: String?;
+end
+
+defllmfn classify
+  signature: from [String?(text)] to Analysis?;
+  with: tools = 'typecheck';
+  user """Classify: {{text}}""";
+end
+
+defnetwork qa
+  signature: from [text] to result;
+  propagate classify from [text] to result;
+end
+`;
+
 describe("compiled artifact — compile-js → run-compiled", () => {
   beforeEach(() => mockCall.mockReset());
 
@@ -114,6 +133,20 @@ describe("compiled artifact — compile-js → run-compiled", () => {
     mockCall.mockResolvedValue({ __type: "Analysis", label: "ok" });
     const art = await bothMatch(LLM, "qa", { text: "'hi'" });
     if (art.ok) expect(art.cells.result).toEqual({ __type: "Analysis", label: "ok" });
+  });
+
+  test("an artifact llmfn reaches the full program-reasoning toolset (run-compiled injects it)", async () => {
+    mockCall.mockResolvedValue({ __type: "Analysis", label: "ok" });
+    const compiled = compileJs.handle({ source: LLM_TOOLS });
+    expect(compiled.ok).toBe(true);
+    if (!compiled.ok) return;
+    const art = await runCompiled.handle({ code: compiled.code, network: "qa", cells: { text: "'hi'" } });
+    expect(art.ok).toBe(true);
+    if (art.ok) expect(art.cells.result).toEqual({ __type: "Analysis", label: "ok" });
+    // The sandbox (parse-only) resolver would have thrown "unknown tool" on `typecheck`; that
+    // it resolved — and reached callLLMFn as a tool — proves the full resolver was injected.
+    const [, , , config] = mockCall.mock.calls[0]!;
+    expect((config as { tools: { name: string }[] }).tools.map((t) => t.name)).toContain("typecheck");
   });
 
   test("a missing network in the artifact is a clean error", async () => {

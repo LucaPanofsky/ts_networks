@@ -121,8 +121,10 @@ export interface ConstructRuntime {
   // defllmfn — an async, memoized LLM-backed leaf. The spec is self-contained: the `with:`
   // clause carries the model (and max_tokens/tools), and the type environment is inlined so
   // the reused engine `deriveProtocol` can build the structured-output schema. The API key
-  // is ambient (env, via the engine's `getClient()`) — never emitted into the file.
-  llmFn(spec: LlmFnSpec): Impl;
+  // is ambient (env, via the engine's `getClient()`) — never emitted into the file. Takes the
+  // `registry` so `with: tools` can resolve LATE against a host-injected resolver (the full
+  // program-reasoning toolset), falling back to the sandbox parse-only resolver when unset.
+  llmFn(spec: LlmFnSpec, registry: Registry): Impl;
 
   // defnetwork — COMPILE a propagator graph into an Impl that runs the graph to a fixpoint
   // when invoked. Takes the whole `registry` (not just `resolve`) because the reused engine

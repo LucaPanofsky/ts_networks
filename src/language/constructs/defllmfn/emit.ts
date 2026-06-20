@@ -1,5 +1,5 @@
 // LlmFnNode → a JS fragment. A `defllmfn` is NOT lowered to source: it emits a single
-// `rt.llmFn(spec)` COMPILER call (BUILD) whose result — the memoized async leaf — is
+// `rt.llmFn(spec, __reg)` COMPILER call (BUILD) whose result — the memoized async leaf — is
 // registered under the bare function name (RUN). The spec inlines the node plus the
 // program's type environment (`ctx.typeEnv()`), so the reused engine `deriveProtocol` can
 // build the model's structured-output schema. Config (model) rides in the spec's `with:`
@@ -26,7 +26,7 @@ export function emitLlmFn(node: LlmFnNode, ctx: EmitCtx): string {
   const from = node.params.map((p) => p.predicate);
   const to = typeRefToString(node.returnType);
   return [
-    `const ${local} = ${ctx.rt}.llmFn(${q(spec)});`,
+    `const ${local} = ${ctx.rt}.llmFn(${q(spec)}, __reg);`,
     `__reg.register(${q(node.name)}, { arity: ${node.params.length}, impl: ${local}, morphism: { from: ${q(from)}, to: ${q(to)} } });`,
   ].join("\n");
 }

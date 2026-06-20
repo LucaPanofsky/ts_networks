@@ -20,6 +20,7 @@ import { compileExtract, type GrammarLeaves } from "../../sandbox/extract-runtim
 import { canonicalKey } from "../../sandbox/jsgen/registry.js";
 import { callLLMFn } from "../../sandbox/llmfn-client.js";
 import { toolsFromConfig } from "../../sandbox/tools.js";
+import type { ToolResolver } from "../../sandbox/tools.js";
 import { deriveProtocol } from "../../data-network/schema.js";
 import { Something, Contradiction } from "../../info-structure.js";
 import { Deferred } from "../../information-structures/deferred.js";
@@ -58,7 +59,15 @@ export function interp(template: string, args: Record<string, unknown>): string 
 // `Registry` (impl AND arity per leaf) to build a NetworkRuntime — richer than the late-bound
 // `resolve` thunk — so `registry()` exposes it here. Kept out of `core/runtime-api.ts` so that
 // frozen surface stays engine-agnostic; only this engine-coupled adapter layer sees it.
-export type AdaptedRegistry = Registry & { readonly backing: EngineRegistry };
+// `toolResolver` is INJECTED by an operation host (run-compiled) after load, before any
+// llmfn runs: it supplies the full program-reasoning toolset (run/typecheck/…) the engine
+// `run` gives a `with: tools` clause. Left unset, an llmfn falls back to the sandbox
+// parse-only resolver — so a standalone `node artifact.js` still resolves `with: tools='parse'`.
+// Mutable (set post-load) and read LATE (at first invoke), so injection order is irrelevant.
+export type AdaptedRegistry = Registry & {
+  readonly backing: EngineRegistry;
+  toolResolver?: ToolResolver;
+};
 
 export function registry(): AdaptedRegistry {
   const backing = createRegistry();
@@ -182,7 +191,7 @@ export function extract(
 //   • config — model / max_tokens / tools from the `with:` clause + the stable `system` prompt.
 //   • memoize — a re-fire over identical inputs shares the in-flight APromise (one model
 //     call, same reference), so re-merging the result can never self-contradict.
-export function llmFn(spec: LlmFnSpec): Impl {
+export function llmFn(spec: LlmFnSpec, reg: Registry): Impl {
   const program = programWith({
     records: spec.typeEnv.records.map((r) => ({ kind: "record", name: r.name, fields: r.fields })),
     enums: spec.typeEnv.enums.map((e) => ({ kind: "enum", name: e.name, values: e.values }) satisfies EnumAST),
@@ -191,24 +200,30 @@ export function llmFn(spec: LlmFnSpec): Impl {
     ),
   });
   const protocol = deriveProtocol(spec.returnType as TypeRef, program);
-  const config = {
-    model: spec.config["model"],
-    maxTokens: spec.config["max_tokens"] !== undefined ? parseInt(spec.config["max_tokens"], 10) : undefined,
-    tools: toolsFromConfig(spec.config["tools"]),
-    system: spec.system,
-  };
   const paramNames = spec.params.map((p) => p.name);
   const memo = new Map<string, APromise<unknown>>();
+  // Resolve `with: tools` LATE — against the registry's injected resolver if a host set one
+  // (the full program-reasoning toolset), else the sandbox parse-only `toolsFromConfig`. Built
+  // once on first invoke, by which point any host injection has happened.
+  let config: { model?: string; maxTokens?: number; tools: ReturnType<ToolResolver>; system?: string } | undefined;
+  const ensureConfig = () =>
+    (config ??= {
+      model: spec.config["model"],
+      maxTokens: spec.config["max_tokens"] !== undefined ? parseInt(spec.config["max_tokens"], 10) : undefined,
+      tools: ((reg as AdaptedRegistry).toolResolver ?? toolsFromConfig)(spec.config["tools"]),
+      system: spec.system,
+    });
   return (...args: unknown[]) => {
     const key = canonicalKey(args);
     const cached = memo.get(key);
     if (cached) return cached;
+    const cfg = ensureConfig();
     const namedArgs = Object.fromEntries(paramNames.map((n, i) => [n, args[i]]));
     const d = new Deferred<unknown>();
     const ap = new APromise(d);
     memo.set(key, ap);
     defaultExecutor
-      .submit(() => callLLMFn(spec.user, namedArgs, protocol, config))
+      .submit(() => callLLMFn(spec.user, namedArgs, protocol, cfg))
       .then((v) => d.resolve(new Something(v)))
       .catch((e) => d.resolve(new Contradiction("llmfn/error", new Set(), e)));
     return ap;

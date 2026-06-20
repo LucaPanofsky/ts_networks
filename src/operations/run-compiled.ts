@@ -2,6 +2,7 @@ import { loadProgram } from "../language/runtime/load.js";
 import type { NetworkImpl } from "../language/runtime/index.js";
 import { Workspace, WorkspaceError, workspaceRoot } from "../fs/workspace.js";
 import { projectInfo } from "./project.js";
+import { toolsFromConfig } from "./tools.js";
 import type { Operation } from "./types.js";
 
 // The "run anywhere" half: load a compiled ts-networks artifact (from `compile-js`) and run
@@ -50,6 +51,12 @@ export const runCompiled: Operation<RunCompiledInput, Promise<RunCompiledOutput>
     } catch (e) {
       return { ok: false, error: `load error: ${e}` };
     }
+
+    // Inject the full program-reasoning resolver — so an artifact's llmfn `with: tools`
+    // reaches every operation (run-grammar, typecheck, run, …), matching the engine `run`
+    // (run.ts compiles with this same resolver). Late-bound in the runtime, so setting it
+    // here — before any network runs — is in time.
+    loaded.registry.toolResolver = toolsFromConfig;
 
     const sig = loaded.manifest.networks[networkName];
     if (!sig) return { ok: false, error: `network "${networkName}" not found in the artifact` };

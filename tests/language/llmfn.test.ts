@@ -132,3 +132,53 @@ end
     expect(resolved).toBeInstanceOf(Contradiction);
   });
 });
+
+// `with: tools` resolves LATE (first invoke) against the registry's injected resolver, so an
+// operation host can supply the full program-reasoning toolset while a standalone artifact
+// keeps the sandbox parse-only default. (The full-resolver wiring is proven end-to-end in
+// tests/language/artifact.test.ts; here we test the runtime mechanism in isolation.)
+describe("defllmfn — late-bound, injectable tool resolution", () => {
+  const withTools = (tools: string) => `
+defrecord R
+  v: String?;
+end
+
+defllmfn classify
+  signature: from [String?(text)] to R?;
+  with: tools = '${tools}';
+  user """Classify: {{text}}""";
+end
+`;
+
+  test("an injected resolver is consulted at invoke time (not at rt.llmFn build time)", () => {
+    mockCall.mockReturnValue(Promise.resolve({ __type: "R", v: "ok" }));
+    const reg = run(emitJs(withTools("anything")));
+    // Inject AFTER build (the leaf is already registered) — late binding means it still wins.
+    let resolverSawRaw: string | undefined = "<not called>";
+    (reg as { toolResolver?: (raw?: string) => unknown[] }).toolResolver = (raw) => {
+      resolverSawRaw = raw;
+      return [{ name: raw, description: "", input_schema: { type: "object" }, run: () => null }];
+    };
+    reg.resolve("classify")("hi");
+    const [, , , config] = mockCall.mock.calls[0]!;
+    expect(resolverSawRaw).toBe("anything");
+    expect((config as { tools: { name: string }[] }).tools.map((t) => t.name)).toEqual(["anything"]);
+  });
+
+  test("without injection, an unknown tool falls back to the sandbox resolver and is rejected", () => {
+    mockCall.mockReturnValue(Promise.resolve({ __type: "R", v: "ok" }));
+    const reg = run(emitJs(withTools("typecheck"))); // 'typecheck' is operation-backed, not in the sandbox
+    // The fallback sandbox resolver knows only `parse`; resolving happens at first invoke.
+    expect(() => reg.resolve("classify")("hi")).toThrow(/unknown tool "typecheck"/);
+    expect(mockCall).not.toHaveBeenCalled();
+  });
+
+  test("without injection, the sandbox `parse` tool still resolves (standalone default)", () => {
+    mockCall.mockReturnValue(Promise.resolve({ __type: "R", v: "ok" }));
+    const reg = run(emitJs(withTools("parse")));
+    const ap = reg.resolve("classify")("hi");
+    expect(ap).toBeInstanceOf(APromise); // resolved without throwing
+    const [, , , config] = mockCall.mock.calls[0]!;
+    expect((config as { tools: { name: string }[] }).tools.map((t) => t.name)).toEqual(["parse"]);
+  });
+});
