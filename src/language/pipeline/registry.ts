@@ -18,6 +18,7 @@ import extractModule from "../constructs/defextract/index.js";
 import ttableModule from "../constructs/ttable/index.js";
 import networkModule from "../constructs/defnetwork/index.js";
 import llmfnModule from "../constructs/defllmfn/index.js";
+import parameterModule from "../constructs/defparameter/index.js";
 
 export const MODULES: Readonly<Record<ConstructKind, ConstructModule<AstNode>>> = {
   [ConstructKind.Record]: recordModule,
@@ -29,4 +30,5 @@ export const MODULES: Readonly<Record<ConstructKind, ConstructModule<AstNode>>> 
   [ConstructKind.TTable]: ttableModule,
   [ConstructKind.Network]: networkModule,
   [ConstructKind.Llmfn]: llmfnModule,
+  [ConstructKind.Parameter]: parameterModule,
 };

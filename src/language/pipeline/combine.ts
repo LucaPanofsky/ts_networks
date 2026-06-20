@@ -28,6 +28,11 @@ export function registryKey(node: AstNode): string {
       return `extract/${node.name}`;
     case ConstructKind.TTable:
       return `TTable/${node.name}`;
+    case ConstructKind.Parameter:
+      // Parameters live in a separate engine namespace (`program.parameters`) and emit no
+      // registry entry, so `parameter/X` keeps a `defparameter Foo` from falsely clashing
+      // with a `defrecord Foo` — while two same-named parameters still conflict.
+      return `parameter/${node.name}`;
     default:
       return node.name;
   }
