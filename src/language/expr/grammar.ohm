@@ -1,0 +1,63 @@
+// Canonical, readable copy of the expression grammar. Kept in sync by hand with the
+// GRAMMAR_SOURCE string in parse.ts (which is what actually runs — .ohm files are not
+// importable under NodeNext/jest).
+//
+// The shared expression sub-language for `defn`/`defpredicate` bodies. Its semantics
+// build the EXISTING `Expr` AST so the existing `compileExpr` is reused for emission.
+//
+// Precedence high→low: field `.` › unary `! -` › `* /` › `+ -` › comparison › && › ||.
+// All binary operators left-associative (encoded via `Level = Next (op Next)*`, folded
+// left-to-right — no left recursion). `if(...)` is a plain Call. Strings are '…'. A bare
+// Name pattern is a wildcard. `//` comments are skipped (oracle parity).
+
+TsnExpr {
+  ExprBody = LetBinding* Exp ";"
+  LetBinding = "let" ident "=" Exp ";"
+
+  Exp     = AndExp (orOp AndExp)*
+  AndExp  = CmpExp (andOp CmpExp)*
+  CmpExp  = AddExp (cmpOp AddExp)*
+  AddExp  = MulExp (addOp MulExp)*
+  MulExp  = UnaryExp (mulOp UnaryExp)*
+  UnaryExp = unaryOp* PostfixExp
+  PostfixExp = Primary ("." ident)*
+
+  Primary
+    = "(" Exp ")"  -- paren
+    | MatchExp     -- match
+    | Call         -- call
+    | number       -- num
+    | string       -- str
+    | boolean      -- bool
+    | ident        -- var
+
+  Call = ident "(" ListOf<Exp, ","> ")"
+
+  MatchExp = "match" Exp MatchArm+ "end"
+  MatchArm = "|" Pattern Guard? "->" Exp
+  Guard = "when" Exp
+  Pattern = RecordPattern -- rec
+          | ident         -- wild
+  RecordPattern = ident "{" ListOf<FieldBinding, ","> "}"
+  FieldBinding = ident ":" ident
+
+  orOp = "||"
+  andOp = "&&"
+  cmpOp = "==" | "!=" | "<=" | ">=" | "<" | ">"
+  addOp = "+" | "-"
+  mulOp = "*" | "/"
+  unaryOp = "!" | "-"
+
+  number = digit+ ("." digit+)?
+  string = "'" (~"'" any)* "'"
+  boolean = ("true" | "false") ~nameCont
+
+  ident = ~keyword name
+  name = nameStart nameCont*
+  nameStart = letter | "_"
+  nameCont = alnum | "_" | "?" | "!" | "-" | "/"
+  keyword = ("match" | "let" | "when" | "end" | "true" | "false") ~nameCont
+
+  comment = "//" (~"\n" any)*
+  space += comment
+}

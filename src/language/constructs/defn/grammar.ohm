@@ -1,27 +1,21 @@
-// `defn` recogniser. The signature is structured; the body is captured RAW for now
-// (see ast.ts — the expression grammar is a separate slice). Note the body's own
-// delimiters/keywords are why the splitter must already have isolated this block.
+// Canonical, readable copy of the defn shell grammar. Kept in sync by hand with the
+// GRAMMAR_SOURCE string in parse.ts (the live copy).
+//
+// It INHERITS the shared expression grammar (`TsnDefn <: TsnExpr`) so the body is parsed
+// structurally via the inherited `ExprBody` — a `match … end` in the body is not
+// mistaken for the defn's `end`. Scope: `expression` bodies only (interpolate deferred).
 //
 //   defn rectangleArea
 //     signature: from [Rectangle?(r)] to Number?;
 //     expression
 //       r.width * r.height;
+//   end
 
-Defn {
-  fn        = "defn" spaces name spaces signature spaces body
-  name      = letter alnum*
-
-  signature = "signature:" spaces "from" spaces "[" param* "]" spaces "to" spaces typeRef ";"
-  param     = predicate "?"? "(" pname ")" sep?
-  pname     = letter alnum*
-  predicate = letter alnum*
-  sep       = spaces "," spaces
-
-  typeRef   = vector | scalar
-  vector    = "[" spaces scalar spaces "]"
-  scalar    = predicate "?"?
-
-  // body kept raw: either `expression <expr>;` or `interpolate """..."""`
-  body      = ("expression" | "interpolate") spaces rawBody
-  rawBody   = (~"end" any)*
+TsnDefn <: TsnExpr {
+  Main = "defn" ident Signature "expression" ExprBody "end"
+  Signature = "signature" ":" "from" Params? "to" TypeRef ";"
+  Params = "[" ListOf<Param, ","> "]"
+  Param = ident "(" ident ")"
+  TypeRef = "[" ident "]"  -- vec
+          | ident          -- scalar
 }

@@ -4,16 +4,14 @@
 
 import type { TypeRef } from "../../core/types.js";
 import { ConstructKind } from "../../core/enums.js";
+// The expression body REUSES the existing `Expr` AST so the existing `compileExpr` can
+// be reused verbatim (the Expr AST is the contract; only the parser changed Lezer→Ohm).
+import type { Expr } from "../../../data-network/types.js";
 
 export type TypedParam = {
   predicate: string;
   name: string;
 };
-
-// The expression sub-language is itself a grammar. For the sketch the body is kept as
-// raw source text; promoting it to a real Expr AST (literal/var/call/binary/let/match/
-// interpolate, as in the current pipeline) is a later, self-contained slice.
-export type ExprNode = { kind: "raw"; source: string };
 
 export type FnNode = {
   kind: ConstructKind.Fn;
@@ -21,5 +19,5 @@ export type FnNode = {
   name: string;
   params: TypedParam[];
   returnType: TypeRef;
-  body: ExprNode;
+  body: Expr;
 };
