@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { parseProgram } from "../../src/data-network/tree-to-network.js";
+import { parseProgramStrict as parseProgram } from "../../src/language/parse-strict.js";
+import { recordsOf, ttablesOf } from "../../src/language/select.js";
 import { recordCtorSandbox } from "../../src/sandbox/record-sandbox.js";
 import { compileTTable } from "../../src/sandbox/ttable-runtime.js";
 import { Contradiction } from "../../src/info-structure.js";
@@ -27,8 +28,8 @@ end
 `;
 
 function build(program = parseProgram(dsl)) {
-  const sandbox = recordCtorSandbox(program.records);
-  const ast = program.ttables[0]!;
+  const sandbox = recordCtorSandbox(recordsOf(program));
+  const ast = ttablesOf(program)[0]!;
   return compileTTable(ast, program, sandbox);
 }
 
@@ -80,8 +81,8 @@ TTable Headerless
   header c;
 end
 `);
-  const sandbox = recordCtorSandbox(program.records);
-  const impl = compileTTable(program.ttables[0]!, program, sandbox).impl;
+  const sandbox = recordCtorSandbox(recordsOf(program));
+  const impl = compileTTable(ttablesOf(program)[0]!, program, sandbox).impl;
 
   test("the first row is consumed as the header; the rest map positionally", () => {
     const out = impl("anything | here | discarded |\nx | y | z |\np | q | r |\n") as Array<{ __type: string; a: string; b: string; c: string }>;
@@ -127,8 +128,8 @@ TTable T
   header newNum = 'new';
 end
 `);
-    const sandbox = recordCtorSandbox(program.records);
-    const out = compileTTable(program.ttables[0]!, program, sandbox).impl(sample) as unknown[];
+    const sandbox = recordCtorSandbox(recordsOf(program));
+    const out = compileTTable(ttablesOf(program)[0]!, program, sandbox).impl(sample) as unknown[];
     expect(out).toHaveLength(3);
     expect(out[0]).toMatchObject({ __type: "R", old: "a", lisbon: "b", newNum: "c" });
     expect(out[1]).toBeInstanceOf(Contradiction); // the malformed row, localized

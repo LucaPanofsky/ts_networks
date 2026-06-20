@@ -31,10 +31,6 @@ import type {
   GrammarAST,
   TTableAST,
   ExtractAST,
-  ProgramAST,
-  RecordAST,
-  FnAST,
-  EnumAST,
   Expr,
   TypeRef,
   DataNetworkAST,
@@ -113,26 +109,17 @@ export function registry(): AdaptedRegistry {
 // they want from the inlined spec + late-bound registry resolution. No Ohm capture/scan/
 // orchestration logic is reimplemented.
 
-// A minimal ProgramAST carrying only the type collections a reused compiler reads. Grammar/
-// ttable need just `records`; `deriveProtocol` (for llmfn) also walks `enums` and predicate
-// `fns`. Everything else stays empty.
-function programWith(parts: { records?: RecordAST[]; enums?: EnumAST[]; fns?: FnAST[] }): ProgramAST {
-  return {
-    networks: [], records: parts.records ?? [], fns: parts.fns ?? [], derives: [], llmFns: [],
-    enums: parts.enums ?? [], grammars: [], extracts: [], ttables: [], parameters: [],
-  };
-}
-
-// A record descriptor → the engine's RecordAST (structurally identical) + a one-entry
-// sandbox whose constructor is the LATE-BOUND registry thunk (only *called* at RUN time,
-// so the record may be registered after this grammar/ttable is compiled).
+// A record descriptor → a one-element modular `Program` (the engine's RecordAST is
+// structurally a RecordNode; `compile{Grammar,TTable}` read it through the select.ts
+// selectors) + a one-entry sandbox whose constructor is the LATE-BOUND registry thunk
+// (only *called* at RUN time, so the record may be registered after this leaf is compiled).
 function recordEnv(
   record: RecordDescriptor | undefined,
   resolve: Registry["resolve"],
-): { records: RecordAST[]; sandbox: Sandbox } {
-  if (!record) return { records: [], sandbox: {} };
-  const ast: RecordAST = { kind: "record", name: record.name, fields: record.fields };
-  return { records: [ast], sandbox: { [record.name]: resolve(record.name) } };
+): { program: Program; sandbox: Sandbox } {
+  if (!record) return { program: { nodes: [] }, sandbox: {} };
+  const node: AstNode = { kind: ConstructKind.Record, name: record.name, fields: record.fields };
+  return { program: { nodes: [node] }, sandbox: { [record.name]: resolve(record.name) } };
 }
 
 export function grammar(
@@ -140,10 +127,8 @@ export function grammar(
   record: RecordDescriptor | undefined,
   resolve: Registry["resolve"],
 ): CompiledLeaf {
-  const { records, sandbox } = recordEnv(record, resolve);
-  // compileGrammar now reads a modular Program; the record ASTs are structurally nodes (the
-  // select.ts selectors cast them back). ttable() keeps programWith until Phase 3 converts it.
-  const compiled = compileGrammar(spec as unknown as GrammarAST, { nodes: records as unknown as AstNode[] }, sandbox);
+  const { program, sandbox } = recordEnv(record, resolve);
+  const compiled = compileGrammar(spec as unknown as GrammarAST, program, sandbox);
   return { arity: compiled.arity, impl: compiled.impl, scan: compiled.scan };
 }
 
@@ -152,8 +137,8 @@ export function ttable(
   record: RecordDescriptor | undefined,
   resolve: Registry["resolve"],
 ): CompiledLeaf {
-  const { records, sandbox } = recordEnv(record, resolve);
-  const compiled = compileTTable(spec as unknown as TTableAST, programWith({ records }), sandbox);
+  const { program, sandbox } = recordEnv(record, resolve);
+  const compiled = compileTTable(spec as unknown as TTableAST, program, sandbox);
   return { arity: compiled.arity, impl: compiled.impl };
 }
 

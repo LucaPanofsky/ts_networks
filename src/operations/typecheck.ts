@@ -1,6 +1,6 @@
 import { parseProgramStrict } from "../language/parse-strict.js";
 import { toProgramAST } from "../language/adapter.js";
-import { grammarsOf } from "../language/select.js";
+import { grammarsOf, ttablesOf } from "../language/select.js";
 import { typeCheckProgram, validateInterpolate, validateLLMFn } from "../data-network/type-checker.js";
 import { validateGrammarSyntax, validateGrammarSignature } from "../sandbox/grammar-runtime.js";
 import { validateExtract } from "../sandbox/extract-runtime.js";
@@ -62,8 +62,8 @@ export const typecheck: Operation<TypecheckInput, TypecheckOutput> = {
         if (error) return { ok: false, error };
       }
       // A TTable is checked against its row record: headers and fields must agree.
-      for (const ttable of program.ttables) {
-        const [error] = validateTTable(ttable, program);
+      for (const ttable of ttablesOf(nodes)) {
+        const [error] = validateTTable(ttable, nodes);
         if (error) return { ok: false, error };
       }
       // A reserved-word record field would emit invalid JS at sandbox build; reject it
