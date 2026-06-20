@@ -1,6 +1,5 @@
 import { parseProgramStrict } from "../language/parse-strict.js";
-import { toProgramAST } from "../language/adapter.js";
-import { grammarsOf, ttablesOf } from "../language/select.js";
+import { grammarsOf, extractsOf, ttablesOf } from "../language/select.js";
 import { typeCheckProgram, validateInterpolate, validateLLMFn } from "../data-network/type-checker.js";
 import { validateGrammarSyntax, validateGrammarSignature } from "../sandbox/grammar-runtime.js";
 import { validateExtract } from "../sandbox/extract-runtime.js";
@@ -45,9 +44,6 @@ export const typecheck: Operation<TypecheckInput, TypecheckOutput> = {
   handle(input) {
     try {
       const nodes = parseProgramStrict(input.source);
-      // Bridge: the extract/ttable/reserved-word validators still read a ProgramAST (their
-      // Part-2 conversion drops this line); the converted passes read `nodes`.
-      const program = toProgramAST(nodes);
       // Grammar bodies are opaque to the parser and the type checker. Run the structural
       // checks (as `check` does) plus the semantic signature check (the bound record must
       // exist) before type-checking. First error wins.
@@ -57,8 +53,8 @@ export const typecheck: Operation<TypecheckInput, TypecheckOutput> = {
       }
       // A defextract is checked against the records and grammars it wires together
       // (cardinality, record agreement, containment). First error wins.
-      for (const extract of program.extracts) {
-        const [error] = validateExtract(extract, program);
+      for (const extract of extractsOf(nodes)) {
+        const [error] = validateExtract(extract, nodes);
         if (error) return { ok: false, error };
       }
       // A TTable is checked against its row record: headers and fields must agree.
@@ -68,7 +64,7 @@ export const typecheck: Operation<TypecheckInput, TypecheckOutput> = {
       }
       // A reserved-word record field would emit invalid JS at sandbox build; reject it
       // here so the failure is an early, located diagnostic, not a cryptic SyntaxError.
-      const [reservedError] = reservedFieldErrors(program);
+      const [reservedError] = reservedFieldErrors(nodes);
       if (reservedError) return { ok: false, error: reservedError };
       // An `interpolate` body's {{path}} placeholders must resolve against the
       // function's parameter types — otherwise the gap only surfaces at run time.

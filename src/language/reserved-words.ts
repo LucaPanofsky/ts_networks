@@ -7,9 +7,10 @@
 // identifier and is NOT listed — the check must reject only what actually breaks codegen.
 //
 // The `typecheck` operation consumes this to surface the located error early. (Moved out of
-// the retired jsgen compiler; still keyed on `ProgramAST.records`.)
+// the retired jsgen compiler; reads the record nodes off a modular `Program`.)
 
-import type { ProgramAST } from "../data-network/types.js";
+import type { Program } from "./pipeline/program.js";
+import { recordsOf } from "./select.js";
 
 const RESERVED_JS_WORDS = new Set<string>([
   "break", "case", "catch", "class", "const", "continue", "debugger", "default",
@@ -23,9 +24,9 @@ const RESERVED_JS_WORDS = new Set<string>([
 ]);
 
 // One message per record field whose name is a reserved JS word (empty = clean).
-export function reservedFieldErrors(program: ProgramAST): string[] {
+export function reservedFieldErrors(program: Program): string[] {
   const errors: string[] = [];
-  for (const rec of program.records) {
+  for (const rec of recordsOf(program)) {
     for (const f of rec.fields) {
       if (RESERVED_JS_WORDS.has(f.name)) {
         const cap = f.name.charAt(0).toUpperCase() + f.name.slice(1);
