@@ -7,8 +7,8 @@ import { run } from "../../src/operations/run.js";
 // `propagate extract/GdprArticle` resolves the extract leaf from the registry. This
 // proves the wiring, not just compileExtract in isolation (that is extract-runtime.test).
 
-const source = readFileSync(join(__dirname, "../../examples/gdpr_article_extract.tsn"), "utf8");
-const text = readFileSync(join(__dirname, "../../examples/gdpr_article_33.txt"), "utf8");
+const source = readFileSync(join(__dirname, "../../repo_workspace/examples/gdpr_article_extract.tsn"), "utf8");
+const text = readFileSync(join(__dirname, "../../repo_workspace/examples/gdpr_article_33.txt"), "utf8");
 
 type Article = {
   __type: string; number: string; title: string;

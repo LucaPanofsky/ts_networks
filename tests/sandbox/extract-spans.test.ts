@@ -11,7 +11,7 @@ import { Contradiction } from "../../src/info-structure.js";
 // Here Paragraph has NO body field at all, yet points still nest correctly, because
 // the point scan runs over each paragraph's matched SPAN.
 
-const text = readFileSync(join(__dirname, "../../examples/gdpr_article_33.txt"), "utf8");
+const text = readFileSync(join(__dirname, "../../repo_workspace/examples/gdpr_article_33.txt"), "utf8");
 
 // Note: Paragraph has number + points only — no `body`. The grammar still consumes
 // the paragraph text (rule `rest`), defining the span; it just isn't captured.

@@ -13,7 +13,6 @@ ui
 editors
 public
 tests
-examples
 documentation
 *.db
 .clj-kondo

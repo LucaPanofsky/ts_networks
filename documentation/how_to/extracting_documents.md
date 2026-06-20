@@ -119,16 +119,16 @@ So you do **not** declare a region field. Paragraph needs a `body` field only if
 
 ## Worked example, end to end
 
-The full Article-33 extractor is [`examples/gdpr_article_extract.tsn`](../../examples/gdpr_article_extract.tsn).
+The full Article-33 extractor is [`repo_workspace/examples/gdpr_article_extract.tsn`](../../repo_workspace/examples/gdpr_article_extract.tsn).
 Build it in the three layers above, then:
 
 ```bash
 # Type-check the wiring (records ↔ grammars ↔ verbs):
-npx tsx scripts/typecheck.ts examples/gdpr_article_extract.tsn
+npx tsx scripts/typecheck.ts repo_workspace/examples/gdpr_article_extract.tsn
 
 # Run it (the doc cell is a JS expression; jq quotes the file as a string literal):
-npx tsx scripts/run.ts examples/gdpr_article_extract.tsn extractArticle \
-  doc="$(jq -Rs . examples/gdpr_article_33.txt)"
+npx tsx scripts/run.ts repo_workspace/examples/gdpr_article_extract.tsn extractArticle \
+  doc="$(jq -Rs . repo_workspace/examples/gdpr_article_33.txt)"
 ```
 
 You get one `Article` — number and title, five `Paragraph`s, and the four `Point`s
@@ -198,7 +198,7 @@ A mismatch is reported with the offending statement — fix it and re-run.
 - Writing the recognisers: [defining grammars](defining_grammars.md).
 - Runtime: [`src/sandbox/extract-runtime.ts`](../../src/sandbox/extract-runtime.ts)
   (`compileExtract`, `validateExtract`).
-- Worked example: [`examples/gdpr_article_extract.tsn`](../../examples/gdpr_article_extract.tsn).
+- Worked example: [`repo_workspace/examples/gdpr_article_extract.tsn`](../../repo_workspace/examples/gdpr_article_extract.tsn).
 
 ## Changelog
 

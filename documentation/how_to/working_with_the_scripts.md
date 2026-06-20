@@ -34,7 +34,7 @@ npx tsx scripts/run.ts <file.tsn> <networkName> [cell=jsExpr ...]
 
 Cell values are evaluated as JavaScript expressions in the program's sandbox, so constructors and predicates defined in the program are available:
 ```bash
-npx tsx scripts/run.ts examples/geometry.tsn rectangleMetrics 'rect={width:3,height:4}'
+npx tsx scripts/run.ts repo_workspace/examples/geometry.tsn rectangleMetrics 'rect={width:3,height:4}'
 ```
 
 Alternatively, `cell=@filename` seeds the **raw text** of a file from the `WORKSPACE/` directory (read verbatim as a string, *not* evaluated as JS) — the way to feed a real document (e.g. the `.txt` produced by `pdf-to-text`) into a network:
@@ -49,7 +49,7 @@ npx tsx scripts/diagram.ts <file.tsn> [networkName] [live]
 
 `networkName` is optional when the program defines exactly one network. Pass the literal word `live` to get a `mermaid.live` editor link instead of the raw diagram string. Only requires the source to *parse* (and contain the network) — it reads structure, not types, so the referenced functions need not be defined:
 ```bash
-npx tsx scripts/diagram.ts examples/search.tsn live
+npx tsx scripts/diagram.ts repo_workspace/examples/search.tsn live
 ```
 
 **Extract text from a PDF in the workspace:**

@@ -73,7 +73,7 @@ defextract GdprArticle
 end
 `;
 
-const text = readFileSync(join(__dirname, "../../examples/gdpr_article_33.txt"), "utf8");
+const text = readFileSync(join(__dirname, "../../repo_workspace/examples/gdpr_article_33.txt"), "utf8");
 
 // Build the grammar leaves (impl + span-aware scan) and compile the extract against them.
 function buildExtract() {

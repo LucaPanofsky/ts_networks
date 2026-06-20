@@ -5,7 +5,7 @@ The language has three layers: **types** (records and predicates), **functions**
 computation), and **networks** that wire functions together into propagator graphs. See
 [`README.md`](README.md) for a short introduction to the project.
 
-See the [`examples/`](examples/) folder for a quick tour of the language's features through small
+See the [`repo_workspace/examples/`](repo_workspace/examples/) folder for a quick tour of the language's features through small
 programs you can run and adapt — geometry and search networks, document/table extraction, and an
 LLM-function pipeline, among others.
 

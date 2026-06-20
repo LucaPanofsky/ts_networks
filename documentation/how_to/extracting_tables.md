@@ -149,7 +149,7 @@ This is the **compose-by-type** principle: a leaf returns a typed record or `[Ro
 `defextract` nests; the leaf can be a grammar, a `TTable` (or, in principle, an `llmfn`).
 The full worked example —  grouping table rows under their section titles via the extract's
 span recursion, no fold — is
-[`examples/treaty_table/treaty_total.tsn`](../../examples/treaty_table/treaty_total.tsn).
+[`repo_workspace/examples/treaty_table/treaty_total.tsn`](../../repo_workspace/examples/treaty_table/treaty_total.tsn).
 
 ---
 
@@ -193,7 +193,7 @@ A violation is reported against the offending `TTable` — fix it and re-run.
 - Writing prose recognisers instead: [defining grammars](defining_grammars.md).
 - Runtime: [`src/sandbox/ttable-runtime.ts`](../../src/sandbox/ttable-runtime.ts)
   (`compileTTable`, `validateTTable`).
-- Worked example (composition): [`examples/treaty_table/treaty_total.tsn`](../../examples/treaty_table/treaty_total.tsn).
+- Worked example (composition): [`repo_workspace/examples/treaty_table/treaty_total.tsn`](../../repo_workspace/examples/treaty_table/treaty_total.tsn).
 
 ## Changelog
 

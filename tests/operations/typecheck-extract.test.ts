@@ -5,7 +5,7 @@ import { typecheck } from "../../src/operations/typecheck.js";
 // The typecheck operation now runs the defextract type-check rules (Q3) after the
 // grammar checks, before the network type-checking.
 
-const exampleSource = readFileSync(join(__dirname, "../../examples/gdpr_article_extract.tsn"), "utf8");
+const exampleSource = readFileSync(join(__dirname, "../../repo_workspace/examples/gdpr_article_extract.tsn"), "utf8");
 
 // A program whose extract scans into a scalar field — a cardinality error.
 const badExtract = `
