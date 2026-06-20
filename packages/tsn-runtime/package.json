@@ -1,0 +1,8 @@
+{
+  "name": "@tsn/runtime",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The frozen runtime boundary every compiled ts-networks artifact imports. A thin re-export of the built runtime (dist/language/runtime), linked into node_modules via a file: dependency so a generated `.js` artifact's `import * as rt from \"@tsn/runtime\"` resolves under plain node. Run `npm run build` first to produce dist/.",
+  "exports": "./index.js"
+}
