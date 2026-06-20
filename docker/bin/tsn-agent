@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+# Host-side driver for the ts-networks authoring-agent container.
+#
+#   tsn-agent build                 Build the image (from the repo root).
+#   tsn-agent shell                 Interactive Claude Code session in the sandbox.
+#   tsn-agent author "<prompt>"     Headless authoring run; harvest from the work dir.
+#   tsn-agent chat                  Serve the web chat UI (open http://localhost:$PORT).
+#   tsn-agent exec <cmd...>         Run an arbitrary command in the container (debug).
+#
+# The work directory (default ./tsn-work, override with TSN_AGENT_WORKDIR) is bind-mounted
+# at /workspace — it IS the file channel: drop inputs in, read out/ back out. No server.
+# ANTHROPIC_API_KEY must be exported in your shell; it is passed through, never baked.
+set -euo pipefail
+
+IMAGE="${TSN_AGENT_IMAGE:-tsn-agent}"
+WORKDIR="${TSN_AGENT_WORKDIR:-$PWD/tsn-work}"
+PORT="${TSN_AGENT_PORT:-8787}"
+
+repo_root() {
+  git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel
+}
+
+require_key() {
+  if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+    echo "tsn-agent: ANTHROPIC_API_KEY is not set (export it first)" >&2
+    exit 1
+  fi
+}
+
+cmd="${1:-shell}"
+shift || true
+
+case "$cmd" in
+  build)
+    root="$(repo_root)"
+    exec docker build -f "$root/docker/Dockerfile" -t "$IMAGE" "$root"
+    ;;
+  shell)
+    require_key
+    mkdir -p "$WORKDIR"
+    exec docker run -it --rm \
+      -e ANTHROPIC_API_KEY \
+      -v "$WORKDIR:/workspace" \
+      "$IMAGE" shell "$@"
+    ;;
+  author)
+    require_key
+    if [ "$#" -lt 1 ]; then
+      echo "tsn-agent author: missing prompt" >&2
+      exit 2
+    fi
+    mkdir -p "$WORKDIR"
+    exec docker run --rm \
+      -e ANTHROPIC_API_KEY \
+      -e TSN_AGENT_TIMEOUT \
+      -v "$WORKDIR:/workspace" \
+      "$IMAGE" author "$@"
+    ;;
+  chat)
+    require_key
+    mkdir -p "$WORKDIR"
+    echo "tsn-agent: chat UI on http://localhost:$PORT  (Ctrl-C to stop)" >&2
+    # --init runs tini as PID 1 so SIGINT/SIGTERM reach the node server (a process running
+    # as PID 1 has its default signal actions masked by the kernel — without an init, Ctrl-C
+    # and `docker stop` are ignored). It also reaps any child processes the SDK spawns.
+    exec docker run -it --rm --init \
+      -e ANTHROPIC_API_KEY \
+      -e "PORT=$PORT" \
+      -p "$PORT:$PORT" \
+      -v "$WORKDIR:/workspace" \
+      "$IMAGE" chat "$@"
+    ;;
+  exec)
+    mkdir -p "$WORKDIR"
+    exec docker run -it --rm \
+      -e ANTHROPIC_API_KEY \
+      -v "$WORKDIR:/workspace" \
+      "$IMAGE" exec "$@"
+    ;;
+  *)
+    echo "usage: tsn-agent {build | shell | author <prompt> | chat | exec <cmd...>}" >&2
+    exit 2
+    ;;
+esac

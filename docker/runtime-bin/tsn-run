@@ -1,0 +1,4 @@
+#!/bin/sh
+# Run a network with seeded cells. Seed a document with doc=@file.txt (raw text of a
+# /workspace file, read verbatim). Usage: tsn-run <file.tsn> <network> [cell=val ...]
+exec tsx /app/ts-networks/scripts/run.ts "$@"

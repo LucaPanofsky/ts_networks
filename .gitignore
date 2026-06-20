@@ -8,8 +8,11 @@ report/
 *.db
 public/editor.bundle.js
 dev
-# Claude Code local state
-.claude/
+# Claude Code local state (ignore all of .claude EXCEPT committed, shared skills)
+.claude/*
+!.claude/skills/
+# Playwright MCP scratch (screenshots, snapshots, console logs — regenerable)
+.playwright-mcp/
 # Session handoff scratch (deliberately untracked)
 CLAUDE_TUNNEL.md
 # Agent scratch workspace (PDFs/txt the agent materializes — not source)
@@ -17,3 +20,13 @@ WORKSPACE/
 # Generated maintenance-analysis artifacts (the analysis/*.ts tool IS tracked)
 analysis/REPORT.html
 coverage/
+
+# Agent host-side work dir (bind-mounted to /workspace)
+tsn-work/
+
+# Local deployment secrets (holds ANTHROPIC_API_KEY) — never commit; .env.example is tracked
+.env
+docker/.env
+
+# Vision white paper — work in progress, commit deliberately when ready
+design/proof-of-reasoning.html

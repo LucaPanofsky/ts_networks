@@ -1,0 +1,183 @@
+// main.js — the ONLY module that touches the DOM, EventSource, and fetch. Everything else
+// (state / update / view) is pure. This file wires the event-driven loop:
+//
+//   raw event (SSE | DOM)  ->  dispatch(domainEvent)  ->  state = update(state, event)
+//                          ->  Idiomorph.morph(#app, view(state))  ->  postRender side effects
+//
+// DOM listeners are DELEGATED on `document`, so they survive every morph (the rendered buttons
+// are recreated, but the document-level listener is not). The textarea is preserved across
+// morphs by id + ignoreActiveValue, so typing is never clobbered by an incoming server event.
+
+import { initialState } from './state.js';
+import { update } from './update.js';
+import { view } from './view.js';
+import { sendChat, resetConversation, fetchFiles, uploadFile, fetchFileContent } from './effects.js';
+import { Idiomorph } from './idiomorph.js';
+
+let state = initialState;
+
+function render() {
+  Idiomorph.morph(document.getElementById('app'), view(state), { ignoreActiveValue: true });
+  postRender();
+}
+
+function dispatch(event) {
+  state = update(state, event);
+  render();
+}
+
+// Side effects that must run after the DOM reflects the new state.
+function postRender() {
+  // In a conversation, `content` is the scroll container (the composer is a sticky child of it),
+  // so the auto-scroll-to-bottom targets content, not thread. On the empty state content does not
+  // overflow, so this is a harmless no-op.
+  const scroller = document.getElementById('content');
+  if (scroller) scroller.scrollTop = scroller.scrollHeight;
+  autogrow();
+}
+
+function autogrow() {
+  const input = document.getElementById('input');
+  if (!input) return;
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 240) + 'px';
+}
+
+// ---- intents (orchestrate effects, then dispatch follow-up events) ----
+async function submitTurn() {
+  const input = document.getElementById('input');
+  const message = input.value.trim();
+  if (!message || state.status === 'working') return;
+  input.value = '';
+  autogrow();
+  dispatch({ type: 'status-changed', state: 'working' }); // optimistic; SSE confirms
+  const res = await sendChat(message);
+  // The user echo, assistant reply, and idle status all arrive over SSE. Here we only handle
+  // the cases SSE won't tell us about: a rejected or failed POST.
+  if (res.status === 409) {
+    dispatch({ type: 'error-raised', text: 'A turn is already in progress — wait for the reply.' });
+  } else if (!res.ok && res.status !== 204) {
+    dispatch({ type: 'error-raised', text: `Send failed (${res.status}).` });
+    dispatch({ type: 'status-changed', state: 'idle' });
+  }
+}
+
+async function newChat() {
+  const res = await resetConversation();
+  if (res.ok) dispatch({ type: 'conversation-reset' }); // server also broadcasts `reset`
+  loadFiles(); // the workspace persists across New chat; refetch so the mirror is current
+  document.getElementById('input')?.focus();
+}
+
+// Pull the workspace mirror (Rung B). Driven on boot, after a reset, and on every `workspace`
+// nudge from the server (push the signal, pull the data). Failures are non-fatal — the next
+// nudge retries; a stale list is better than a crash.
+async function loadFiles() {
+  try {
+    const res = await fetchFiles();
+    if (res.ok) dispatch({ type: 'files-loaded', files: await res.json() });
+  } catch { /* offline / transient — leave the current list, wait for the next nudge */ }
+}
+
+// Upload dropped/picked files into /workspace/uploads/ (Rung C). Decoupled from a chat turn:
+// the files just land; on success we refetch the mirror so they appear in the Uploads section.
+// One upload pass at a time (busy guard); files go sequentially so one failure reports cleanly.
+async function uploadFiles(fileList) {
+  const files = Array.from(fileList || []);
+  if (!files.length || state.upload.busy) return;
+  dispatch({ type: 'upload-started' });
+  try {
+    for (const file of files) {
+      const res = await uploadFile(file);
+      if (!res.ok) {
+        const msg = await res.json().then((j) => j.error).catch(() => `upload failed (${res.status})`);
+        dispatch({ type: 'upload-failed', text: msg });
+        return; // stop on the first failure; the rest are abandoned
+      }
+    }
+    dispatch({ type: 'upload-succeeded' });
+    loadFiles(); // pull the mirror so the new uploads show (the server also nudges other tabs)
+  } catch {
+    dispatch({ type: 'upload-failed', text: 'upload failed — network error' });
+  }
+}
+
+// Open the file viewer (Rung D): mark it opening, fetch the content, then fill it (or fail). The
+// content is escaped at render, so a malicious file can't inject markup. A failed read shows the
+// server's reason (404/403) rather than silently doing nothing.
+async function openViewer(dir, name) {
+  if (!dir || !name) return;
+  dispatch({ type: 'viewer-opened', dir, name });
+  try {
+    const res = await fetchFileContent(dir, name);
+    if (!res.ok) {
+      const msg = await res.json().then((j) => j.error).catch(() => `could not open (${res.status})`);
+      dispatch({ type: 'viewer-failed', text: msg });
+      return;
+    }
+    const f = await res.json();
+    dispatch({ type: 'viewer-loaded', text: f.text, size: f.size, binary: f.binary, truncated: f.truncated });
+  } catch {
+    dispatch({ type: 'viewer-failed', text: 'could not open — network error' });
+  }
+}
+
+// ---- raw DOM events (delegated on document → survive morphs) ----
+document.addEventListener('click', (e) => {
+  if (e.target.closest('#collapse')) dispatch({ type: 'sidebar-toggled' });
+  else if (e.target.closest('#newChat')) newChat();
+  else if (e.target.closest('#dropzone')) document.getElementById('filePicker')?.click();
+  else if (e.target.closest('[data-close-viewer]')) dispatch({ type: 'viewer-closed' });
+  else {
+    const row = e.target.closest('.file-row'); // click a workspace file → open the viewer (Rung D)
+    if (row) openViewer(row.dataset.dir, row.dataset.name);
+  }
+});
+document.addEventListener('change', (e) => {
+  if (e.target.id === 'filePicker') { uploadFiles(e.target.files); e.target.value = ''; }
+});
+// Drag-and-drop onto the dropzone. We preventDefault on dragover at the window level so a stray
+// drop never makes the browser navigate to the file; the drop only uploads when it lands on the
+// dropzone. The hover highlight is transient browser-only UI (toggled directly, like autogrow) —
+// it isn't application state, so it never goes through the reducer.
+document.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  e.target.closest('#dropzone')?.classList.add('dragover');
+});
+document.addEventListener('dragleave', (e) => {
+  if (e.target.closest('#dropzone') && !e.relatedTarget?.closest('#dropzone')) {
+    e.target.closest('#dropzone').classList.remove('dragover');
+  }
+});
+document.addEventListener('drop', (e) => {
+  e.preventDefault();
+  const zone = e.target.closest('#dropzone');
+  if (!zone) return;
+  zone.classList.remove('dragover');
+  uploadFiles(e.dataTransfer?.files);
+});
+document.addEventListener('submit', (e) => {
+  if (e.target.id === 'composer') { e.preventDefault(); submitTurn(); }
+});
+document.addEventListener('keydown', (e) => {
+  if (e.target.id === 'input' && e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitTurn(); }
+  else if (e.key === 'Escape' && state.viewer.open) dispatch({ type: 'viewer-closed' }); // close the viewer
+});
+document.addEventListener('input', (e) => {
+  if (e.target.id === 'input') autogrow(); // transient input UI; not application state
+});
+
+// ---- raw SSE events → normalized domain events ----
+const es = new EventSource('/events');
+es.addEventListener('user', (e) => dispatch({ type: 'user-said', text: JSON.parse(e.data).text }));
+es.addEventListener('message', (e) => dispatch({ type: 'assistant-said', text: JSON.parse(e.data).text }));
+es.addEventListener('trace', (e) => dispatch({ type: 'trace-appended', text: JSON.parse(e.data).text }));
+es.addEventListener('error', (e) => { if (e.data) dispatch({ type: 'error-raised', text: JSON.parse(e.data).message }); });
+es.addEventListener('status', (e) => dispatch({ type: 'status-changed', state: JSON.parse(e.data).state }));
+es.addEventListener('reset', () => dispatch({ type: 'conversation-reset' }));
+es.addEventListener('workspace', () => loadFiles()); // a turn may have changed /workspace — refetch
+
+// ---- boot ----
+render();
+loadFiles(); // populate the workspace mirror on first paint
+document.getElementById('input')?.focus();

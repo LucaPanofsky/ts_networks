@@ -1,0 +1,3 @@
+#!/bin/sh
+# Parse + validate a .tsn program (syntax + Ohm grammar bodies). First gate.
+exec tsx /app/ts-networks/scripts/check.ts "$@"

@@ -1,0 +1,115 @@
+// Parsing the treaty "totally" WITH title grouping — Route B, no fold.
+//
+// defextract scans the TITLE blocks (each TITLE line + its rows, up to the next
+// TITLE). The shared column header sits BEFORE the first TITLE, so it lands in no
+// block — which is why each block can be read by a DECLARED (headerless) TTable that
+// maps columns by declaration order. Grouping the rows under their title falls out of
+// defextract's span recursion; no fold, no new operation.
+//
+// Run:
+//   npx tsx scripts/run.ts examples/treaty_table/treaty_total.tsn extractTotal \
+//     doc="$(jq -Rs . examples/treaty_table/treaty_extract.txt)"
+
+defrecord Equivalence
+  old:    String?;
+  lisbon: String?;
+  newNum: String?;
+end
+
+// Declared (headerless) TTable: each title block has no column header, so columns are
+// positional by declaration order.
+TTable Rows
+  row: Equivalence;
+  cell: '|';
+  header old;
+  header lisbon;
+  header newNum;
+end
+
+// The title row is itself a 3-column row, so it gets its own record — the section
+// title as it reads in each numbering column (they differ for TITLE II).
+defrecord TitleRow
+  old:    String?;
+  lisbon: String?;
+  newNum: String?;
+end
+
+// A title block: `title` is the section title (a record, filled by parsing the title
+// line); `rows` are the article rows (the TTable consumes the title line as the block's
+// header). Both nest via defextract — the grammars themselves stay flat.
+defrecord TitleGroup
+  title: TitleRow?;
+  rows:  [Equivalence?];
+end
+
+defrecord Annex
+  title:   String?;
+  section: String?;        // "A. Treaty on European Union" (the full annex also has a "B.")
+  columns: [String?];      // the three column headers (Old / Lisbon / New numbering)
+  groups:  [TitleGroup?];
+end
+
+// Captures the annex title, the section label, and the column-header row; its match
+// span is the whole input (the title blocks are scanned from there).
+defgrammar Annex
+  signature: from [String?(text)] to Annex?;
+  """
+  Annex {
+    annex     = "ANNEX" spaces title spaces section spaces headerRow rest
+    title     = (~nl any)+
+    section   = (~nl any)+
+    headerRow = (columns sep)+
+    columns   = (~sep ~nl any)*
+    sep       = " | " | " |"
+    rest      = any*
+    nl        = "\n"
+  }
+  """
+end
+
+// One title block: from a "TITLE" line up to the next "TITLE" (or end). Captures
+// nothing — it only delimits the span; `title` and `rows` are filled by the binds below.
+defgrammar TitleBlock
+  signature: from [String?(text)] to TitleGroup?;
+  """
+  TitleBlock {
+    block     = "TITLE" (~nl any)* body
+    body      = (~nextTitle any)*
+    nextTitle = nl "TITLE"
+    nl        = "\n"
+  }
+  """
+end
+
+// Parses ONE title line into a TitleRow (flat: old/lisbon/newNum, trimmed on the
+// " | " separator); `rest` swallows the block's article rows, which this grammar
+// ignores. defextract's `parse` then nests the result into TitleGroup.title.
+defgrammar TitleRow
+  signature: from [String?(text)] to TitleRow?;
+  """
+  TitleRow {
+    titleRow = old sep lisbon sep newNum sep rest
+    old      = (~sep ~nl any)*
+    lisbon   = (~sep ~nl any)*
+    newNum   = (~sep ~nl any)*
+    sep      = " | " | " |"
+    rest     = any*
+    nl       = "\n"
+  }
+  """
+end
+
+defextract TreatyTotal
+  within Annex using grammar/Annex
+    scan TitleGroup as groups using grammar/TitleBlock;
+    within groups
+      parse TitleRow as title using grammar/TitleRow;
+      scan Equivalence as rows using TTable/Rows;
+    end
+  end
+end
+
+defnetwork extractTotal
+  signature: from [doc] to annex;
+  propagate extract/TreatyTotal from [doc] to annex;
+end

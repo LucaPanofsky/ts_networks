@@ -1,0 +1,54 @@
+// Legal-citation extraction with defgrammar.
+//
+// A defgrammar carries an Ohm grammar verbatim in a triple-quoted blob. Its optional
+// signature — the same `from [Pred?(name)] to Type` shape as defn/defllmfn — binds a
+// match to a record. The grammar is then callable as `grammar/<name>`, exactly like a
+// network is callable as `network/<name>`.
+//
+// The return type chooses the mode:
+//   • scalar `to Citation?`   → parse the WHOLE string into one record (Contradiction on failure)
+//   • vector `to [Citation?]` → SCAN, returning every embedded match as an array
+//
+// Run:
+//   npx tsx scripts/run.ts examples/citations.tsn parseCitation    "text='17 U.S.C. § 106'"
+//   npx tsx scripts/run.ts examples/citations.tsn extractCitations "doc='see 17 U.S.C. § 106 and 35 U.S.C. § 271'"
+
+defrecord Citation
+  title:   String?;
+  section: String?;
+end
+
+// Field rules (`title`, `section`) are named to match the record fields, so each one's
+// matched text is captured into the corresponding field. The "U.S.C."/"§" literals live
+// in the parent rule, so they are not captured.
+defgrammar Cite
+  signature: from [String?(text)] to Citation?;
+  """
+  Cite {
+    cite    = title spaces "U.S.C." spaces "§" spaces section
+    title   = digit+
+    section = digit+
+  }
+  """
+end
+
+defgrammar CiteScan
+  signature: from [String?(text)] to [Citation?];
+  """
+  CiteScan {
+    cite    = title spaces "U.S.C." spaces "§" spaces section
+    title   = digit+
+    section = digit+
+  }
+  """
+end
+
+defnetwork parseCitation
+  signature: from [text] to citation;
+  propagate grammar/Cite from [text] to citation;
+end
+
+defnetwork extractCitations
+  signature: from [doc] to citations;
+  propagate grammar/CiteScan from [doc] to citations;
+end

@@ -1,0 +1,3 @@
+#!/bin/sh
+# Decode a /workspace PDF to text: tsn-pdf <file>.pdf  -> writes /workspace/<file>.txt
+exec tsx /app/ts-networks/scripts/pdf.ts "$@"

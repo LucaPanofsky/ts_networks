@@ -1,0 +1,171 @@
+// GoRails-style invoice → a structured Invoice record.
+//
+// The source PDF (example_invoice.pdf), the extracted text it runs on
+// (example_invoice.txt), and the structured output (result.json) are all bundled in
+// this folder so the example is self-contained and reproducible.
+//
+// Authored from two reads of the PDF:
+//   • the rendered PDF (the image) gives the LAYOUT the flat text drops — a two-column
+//     header (invoice metadata + seller on the left, "Bill To" on the right), a line-item
+//     table, then the totals block;
+//   • the extracted .txt (WORKSPACE/example_invoice.txt) is the SUBSTRATE this program
+//     runs on — content-order text, one field per line.
+//
+// Shape of the design:
+//   - one root `Invoice` grammar parses the whole document and captures the labelled
+//     scalar fields (number, dates, status, subtotal, tax, amount due) by anchoring on
+//     their labels;
+//   - two block grammars (Seller / BillTo) each parse the whole document but capture only
+//     their column's lines — anchored on the "Status" line and the "Bill To" marker;
+//   - one `LineItem` grammar recognises a single table row (`desc $unit qty $amount`); the
+//     defextract `scan` verb finds every such row. Totals lines ("Subtotal $19.00", …) have
+//     only one money column, so they never match — the shape itself separates items from
+//     totals.
+//   - `defextract` plumbs the three sub-records/lists onto the root.
+//
+// Run:
+//   npx tsx scripts/pdf.ts example_invoice.pdf          # (re)generate the .txt
+//   npx tsx scripts/run.ts examples/invoice_example/invoice.tsn extractInvoice doc=@example_invoice.txt
+//
+// The structured result is captured alongside this file as result.json.
+
+defrecord Party
+  name:     String?;
+  street:   String?;
+  cityLine: String?;
+  phone:    String?;     // optional — the Bill To block carries no phone
+  email:    String?;
+end
+
+defrecord LineItem
+  description: String?;
+  unitCost:    String?;
+  quantity:    String?;
+  amount:      String?;
+end
+
+defrecord Invoice
+  invoiceNumber: String?;
+  issueDate:     String?;
+  dueDate:       String?;
+  status:        String?;
+  seller:        Party?;
+  billTo:        Party?;
+  items:         [LineItem?];
+  subtotal:      String?;
+  taxRate:       String?;
+  amountDue:     String?;
+end
+
+// Root recogniser: parses the entire document, capturing the labelled scalar fields.
+// The seller/billTo/items regions are skipped here (filled by the defextract binds).
+defgrammar Invoice
+  signature: from [String?(text)] to Invoice?;
+  """
+  Invoice {
+    doc =
+      skipToNumber
+      "Invoice Number " invoiceNumber nl
+      "Issue Date " issueDate nl
+      "Due Date " dueDate nl
+      "Status " status nl
+      skipToSubtotal
+      "Subtotal " subtotal nl
+      "Tax Rate " taxRate nl
+      "Amount Due " amountDue nl
+      trailer
+
+    skipToNumber   = (~"Invoice Number " any)*
+    skipToSubtotal = (~"Subtotal " any)*
+    trailer        = any*
+
+    invoiceNumber = line
+    issueDate     = line
+    dueDate       = line
+    status        = line
+    subtotal      = line
+    taxRate       = line
+    amountDue     = line
+
+    line = (~nl any)+
+    nl   = "\n"
+  }
+  """
+end
+
+// The seller block: the five lines after the "Status" line, up to "Bill To".
+defgrammar Seller
+  signature: from [String?(text)] to Party?;
+  """
+  Seller {
+    doc        = preamble name nl street nl cityLine nl phone nl email nl rest
+    preamble   = (~statusLine any)* statusLine
+    statusLine = "Status " (~nl any)+ nl
+
+    name     = line
+    street   = line
+    cityLine = line
+    phone    = line
+    email    = line
+
+    rest = any*
+    line = (~nl any)+
+    nl   = "\n"
+  }
+  """
+end
+
+// The Bill To block: the lines after the "Bill To" marker. No phone column, so `phone`
+// is left empty on the resulting Party.
+defgrammar BillTo
+  signature: from [String?(text)] to Party?;
+  """
+  BillTo {
+    doc      = preamble name nl street nl cityLine nl email nl rest
+    preamble = (~marker any)* marker
+    marker   = "Bill To" nl
+
+    name     = line
+    street   = line
+    cityLine = line
+    email    = line
+
+    rest = any*
+    line = (~nl any)+
+    nl   = "\n"
+  }
+  """
+end
+
+// One line-item row: `<description> $<unitCost> <quantity> $<amount>`. The two money
+// columns are what distinguish a real item row from the single-amount totals lines, so a
+// scan over the whole document picks out only the items.
+defgrammar LineItem
+  signature: from [String?(text)] to LineItem?;
+  """
+  LineItem {
+    item        = description " " unitCost " " quantity " " amount
+    description = (~moneyGap ~nl any)+
+    moneyGap    = " $"
+    unitCost    = money
+    amount      = money
+    quantity    = digit+
+    money       = "$" digit+ "." digit+
+    nl          = "\n"
+  }
+  """
+end
+
+// Plumb the three structural fields onto the root Invoice.
+defextract InvoiceDoc
+  within Invoice using grammar/Invoice
+    parse Party as seller using grammar/Seller;
+    parse Party as billTo using grammar/BillTo;
+    scan LineItem as items using grammar/LineItem;
+  end
+end
+
+defnetwork extractInvoice
+  signature: from [doc] to invoice;
+  propagate extract/InvoiceDoc from [doc] to invoice;
+end

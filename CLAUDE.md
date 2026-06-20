@@ -1,64 +1,54 @@
 # ts-networks — Claude Code Instructions
 
-## How to
+ts-networks is a **propagation-network runtime** hosting a small language parsed with **Lezer**.
+The language has three layers: **types** (records and predicates), **functions** (pure
+computation), and **networks** that wire functions together into propagator graphs. See
+[`README.md`](README.md) for a short introduction to the project.
 
-All scripts live in `scripts/` and are thin CLI adapters over the operations in `src/operations/`. Each takes a `.tsn` source file as its first argument.
+See the [`examples/`](examples/) folder for a quick tour of the language's features through small
+programs you can run and adapt — geometry and search networks, document/table extraction, and an
+LLM-function pipeline, among others.
 
-**Parse a program and inspect the AST:**
+**Current direction**
+
+We are developing **Gavagai** — a containerized Claude Code instance that authors `.tsn` programs
+using the language's own runtime and tools, isolated so it can *use* the language but not change
+it (the read-only mount is OS-enforced). It runs headless or as an interactive web chat. See
+[`documentation/lang_agent.md`](documentation/lang_agent.md) for the design.
+
+
+## Documentation & how-to guides
+
+The project is documented in the [`documentation/`](documentation/) folder.
+
+In [`documentation/how_to/`](documentation/how_to/) you will find knowledge about:
+
+- [`defining_grammars.md`](documentation/how_to/defining_grammars.md) — write a `defgrammar` (Ohm) that turns text into records.
+- [`extracting_documents.md`](documentation/how_to/extracting_documents.md) — compose grammars into a `defextract` that produces a nested tree of records.
+- [`extracting_tables.md`](documentation/how_to/extracting_tables.md) — read delimited text tables into records with a `TTable`, standalone or as a `defextract` leaf.
+- [`programmatic_agent_extraction.md`](documentation/how_to/programmatic_agent_extraction.md) — the agent playbook for taking a raw PDF from zero to a working `.tsn` extractor (the two-read loop, the verify loop, design heuristics); links down to the construct how-tos above.
+- [`extending_the_language.md`](documentation/how_to/extending_the_language.md) — add a new construct to the DSL, stage by stage (grammar → AST → tree-to-network → types → checker).
+- [`extending_lang_agent_ui.md`](documentation/how_to/extending_lang_agent_ui.md) — add a feature to the Gavagai chat UI through its event-driven functional (re-frame) architecture.
+- [`mcp_server.md`](documentation/how_to/mcp_server.md) — expose the program-reasoning operations to an external agent over stdio (MCP).
+- [`working_with_the_scripts.md`](documentation/how_to/working_with_the_scripts.md) — the full reference for the `scripts/` CLI adapters (`parse`/`check`/`typecheck`/`run`/`compile-schemas`/`diagram`/`pdf`), with examples and `cell=`/`@file` seeding.
+- [`tunnel_file.md`](documentation/how_to/tunnel_file.md) — the format and maintenance of `CLAUDE_TUNNEL.md`, the hand-maintained handoff that tunnels a fresh agent to the live edge of development.
+
+## Working with the scripts
+
+The `scripts/` directory holds thin CLI adapters over the operations in `src/operations/`, each
+taking a `.tsn` file as its first argument. The everyday verify loop while authoring is:
+
 ```bash
-npx tsx scripts/parse.ts <file.tsn>
+npx tsx scripts/check.ts <file.tsn>       # parses? (syntax + grammar bodies)
+npx tsx scripts/typecheck.ts <file.tsn>   # types agree across the program?
+npx tsx scripts/run.ts <file.tsn> <networkName> [cell=jsExpr | cell=@file.txt ...]
 ```
 
-**Check a file parses without errors:**
-```bash
-npx tsx scripts/check.ts <file.tsn>
-```
-
-**Type-check a file (conflicting types, unknown predicates, input mismatches):**
-```bash
-npx tsx scripts/typecheck.ts <file.tsn>
-```
-
-**Emit JSON Schemas for all `defrecord` types (usable as LLM structured-output schemas):**
-```bash
-npx tsx scripts/compile-schemas.ts <file.tsn>
-```
-
-**Run a network with seeded cell values:**
-```bash
-npx tsx scripts/run.ts <file.tsn> <networkName> [cell=jsExpr ...]
-```
-
-Cell values are evaluated as JavaScript expressions in the program's sandbox, so constructors and predicates defined in the program are available:
-```bash
-npx tsx scripts/run.ts examples/geometry.tsn rectangleMetrics 'rect={width:3,height:4}'
-```
-
-Alternatively, `cell=@filename` seeds the **raw text** of a file from the `WORKSPACE/` directory (read verbatim as a string, *not* evaluated as JS) — the way to feed a real document (e.g. the `.txt` produced by `pdf-to-text`) into a network:
-```bash
-npx tsx scripts/run.ts extract.tsn extractInvoice doc=@example_invoice.txt
-```
-
-**Render a network as a Mermaid diagram (cells, operations, switch cond/value labels, explicit recursion):**
-```bash
-npx tsx scripts/diagram.ts <file.tsn> [networkName] [live]
-```
-
-`networkName` is optional when the program defines exactly one network. Pass the literal word `live` to get a `mermaid.live` editor link instead of the raw diagram string. Only requires the source to *parse* (and contain the network) — it reads structure, not types, so the referenced functions need not be defined:
-```bash
-npx tsx scripts/diagram.ts examples/search.tsn live
-```
-
-**Extract text from a PDF in the workspace:**
-```bash
-npx tsx scripts/pdf.ts <file.pdf>
-```
-
-Reads `<file.pdf>` from the `WORKSPACE/` directory, decodes it to text, and writes `<file>.txt` alongside it (pages separated by `--- page N ---`). Set `TSN_WORKSPACE` to point at a different workspace root. Unlike the other scripts, the argument is a PDF filename *in the workspace*, not a `.tsn` source file. Also available as the `pdf-to-text` MCP tool.
-
-All scripts print `ok` (or a JSON result) on success and exit with code 1 on failure.
-
-**Extracting structured data from a PDF?** Read [`documentation/how_to/programmatic_agent_extraction.md`](documentation/how_to/programmatic_agent_extraction.md) first — the agent playbook for taking a raw PDF request from zero to a working `.tsn` extractor (the two-read authoring loop, the verify loop, and the design heuristics). It links down to the construct-level how-tos in `documentation/how_to/`.
+Run them in that order (a parse error makes a type error meaningless). For the rest —
+`parse`/`compile-schemas`/`diagram`/`pdf`, `cell=`/`@file` seeding, and worked examples — see
+[`documentation/how_to/working_with_the_scripts.md`](documentation/how_to/working_with_the_scripts.md).
+Extracting structured data from a PDF? Start with the
+[extraction playbook](documentation/how_to/programmatic_agent_extraction.md).
 
 ---
 
@@ -102,6 +92,16 @@ Note the bare `npx tsc --noEmit` checks only `src/` (the root tsconfig's `includ
 
 ---
 
+## Non-negotiable: keep the agent knowledge base in sync
+
+The containerized authoring agent ships with a **curated, hand-maintained knowledge base** (`docker/knowledge/` — a wiki baked read-only into the agent image, distinct from `documentation/`, which serves humans too). It is **not** generated from `documentation/`, so it does **not** update itself.
+
+**Whenever you add or change a language feature** — a new construct, a changed `defgrammar`/`defextract`/`TTable` behavior, a new operation/script, a renamed verb, a new pitfall — you **must** update the agent knowledge base in the same change. A stale KB silently teaches the agent the old language. Treat it like a test fixture: the work is not done until the KB reflects the new behavior.
+
+Concretely, when a language change lands, check and update as needed: the relevant `docker/knowledge/*.md` page(s), the distilled `language-core.md`, the bundled example `.tsn` files, and the agent's `docker/agent-home/CLAUDE.md` if the authoring loop or verify commands changed. (This is the accepted maintenance cost of hand-curation; the upside is a sharp, agent-only KB free of dev-process noise.)
+
+---
+
 ## Test methodology
 
 When writing or reviewing tests for a module, derive coverage from four categories:
@@ -122,13 +122,6 @@ The purpose is to elicit hidden assumptions and useful knowledge that may be los
 Whenever behavior or relevant information is not clear neither from tests nor types, it means that we are relying on some non obvious hidden assumptions. In those situations, dedicated unit and negative tests are welcome.
 
 A good strategy for implementing a new feature is to adopt a functional perspective. A good implementation extracts the core logic into a, possibly pure, implementation that is easy to test in isolation, providing enough confidence that further integrations will succeed. In those cases, design test cases thoroughly before implementing.
-
-## Review discipline
-
-When reviewing your work, understand the scope and the context of the change. 
-Verify that the implementation respect the principles described here and that is well aligned with the rest of the codebase.
-
-Identify small weaknesses and simple things that can be fixed easily, report to the user issues or other concerns for which you are not entitled to decide. 
 
 ## Algebraic Properties
 
