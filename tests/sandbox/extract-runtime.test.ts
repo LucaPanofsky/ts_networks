@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseProgram } from "../../src/data-network/tree-to-network.js";
-import { createSandbox } from "../../src/sandbox/jsgen/runtime.js";
+import { recordCtorSandbox } from "../../src/sandbox/record-sandbox.js";
 import { compileGrammar } from "../../src/sandbox/grammar-runtime.js";
 import { compileExtract } from "../../src/sandbox/extract-runtime.js";
 
@@ -78,7 +78,7 @@ const text = readFileSync(join(__dirname, "../../repo_workspace/examples/gdpr_ar
 // Build the grammar leaves (impl + span-aware scan) and compile the extract against them.
 function buildExtract() {
   const program = parseProgram(dsl);
-  const sandbox = createSandbox(program);
+  const sandbox = recordCtorSandbox(program.records);
   const leaves: Record<string, { impl: (...a: unknown[]) => unknown; scan?: ReturnType<typeof compileGrammar>["scan"] }> = {};
   for (const g of program.grammars) {
     const { impl, scan } = compileGrammar(g, program, sandbox);

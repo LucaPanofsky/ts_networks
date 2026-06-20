@@ -1,17 +1,17 @@
-import { compile } from "../../../src/sandbox/jsgen/index.js";
-import { Something, Contradiction, Nothing } from "../../../src/info-structure.js";
-import { APromise } from "../../../src/information-structures/apromise.js";
-import { callLLMFn } from "../../../src/sandbox/llmfn-client.js";
+import { buildNetworks } from "../helpers/build-networks.js";
+import { Something, Contradiction, Nothing } from "../../src/info-structure.js";
+import { APromise } from "../../src/information-structures/apromise.js";
+import { callLLMFn } from "../../src/sandbox/llmfn-client.js";
 
-// `propagate <fn> as mapping from [xs] to ys` coerces the fn's *application*: the
-// input cell holds a vector and the fn is mapped over its elements, gathering the
-// results back into a Something(vector). `as filtering` does the same with a
-// predicate, keeping the elements whose result is truthy. Single input only.
+// `propagate <fn> as mapping from [xs] to ys` coerces the fn's *application*: the input cell
+// holds a vector and the fn is mapped over its elements, gathering the results back into a
+// Something(vector). `as filtering` does the same with a predicate, keeping the elements whose
+// result is truthy. Single input only. These are ENGINE semantics (astToDataNetwork + the
+// mapping/filtering propagator), exercised here through a network built directly — independent
+// of which front end emitted it. (Ported from the retired jsgen suite.)
 
-jest.mock("../../../src/sandbox/llmfn-client.js", () => ({ callLLMFn: jest.fn() }));
+jest.mock("../../src/sandbox/llmfn-client.js", () => ({ callLLMFn: jest.fn() }));
 const mockCallLLMFn = callLLMFn as jest.MockedFunction<typeof callLLMFn>;
-
-const asSet = (x: unknown) => new Set(x as unknown[]);
 
 const src = `
 defn dbl
@@ -52,10 +52,10 @@ defnetwork mappedMaybe
 end
 `;
 
-const program = compile(src);
-const mapped = program.networks.get("mapped")!;
-const filtered = program.networks.get("filtered")!;
-const mappedMaybe = program.networks.get("mappedMaybe")!;
+const networks = buildNetworks(src);
+const mapped = networks.get("mapped")!;
+const filtered = networks.get("filtered")!;
+const mappedMaybe = networks.get("mappedMaybe")!;
 
 describe("propagate ... as mapping / as filtering (sync)", () => {
   // ── Capabilities ────────────────────────────────────────────────────────────
@@ -99,7 +99,7 @@ describe("propagate ... as mapping / as filtering (sync)", () => {
     expect(filtered.invoke({ xs: 5 }).cells.get("ys")!.knows()).toBeInstanceOf(Contradiction);
   });
 
-  test("mapping with more than one input is rejected at compile time, not silently dropped", () => {
+  test("mapping with more than one input is rejected at build time, not silently dropped", () => {
     const twoInput = `
       defn add
         signature: from [Number?(x), Number?(y)] to Number?;
@@ -110,7 +110,7 @@ describe("propagate ... as mapping / as filtering (sync)", () => {
         propagate add as mapping from [xs, ys] to zs;
       end
     `;
-    expect(() => compile(twoInput)).toThrow(/single vector input/);
+    expect(() => buildNetworks(twoInput)).toThrow(/single vector input/);
   });
 
   // ── Element-level collapse (invariants) ─────────────────────────────────────────
@@ -155,8 +155,7 @@ describe("propagate ... as mapping (async): parallel fan-out", () => {
     mockCallLLMFn.mockImplementation((_p, named) =>
       Promise.resolve({ __type: "Analysis", label: `${(named as { text: string }).text}-done` }),
     );
-    const { networks } = compile(asyncSrc);
-    const result = networks.get("classifyAll")!.invoke({ docs: ["a", "b", "c"] });
+    const result = buildNetworks(asyncSrc).get("classifyAll")!.invoke({ docs: ["a", "b", "c"] });
     // All three calls were issued synchronously during invoke, before any awaiting.
     expect(mockCallLLMFn).toHaveBeenCalledTimes(3);
     expect(result.cells.get("results")!.knows()).toBeInstanceOf(APromise);
@@ -166,8 +165,7 @@ describe("propagate ... as mapping (async): parallel fan-out", () => {
     mockCallLLMFn.mockImplementation((_p, named) =>
       Promise.resolve({ __type: "Analysis", label: `${(named as { text: string }).text}-done` }),
     );
-    const { networks } = compile(asyncSrc);
-    const result = networks.get("classifyAll")!.invoke({ docs: ["a", "b", "c"] });
+    const result = buildNetworks(asyncSrc).get("classifyAll")!.invoke({ docs: ["a", "b", "c"] });
     const ap = result.cells.get("results")!.knows() as APromise<unknown>;
     const resolved = (await ap.deferred.promise) as Something<unknown>;
     expect((resolved.content() as { label: string }[]).map(a => a.label)).toEqual([
@@ -182,8 +180,7 @@ describe("propagate ... as mapping (async): parallel fan-out", () => {
       .mockResolvedValueOnce({ __type: "Analysis", label: "a-done" })
       .mockRejectedValueOnce(new Error("model failure"))
       .mockResolvedValueOnce({ __type: "Analysis", label: "c-done" });
-    const { networks } = compile(asyncSrc);
-    const result = networks.get("classifyAll")!.invoke({ docs: ["a", "b", "c"] });
+    const result = buildNetworks(asyncSrc).get("classifyAll")!.invoke({ docs: ["a", "b", "c"] });
     const ap = result.cells.get("results")!.knows() as APromise<unknown>;
     const resolved = await ap.deferred.promise;
     expect(resolved).toBeInstanceOf(Contradiction);

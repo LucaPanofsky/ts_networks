@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseProgram } from "../../src/data-network/tree-to-network.js";
-import { createSandbox } from "../../src/sandbox/jsgen/runtime.js";
+import { recordCtorSandbox } from "../../src/sandbox/record-sandbox.js";
 import { compileGrammar } from "../../src/sandbox/grammar-runtime.js";
 import { compileExtract, type GrammarLeaves } from "../../src/sandbox/extract-runtime.js";
 import { Contradiction } from "../../src/info-structure.js";
@@ -78,7 +78,7 @@ end
 
 function build() {
   const program = parseProgram(dsl);
-  const sandbox = createSandbox(program);
+  const sandbox = recordCtorSandbox(program.records);
   const leaves: GrammarLeaves = {};
   for (const g of program.grammars) {
     const { impl, scan } = compileGrammar(g, program, sandbox);

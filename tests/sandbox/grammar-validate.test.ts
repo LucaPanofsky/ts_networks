@@ -1,6 +1,6 @@
 import { validateGrammarSyntax, validateGrammarSignature, compileGrammar } from "../../src/sandbox/grammar-runtime.js";
 import { parseProgram } from "../../src/data-network/tree-to-network.js";
-import { createSandbox } from "../../src/sandbox/jsgen/runtime.js";
+import { recordCtorSandbox } from "../../src/sandbox/record-sandbox.js";
 import type { GrammarAST, ProgramAST } from "../../src/data-network/types.js";
 
 // Parse a DSL program and pull out a named grammar AST. The validators are pure
@@ -164,7 +164,7 @@ describe("validators and compileGrammar stay in lockstep", () => {
     const { ast, program } = grammarOf(dsl, name);
     expect(validateGrammarSyntax(ast)).toEqual([]);
     expect(validateGrammarSignature(ast, program)).toEqual([]);
-    const sandbox = createSandbox(program);
+    const sandbox = recordCtorSandbox(program.records);
     expect(() => compileGrammar(ast, program, sandbox)).not.toThrow();
   });
 
@@ -179,7 +179,7 @@ end
     const { ast, program } = grammarOf(dsl, "Bad");
     expect(validateGrammarSyntax(ast).length).toBeGreaterThan(0);
     // compileGrammar rejects the body before touching the sandbox, so an empty one is
-    // enough to prove the throw (and createSandbox would itself throw compiling "Bad").
+    // enough to prove the throw.
     expect(() => compileGrammar(ast, program, {})).toThrow();
   });
 });

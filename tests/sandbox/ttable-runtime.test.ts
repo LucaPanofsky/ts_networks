@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseProgram } from "../../src/data-network/tree-to-network.js";
-import { createSandbox } from "../../src/sandbox/jsgen/runtime.js";
+import { recordCtorSandbox } from "../../src/sandbox/record-sandbox.js";
 import { compileTTable } from "../../src/sandbox/ttable-runtime.js";
 import { Contradiction } from "../../src/info-structure.js";
 
@@ -27,7 +27,7 @@ end
 `;
 
 function build(program = parseProgram(dsl)) {
-  const sandbox = createSandbox(program);
+  const sandbox = recordCtorSandbox(program.records);
   const ast = program.ttables[0]!;
   return compileTTable(ast, program, sandbox);
 }
@@ -80,7 +80,7 @@ TTable Headerless
   header c;
 end
 `);
-  const sandbox = createSandbox(program);
+  const sandbox = recordCtorSandbox(program.records);
   const impl = compileTTable(program.ttables[0]!, program, sandbox).impl;
 
   test("the first row is consumed as the header; the rest map positionally", () => {
@@ -127,7 +127,7 @@ TTable T
   header newNum = 'new';
 end
 `);
-    const sandbox = createSandbox(program);
+    const sandbox = recordCtorSandbox(program.records);
     const out = compileTTable(program.ttables[0]!, program, sandbox).impl(sample) as unknown[];
     expect(out).toHaveLength(3);
     expect(out[0]).toMatchObject({ __type: "R", old: "a", lisbon: "b", newNum: "c" });

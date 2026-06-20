@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseProgram } from "../../src/data-network/tree-to-network.js";
-import { createSandbox } from "../../src/sandbox/jsgen/runtime.js";
+import { recordCtorSandbox } from "../../src/sandbox/record-sandbox.js";
 import { compileGrammar } from "../../src/sandbox/grammar-runtime.js";
 
 // Point A of the defextract path: author the three Article-33 recognisers (Article
@@ -74,7 +74,7 @@ const text = readFileSync(join(__dirname, "../../repo_workspace/examples/gdpr_ar
 
 function compiled(name: string) {
   const program = parseProgram(dsl);
-  const sandbox = createSandbox(program);
+  const sandbox = recordCtorSandbox(program.records);
   const ast = program.grammars.find(g => g.name === name)!;
   return compileGrammar(ast, program, sandbox);
 }

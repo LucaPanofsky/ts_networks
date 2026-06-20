@@ -18,7 +18,7 @@ import type { ProgramAST } from "../data-network/types.js";
 // to avoid file I/O on the compile path (and an `import.meta` resolution snag under the
 // test transform); it is otherwise plain `.tsn`. Host-only primitives the language
 // cannot express live under the `math/` namespace of expression builtins (BUILTIN_DEFS
-// in `src/sandbox/jsgen/compiler.ts`); the wrappers below expose the propagatable-useful
+// in `src/language/pipeline/builtins.ts`); the wrappers below expose the propagatable-useful
 // ones as `defn`s.
 export const PRELUDE_SOURCE = `
 // ── Booleans ──────────────────────────────────────────────────────────────────

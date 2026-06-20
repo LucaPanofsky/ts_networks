@@ -1,8 +1,8 @@
 // ── THE PARSE CHOKE POINT ─────────────────────────────────────────────────────────
 //
 // `parseProgram` / `parseNetwork` are the program's single entry into parsing. Every
-// consumer — operations, the jsgen compiler, the MCP server, Gavagai — calls one of these
-// and gets back the engine's `ProgramAST` / `DataNetworkAST`.
+// consumer — operations (type-checker, schema, diagram), the MCP server, Gavagai — calls one
+// of these and gets back the engine's `ProgramAST` / `DataNetworkAST`.
 //
 // Parsing is done by the modular Ohm front end under `src/language/`: source is split into
 // per-construct blocks, each parsed by its construct module, failures normalized to the

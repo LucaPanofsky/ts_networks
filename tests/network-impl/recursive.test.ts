@@ -1,5 +1,10 @@
-import { compile } from "../../../src/sandbox/jsgen/index.js";
-import { Something } from "../../../src/info-structure.js";
+import { buildNetworks } from "../helpers/build-networks.js";
+import { Something } from "../../src/info-structure.js";
+
+// A self-recursive network: the runner's `onRecurse` turns a tail self-reference
+// (`propagate exampleSearch from [betterInput] to done`) into iteration, so it runs
+// synchronously to a fixpoint rather than spawning an async sub-network leaf. Engine
+// semantics, exercised through a network built directly. (Ported from the retired jsgen suite.)
 
 const dsl = `
 defnetwork exampleSearch
@@ -30,8 +35,7 @@ end
 `;
 
 describe("recursive networks — exampleSearch", () => {
-  const { networks } = compile(dsl);
-  const network = networks.get("exampleSearch")!;
+  const network = buildNetworks(dsl).get("exampleSearch")!;
 
   it("input 6 is already good enough — returns 6 immediately", () => {
     const result = network.invoke({ input: 6 });

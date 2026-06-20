@@ -1,13 +1,13 @@
 import { compileGrammar } from "../../src/sandbox/grammar-runtime.js";
 import { parseProgram } from "../../src/data-network/tree-to-network.js";
-import { createSandbox } from "../../src/sandbox/jsgen/runtime.js";
+import { recordCtorSandbox } from "../../src/sandbox/record-sandbox.js";
 import { Contradiction } from "../../src/info-structure.js";
 
 // Build a grammar's runtime through the real pipeline: parse the DSL, compile the
 // record constructors into a sandbox, then compile the named grammar against it.
 function build(dsl: string, grammarName: string) {
   const program = parseProgram(dsl);
-  const sandbox = createSandbox(program);
+  const sandbox = recordCtorSandbox(program.records);
   const ast = program.grammars.find(g => g.name === grammarName)!;
   return compileGrammar(ast, program, sandbox);
 }

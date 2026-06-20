@@ -71,6 +71,11 @@ export type AdaptedRegistry = Registry & {
 
 export function registry(): AdaptedRegistry {
   const backing = createRegistry();
+  // The `true?` gate predicate every predicate-less `switch` defaults to: astToDataNetwork
+  // resolves "true?" from the registry when a `switch` carries no fnRef. The engine registered
+  // it in buildRegistry; the modular runtime registers it here so a bare `switch` works in a
+  // compiled artifact (and standalone) just as it did on the engine path.
+  backing.register({ fnName: "true?", arity: 1, impl: (v: unknown) => v === true, morphism: { from: ["Any?"], to: "Boolean?" } });
   // The existing engine's registry entry has no `scan` field, so the scan-mode grammar
   // leaves keep theirs in a sibling map alongside the backing registry. Read late (at RUN
   // time) by `scanOf`, so a `defextract` compiled before its grammars still finds them.
@@ -181,10 +186,9 @@ export function extract(
 }
 
 // defllmfn — the async, memoized LLM-backed leaf. Unlike grammar/extract/ttable there is no
-// standalone engine compiler; the engine builds this leaf inline in `buildRegistry`
-// (src/sandbox/jsgen/registry.ts). We REPLICATE that closure verbatim, reusing every engine
-// piece (`deriveProtocol`, `callLLMFn`, `toolsFromConfig`, the bounded `defaultExecutor`, and
-// the `Deferred`/`APromise`/`Something`/`Contradiction` protocol). No algebra is reimplemented.
+// standalone engine compiler; this leaf is built inline here, reusing every engine piece
+// (`deriveProtocol`, `callLLMFn`, `toolsFromConfig`, the bounded `defaultExecutor`, and the
+// `Deferred`/`APromise`/`Something`/`Contradiction` protocol). No algebra is reimplemented.
 //
 //   • protocol — the structured-output JSON schema, derived from the return type over the
 //     inlined type env (records + enums + predicate fns).

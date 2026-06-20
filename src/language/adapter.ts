@@ -2,7 +2,7 @@
 //
 // The modular Ohm pipeline (this folder) parses a program into a flat bag of nodes
 // (`Program = { nodes: AstNode[] }`). The existing engine — type-checker, schema
-// compiler, jsgen, diagram — consumes the engine's `ProgramAST`, ten arrays keyed by
+// compiler, diagram — consumes the engine's `ProgramAST`, ten arrays keyed by
 // construct. This adapter folds the one into the other.
 //
 // It is sound because every modular node is STRUCTURALLY the corresponding engine AST
