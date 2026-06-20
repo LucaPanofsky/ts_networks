@@ -6,8 +6,38 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import * as path from "node:path";
 import type { SrcFile, TestFile, FileEdge, FileChurn, FileCoverage } from "./metrics.js";
+import type { GitInfo } from "./provenance.js";
 
 const ROOT = process.cwd();
+
+/** Run a git command, returning trimmed stdout or null if git fails / isn't available. */
+function git(args: string[]): string | null {
+  try {
+    return execFileSync("git", args, { cwd: ROOT, encoding: "utf8" }).trim();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Branch / commit / date / dirty for the working tree the report describes. Every field is
+ * best-effort — a non-git context (or detached HEAD) degrades to nulls rather than throwing,
+ * so the report still generates and the header shows em dashes.
+ */
+export function gatherGitInfo(): GitInfo {
+  const branch = git(["rev-parse", "--abbrev-ref", "HEAD"]);
+  const commit = git(["rev-parse", "HEAD"]);
+  const shortCommit = git(["rev-parse", "--short", "HEAD"]);
+  const commitDate = git(["log", "-1", "--format=%cs"]); // %cs = committer date, YYYY-MM-DD
+  const status = git(["status", "--porcelain"]);
+  return {
+    branch: branch || null,
+    commit: commit || null,
+    shortCommit: shortCommit || null,
+    commitDate: commitDate || null,
+    dirty: status != null && status.length > 0,
+  };
+}
 
 /** Recursively list files under `dir` (repo-relative) matching `keep`. */
 function walk(dir: string, keep: (p: string) => boolean): string[] {
