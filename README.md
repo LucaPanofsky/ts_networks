@@ -318,33 +318,37 @@ is spread across the pipeline. Two halves are worth separating:
 
 ```
 source .tsn
-  │  split → per-construct Ohm parse          [language]       concrete syntax
-  ▼  adapter.ts  (node bag → ProgramAST)      [language→data-network]
-ProgramAST
-  │  type-checker.ts     (static checks)      [data-network]
-  ▼  jsgen/*             (AST → a JS module)  [sandbox]        semantics of exprs / records / fns
-sandbox + registry
-  │  {grammar,ttable,extract}-runtime.ts      [sandbox]        semantics of the special forms
-  ▼  buildRegistry → propagators
-network                                       [network-impl]   execution: cells, propagators, runners
-  ▼  values under merge                       [info-structure + information-structures]   what values MEAN
+  │  split → per-construct Ohm parse              [language]            concrete syntax
+  ▼  pipeline/emit.ts (program → self-contained .js)  [language]       semantics of exprs / records / fns
+.js artifact  (imports @tsn/runtime)
+  │  runtime/load.ts  (eval → registry)           [language/runtime]
+registry  (records, fns, llmfns; grammars/tables/extracts as leaves)
+  │  {grammar,ttable,extract}-runtime.ts          [sandbox]            semantics of the special forms (reused)
+  ▼  rt.network → propagator graph                [language/runtime → network-impl]
+network                                           [network-impl]       execution: cells, propagators, runners
+  ▼  values under merge                           [info-structure + information-structures]   what values MEAN
+
+   (static analysis — type-check / schema / diagram — takes the same parse through
+    adapter.ts: node bag → ProgramAST → data-network/type-checker.ts)
 ```
 
-So **`data-network/` is the front end** (syntax, AST, parse, type-check), **`sandbox/` is the
-back end** (what each construct *does*, via code generation plus the grammar/table/extract
-runtimes), **`network-impl/` runs it**, and the **algebra modules** define what the resulting
-values mean under `merge`. The directory names describe *roles in the machine*, not "language",
-which is why it does not announce itself.
+There is ONE emit path: **`language/` is the front end** (syntax, parse) *and* the back end
+(`pipeline/emit.ts` emits a self-contained `.js` module against the small `@tsn/runtime` boundary;
+`runtime/load.ts` runs it). **`data-network/` holds the AST + static analysis** (the `ProgramAST`
+the type-checker / schema / diagram consume via `adapter.ts`). **`sandbox/` provides the reused
+special-form runtimes** (grammar/table/extract) and the LLM client. **`network-impl/` runs the
+graph**, and the **algebra modules** define what values mean under `merge`. The directory names
+describe *roles in the machine*, not "language", which is why it does not announce itself.
 
 The most confusing split is the **special forms** (`defgrammar`, `defextract`, `TTable`):
 their *syntax* is parsed by their own `src/language/constructs/<construct>/` module like every
 other construct, but their *behaviour* lives in `src/sandbox/{grammar,extract,ttable}-runtime.ts`.
 
 **To add or change a construct** the touch-set spans the modular front end and the engine: a
-`src/language/constructs/<construct>/` module (`grammar.ohm` + `parse.ts` + `ast.ts`, registered
-in `enums.ts` / the `MODULES` table) → `types.ts` (the AST node) → `type-checker.ts` → `jsgen/`.
+`src/language/constructs/<construct>/` module (`grammar.ohm` + `parse.ts` + `ast.ts` + `emit.ts`,
+registered in `enums.ts` / the `MODULES` table) → `types.ts` (the AST node) → `type-checker.ts`.
 That walkthrough is [Extending the language](documentation/how_to/extending_the_language.md)
-(note: that guide still documents the retired Lezer pipeline and is pending a rewrite).
+(note: that guide still documents the retired Lezer/jsgen pipeline and is pending a rewrite).
 
 ## Development
 
