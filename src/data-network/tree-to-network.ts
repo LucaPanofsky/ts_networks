@@ -1,28 +1,22 @@
-// ── THE PARSE CHOKE POINT ─────────────────────────────────────────────────────────
+// ── parseNetwork: a program's single network ────────────────────────────────────────
 //
-// `parseProgram` / `parseNetwork` are the program's single entry into parsing. Every
-// consumer — operations (type-checker, schema, diagram), the MCP server, Gavagai — calls one
-// of these and gets back the engine's `ProgramAST` / `DataNetworkAST`.
-//
-// Parsing is done by the modular Ohm front end under `src/language/`: source is split into
+// `parseNetwork` parses source and returns its first `defnetwork`. Parsing itself is done by
+// the modular Ohm front end under `src/language/` (`parseProgramStrict`: source is split into
 // per-construct blocks, each parsed by its construct module, failures normalized to the
-// `Syntax error at line X, col Y` shape, and the resulting node bag adapted to a ProgramAST.
+// `Syntax error at line X, col Y` shape); `networksOf` selects the networks from the node bag.
 //
-// (The file keeps its historical name — it once walked a Lezer parse tree into the AST. That
-// implementation, the generated Lezer parser, and the `.grammar` it came from were removed
-// once the modular front end reached parity. Renaming the file is left as cosmetic cleanup,
-// deferred to avoid churning every consumer's import path.)
+// (The file keeps its historical name — it once walked a Lezer parse tree into the AST, and was
+// the program's `parseProgram`/`ProgramAST` choke point until the modular `Program` became the
+// single program shape end-to-end. That walker, the generated Lezer parser, the `.grammar`, the
+// `Program → ProgramAST` adapter, and the `parseProgram` wrapper are all removed; renaming the
+// file is left as cosmetic cleanup, deferred to avoid churning consumer import paths.)
 
-import { toProgramAST } from "../language/adapter.js";
 import { parseProgramStrict } from "../language/parse-strict.js";
-import type { ProgramAST, DataNetworkAST } from "./types.js";
-
-export function parseProgram(input: string): ProgramAST {
-  return toProgramAST(parseProgramStrict(input));
-}
+import { networksOf } from "../language/select.js";
+import type { DataNetworkAST } from "./types.js";
 
 export function parseNetwork(input: string): DataNetworkAST {
-  const program = parseProgram(input);
-  if (program.networks.length === 0) throw new Error("No defnetwork found in input");
-  return program.networks[0]!;
+  const networks = networksOf(parseProgramStrict(input));
+  if (networks.length === 0) throw new Error("No defnetwork found in input");
+  return networks[0]!;
 }

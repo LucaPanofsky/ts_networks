@@ -1,6 +1,7 @@
 import { inflateSync } from "node:zlib";
 import { diagram, networkToMermaid, mermaidLiveUrl } from "../../src/operations/diagram.js";
-import { parseProgram } from "../../src/data-network/tree-to-network.js";
+import { parseProgramStrict as parseProgram } from "../../src/language/parse-strict.js";
+import { networksOf } from "../../src/language/select.js";
 
 // A network exercising every shape the renderer must handle: a plain propagate, a
 // 1-input switch-with-predicate, a 2-input gate switch, and a recursive propagate.
@@ -15,7 +16,7 @@ defnetwork loop
 end
 `;
 
-const net = () => parseProgram(loopSrc).networks[0]!;
+const net = () => networksOf(parseProgram(loopSrc))[0]!;
 
 describe("networkToMermaid", () => {
   const m = networkToMermaid(net());

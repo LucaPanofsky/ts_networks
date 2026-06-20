@@ -7,12 +7,13 @@
 // snippets WITHOUT the trailing ';'; the helpers add it (the body grammar requires it).
 
 import { parseExpression } from "../../src/language/expr/parse.js";
-import { parseProgram } from "../../src/data-network/tree-to-network.js";
+import { parseProgramStrict as parseProgram } from "../../src/language/parse-strict.js";
+import { fnsOf } from "../../src/language/select.js";
 import type { Expr } from "../../src/data-network/types.js";
 
 function oracle(snippet: string): Expr {
   const prog = parseProgram(`defn o signature: from to Number?; expression ${snippet}; end`);
-  return prog.fns[0]!.body;
+  return fnsOf(prog)[0]!.body;
 }
 
 function check(snippet: string): void {

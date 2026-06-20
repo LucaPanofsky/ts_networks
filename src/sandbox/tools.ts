@@ -16,7 +16,7 @@
 // `buildRegistry`, `compile`). Resolution itself is generic over a registry, so
 // both layers reuse the exact same code — only the registry they pass differs.
 
-import { parseProgram } from "../data-network/tree-to-network.js";
+import { parseProgramStrict } from "../language/parse-strict.js";
 
 export type ToolInput = Record<string, unknown>;
 
@@ -63,7 +63,7 @@ export const parseTool: LLMFnTool = {
   run: (input: ToolInput) => {
     const source = typeof input.source === "string" ? input.source : "";
     try {
-      parseProgram(source);
+      parseProgramStrict(source);
       return { ok: true };
     } catch (e) {
       return { ok: false, error: e instanceof Error ? e.message : String(e) };

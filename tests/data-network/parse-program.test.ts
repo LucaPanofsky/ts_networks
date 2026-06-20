@@ -1,14 +1,21 @@
-import { parseProgram } from "../../src/data-network/tree-to-network.js";
+import { parseProgramStrict as parseProgram } from "../../src/language/parse-strict.js";
+import {
+  recordsOf, fnsOf, networksOf, derivesOf, llmFnsOf,
+  grammarsOf, extractsOf, ttablesOf, parametersOf, enumsOf,
+} from "../../src/language/select.js";
 import type { BinaryExpr, CallExpr, FieldExpr, FnAST, LetExpr, MatchExpr, RecordAST, UnaryExpr } from "../../src/data-network/types.js";
 
-// `parseProgram` is the modular front end now; a well-formed program parses without throwing
-// (the engine's Lezer parser, which surfaced errors as `⚠` nodes, is gone).
+// `parseProgram` is the modular front end now (the strict wrapper that fails in the engine's
+// `Syntax error at line X, col Y` format); it returns the modular `Program = { nodes }` bag.
+// Field access goes through the `select.ts` selectors (`fnsOf`/`recordsOf`/…), the lazy
+// replacement for the removed `ProgramAST` grouping. A well-formed program parses without
+// throwing (the engine's Lezer parser, which surfaced errors as `⚠` nodes, is gone).
 function noErrorNodes(src: string) {
   expect(() => parseProgram(src.trim())).not.toThrow();
 }
 
 function parseFnBody(expr: string) {
-  return parseProgram(`defn f signature: from to Number?; expression ${expr}; end`).fns[0]!.body;
+  return fnsOf(parseProgram(`defn f signature: from to Number?; expression ${expr}; end`))[0]!.body;
 }
 
 // ── defrecord ─────────────────────────────────────────────────────────────────
@@ -22,7 +29,7 @@ end
 `;
 
 describe("parseProgram: defrecord", () => {
-  const rec = parseProgram(recordInput).records[0]! as RecordAST;
+  const rec = recordsOf(parseProgram(recordInput))[0]! as RecordAST;
 
   test("structure", () => {
     expect(rec.name).toBe("Point");
@@ -46,7 +53,7 @@ end
 `;
 
 describe("parseProgram: defn", () => {
-  const fn = parseProgram(fnSimple).fns[0]! as FnAST;
+  const fn = fnsOf(parseProgram(fnSimple))[0]! as FnAST;
 
   test("structure", () => {
     expect(fn.name).toBe("add");
@@ -79,7 +86,7 @@ end
 `;
 
 describe("parseProgram: defn interpolate body", () => {
-  const fn = parseProgram(fnInterpolate).fns[0]! as FnAST;
+  const fn = fnsOf(parseProgram(fnInterpolate))[0]! as FnAST;
 
   test("body is an interpolate node carrying the trimmed template verbatim", () => {
     // The triple quotes are stripped; the inner text (including the literal single
@@ -105,13 +112,13 @@ end
 
 describe("parseProgram: defn no params", () => {
   test("empty params and return type", () => {
-    const fn = parseProgram(fnNoParams).fns[0]!;
+    const fn = fnsOf(parseProgram(fnNoParams))[0]!;
     expect(fn.params).toHaveLength(0);
     expect(fn.returnType).toEqual({ kind: "scalar", predicate: "Number?" });
   });
 
   test("body is literal", () => {
-    expect(parseProgram(fnNoParams).fns[0]!.body).toEqual({ kind: "literal", value: 3 });
+    expect(fnsOf(parseProgram(fnNoParams))[0]!.body).toEqual({ kind: "literal", value: 3 });
   });
 });
 
@@ -218,7 +225,7 @@ end
 
 describe("parseProgram: defpredicate", () => {
   test("isPredicate is true", () => {
-    expect(parseProgram(predicateSimple).fns[0]!.isPredicate).toBe(true);
+    expect(fnsOf(parseProgram(predicateSimple))[0]!.isPredicate).toBe(true);
   });
 
   test("no error nodes", () => noErrorNodes(predicateSimple));
@@ -238,7 +245,7 @@ end
 
 describe("parseProgram: let", () => {
   test("structure", () => {
-    const body = parseProgram(fnWithLet).fns[0]!.body as LetExpr;
+    const body = fnsOf(parseProgram(fnWithLet))[0]!.body as LetExpr;
     expect(body.kind).toBe("let");
     expect(body.bindings).toEqual([
       { name: "a", value: { kind: "binary", op: "+", left: { kind: "var", name: "x" }, right: { kind: "var", name: "y" } } },
@@ -252,7 +259,7 @@ describe("parseProgram: let", () => {
 
 describe("parseProgram: let — no bindings leaves body as plain Expr", () => {
   test("body kind is binary (not let)", () => {
-    expect(parseProgram(fnSimple).fns[0]!.body.kind).toBe("binary");
+    expect(fnsOf(parseProgram(fnSimple))[0]!.body.kind).toBe("binary");
   });
 });
 
@@ -278,9 +285,9 @@ end
 describe("parseProgram: multi-definition document", () => {
   test("all definitions parsed", () => {
     const prog = parseProgram(multiInput);
-    expect(prog.networks[0]!.name).toBe("myNet");
-    expect(prog.records[0]!.name).toBe("Vec2");
-    expect(prog.fns[0]!.name).toBe("length");
+    expect(networksOf(prog)[0]!.name).toBe("myNet");
+    expect(recordsOf(prog)[0]!.name).toBe("Vec2");
+    expect(fnsOf(prog)[0]!.name).toBe("length");
   });
 
   test("no error nodes", () => noErrorNodes(multiInput));
@@ -295,9 +302,14 @@ derive GradStudent? from Student?;
 
 describe("parseProgram: derive", () => {
   test("structure", () => {
-    expect(parseProgram(deriveInput).derives).toEqual([
-      { kind: "derive", sub: "Student?",    sup: "Person?"  },
-      { kind: "derive", sub: "GradStudent?", sup: "Student?" },
+    // The modular DeriveNode carries a synthetic `name` — its combine/registry key
+    // (`combine.ts:registryKey` keys derives on it). The old engine `DeriveAST` omitted
+    // the name; with that type deleted, the modular node is the single shape and the name
+    // is retained verbatim by `derivesOf` (no stripping). `derive` subsumption is dormant —
+    // nothing consumes `derivesOf` in production yet, so this pins the carried shape.
+    expect(derivesOf(parseProgram(deriveInput))).toEqual([
+      { kind: "derive", name: "Student? <: Person?",      sub: "Student?",     sup: "Person?"  },
+      { kind: "derive", name: "GradStudent? <: Student?", sub: "GradStudent?", sup: "Student?" },
     ]);
   });
 
@@ -315,12 +327,12 @@ derive Student? from Person?;
 
   test("record and derive both parsed", () => {
     const prog = parseProgram(mixed);
-    expect(prog.records[0]!.name).toBe("Person");
-    expect(prog.derives[0]!.sub).toBe("Student?");
+    expect(recordsOf(prog)[0]!.name).toBe("Person");
+    expect(derivesOf(prog)[0]!.sub).toBe("Student?");
   });
 
   test("derives array empty when absent", () => {
-    expect(parseProgram("defrecord Foo\n  x: Number?;\nend").derives).toHaveLength(0);
+    expect(derivesOf(parseProgram("defrecord Foo\n  x: Number?;\nend"))).toHaveLength(0);
   });
 });
 
@@ -342,14 +354,14 @@ describe("parseProgram: match expression", () => {
   test("no parse errors", () => noErrorNodes(matchDsl));
 
   test("body kind, subject, arm count", () => {
-    const body = parseProgram(matchDsl).fns[0]!.body as MatchExpr;
+    const body = fnsOf(parseProgram(matchDsl))[0]!.body as MatchExpr;
     expect(body.kind).toBe("match");
     expect(body.subject).toEqual({ kind: "var", name: "s" });
     expect(body.arms).toHaveLength(3);
   });
 
   test("first arm: record pattern with guard", () => {
-    const arm = (parseProgram(matchDsl).fns[0]!.body as MatchExpr).arms[0]!;
+    const arm = (fnsOf(parseProgram(matchDsl))[0]!.body as MatchExpr).arms[0]!;
     expect(arm.pattern).toEqual({ kind: "record-pattern", recordName: "Circle", bindings: [{ field: "radius", as: "r" }] });
     expect(arm.guard).not.toBeNull();
     expect(arm.guard!.kind).toBe("binary");
@@ -357,7 +369,7 @@ describe("parseProgram: match expression", () => {
   });
 
   test("wildcard arm", () => {
-    const arm = (parseProgram(matchDsl).fns[0]!.body as MatchExpr).arms[2]!;
+    const arm = (fnsOf(parseProgram(matchDsl))[0]!.body as MatchExpr).arms[2]!;
     expect(arm.pattern.kind).toBe("wildcard");
     expect(arm.guard).toBeNull();
     expect(arm.body).toEqual({ kind: "literal", value: "other" });
@@ -382,7 +394,7 @@ end
 `;
 
 describe("parseProgram: defllmfn", () => {
-  const llmFn = parseProgram(llmFnDsl).llmFns[0]!;
+  const llmFn = llmFnsOf(parseProgram(llmFnDsl))[0]!;
 
   test("no parse errors", () => noErrorNodes(llmFnDsl));
 
@@ -426,7 +438,7 @@ end
 `;
 
 describe("parseProgram: defgrammar", () => {
-  const grammar = parseProgram(grammarDsl).grammars[0]!;
+  const grammar = grammarsOf(parseProgram(grammarDsl))[0]!;
 
   test("no parse errors", () => noErrorNodes(grammarDsl));
 
@@ -452,19 +464,19 @@ describe("parseProgram: defgrammar", () => {
 });
 
 describe("parseProgram: defgrammar with a signature", () => {
-  const scalar = parseProgram(`
+  const scalar = grammarsOf(parseProgram(`
 defgrammar Citation
   signature: from [String?(text)] to CitationRec?;
   """ Citation { cite = "x" } """
 end
-`).grammars[0]!;
+`))[0]!;
 
-  const vector = parseProgram(`
+  const vector = grammarsOf(parseProgram(`
 defgrammar Citations
   signature: from [String?(text)] to [CitationRec?];
   """ Citations { cite = "x" } """
 end
-`).grammars[0]!;
+`))[0]!;
 
   test("a scalar signature reuses the fn-signature shape (params + scalar return)", () => {
     expect(scalar.signature).toEqual({
@@ -496,7 +508,7 @@ end
 `;
 
 describe("parseProgram: defextract", () => {
-  const extract = parseProgram(extractDsl).extracts[0]!;
+  const extract = extractsOf(parseProgram(extractDsl))[0]!;
 
   test("no parse errors", () => noErrorNodes(extractDsl));
 
@@ -551,7 +563,7 @@ defextract Doc
   end
 end
 `;
-  const extract = parseProgram(parseVerbDsl).extracts[0]!;
+  const extract = extractsOf(parseProgram(parseVerbDsl))[0]!;
 
   test("no parse errors", () => noErrorNodes(parseVerbDsl));
 
@@ -582,7 +594,7 @@ end
 `;
 
 describe("parseProgram: TTable", () => {
-  const ttable = parseProgram(ttableDsl).ttables[0]!;
+  const ttable = ttablesOf(parseProgram(ttableDsl))[0]!;
 
   test("no parse errors", () => noErrorNodes(ttableDsl));
 
@@ -603,14 +615,14 @@ describe("parseProgram: TTable", () => {
 
   // Clauses may appear in any order — the walker keys on clause kind, not position.
   test("clauses parse in any order", () => {
-    const reordered = parseProgram(`
+    const reordered = ttablesOf(parseProgram(`
 defrecord R x: String?; end
 TTable T
   header x = 'X';
   cell: '|';
   row: R;
 end
-`).ttables[0]!;
+`))[0]!;
     expect(reordered.row).toBe("R");
     expect(reordered.cell).toBe("|");
     expect(reordered.headers).toEqual([{ field: "x", text: "X" }]);
@@ -630,7 +642,7 @@ end
 `;
 
 describe("parseProgram: defparameter", () => {
-  const param = parseProgram(parameterDsl).parameters[0]!;
+  const param = parametersOf(parseProgram(parameterDsl))[0]!;
 
   test("no parse errors", () => noErrorNodes(parameterDsl));
 
@@ -654,7 +666,7 @@ defparameter pending
   type: Text?;
 end
 `;
-  const param = parseProgram(noValue).parameters[0]!;
+  const param = parametersOf(parseProgram(noValue))[0]!;
 
   test("no parse errors", () => noErrorNodes(noValue));
 
@@ -679,7 +691,7 @@ end
   test("no parse errors", () => noErrorNodes(src));
 
   test("inner punctuation is preserved verbatim", () => {
-    expect(parseProgram(src).parameters[0]!.value).toBe(`a: 1; b = [2]; "quoted"`);
+    expect(parametersOf(parseProgram(src))[0]!.value).toBe(`a: 1; b = [2]; "quoted"`);
   });
 });
 
@@ -697,9 +709,9 @@ end
   const prog = parseProgram(mixed);
 
   test("the parameter and the record are both parsed", () => {
-    expect(prog.records[0]!.name).toBe("Payload");
-    expect(prog.parameters[0]!.name).toBe("greeting");
-    expect(prog.parameters[0]!.value).toBe("hello");
+    expect(recordsOf(prog)[0]!.name).toBe("Payload");
+    expect(parametersOf(prog)[0]!.name).toBe("greeting");
+    expect(parametersOf(prog)[0]!.value).toBe("hello");
   });
 });
 
@@ -721,7 +733,7 @@ end
   test("no parse errors", () => noErrorNodes(src));
 
   test("'type' and 'value' parse as ordinary field names", () => {
-    expect(parseProgram(src).records[0]!.fields.map(f => f.name)).toEqual(["type", "value"]);
+    expect(recordsOf(parseProgram(src))[0]!.fields.map(f => f.name)).toEqual(["type", "value"]);
   });
 });
 
@@ -735,7 +747,7 @@ end
 
 describe("parseProgram: defenum", () => {
   test("structure", () => {
-    const en = parseProgram(enumInput).enums[0]!;
+    const en = enumsOf(parseProgram(enumInput))[0]!;
     expect(en.kind).toBe("enum");
     expect(en.name).toBe("DocumentType");
     expect(en.values).toEqual(["report", "email", "legal", "technical"]);
@@ -757,9 +769,9 @@ end
 
   test("record and enum both parsed", () => {
     const prog = parseProgram(mixed);
-    expect(prog.records[0]!.name).toBe("Payload");
-    expect(prog.enums[0]!.name).toBe("Status");
-    expect(prog.enums[0]!.values).toEqual(["active", "inactive"]);
+    expect(recordsOf(prog)[0]!.name).toBe("Payload");
+    expect(enumsOf(prog)[0]!.name).toBe("Status");
+    expect(enumsOf(prog)[0]!.values).toEqual(["active", "inactive"]);
   });
 });
 
@@ -780,7 +792,7 @@ end
   });
 
   test("field names are parsed whole", () => {
-    expect(parseProgram(src).records[0]!.fields.map(f => f.name))
+    expect(recordsOf(parseProgram(src))[0]!.fields.map(f => f.name))
       .toEqual(["fromPoint", "toPoint", "withColor", "endTime"]);
   });
 });

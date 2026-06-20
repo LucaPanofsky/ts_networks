@@ -1,4 +1,5 @@
-import { parseProgram } from "../data-network/tree-to-network.js";
+import { parseProgramStrict } from "../language/parse-strict.js";
+import { grammarsOf } from "../language/select.js";
 import { validateGrammarSyntax } from "../sandbox/grammar-runtime.js";
 import type { Operation } from "./types.js";
 
@@ -17,10 +18,10 @@ export const check: Operation<CheckInput, CheckOutput> = {
   },
   handle(input) {
     try {
-      const program = parseProgram(input.source);
+      const program = parseProgramStrict(input.source);
       // A defgrammar's Ohm body is opaque to the parser, so its structural errors
       // (unparseable source, name mismatch) surface only here. First error wins.
-      for (const grammar of program.grammars) {
+      for (const grammar of grammarsOf(program)) {
         const [error] = validateGrammarSyntax(grammar);
         if (error) return { ok: false, error };
       }

@@ -2,7 +2,7 @@ import { emitJs } from "../language/index.js";
 // The STRICT parser (rejects leading garbage, reports line-numbered syntax errors) — the same
 // validator `check`/`typecheck` use. `emitJs` parses with the more lenient split-based parser,
 // so we validate here first to preserve the engine `run`'s syntax-error contract.
-import { parseProgram } from "../data-network/tree-to-network.js";
+import { parseProgramStrict } from "../language/parse-strict.js";
 import { runCompiled } from "./run-compiled.js";
 import type { Operation } from "./types.js";
 
@@ -51,7 +51,7 @@ export const run: Operation<RunInput, Promise<RunOutput>> = {
       // reports line-numbered `Syntax error at line X, col Y` (the emit splitter is more
       // lenient and would silently drop unparseable leading text). Then emit: combine
       // (merge-check) + codegen. Either failure is a compile error, with the engine's prefix.
-      parseProgram(source);
+      parseProgramStrict(source);
       code = emitJs(source);
     } catch (e) {
       return { ok: false, error: `compile error: ${e}` };

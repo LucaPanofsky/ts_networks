@@ -1,4 +1,5 @@
-import { parseProgram } from "../../src/data-network/tree-to-network.js";
+import { parseProgramStrict as parseProgram } from "../../src/language/parse-strict.js";
+import { networksOf, extractsOf } from "../../src/language/select.js";
 
 // ── Alternation-branch coverage invariant ─────────────────────────────────────
 //
@@ -25,10 +26,10 @@ defnetwork allTerms
   switch from [b] to d;
 end
 `);
-    const kinds = program.networks[0]!.terms.map(t => t.kind);
+    const kinds = networksOf(program)[0]!.terms.map(t => t.kind);
     // Every alternative present, none lost to a missing wrapper descent.
     expect(kinds).toEqual(expect.arrayContaining(["cell", "constant", "propagate", "switch"]));
-    expect(program.networks[0]!.terms).toHaveLength(4);
+    expect(networksOf(program)[0]!.terms).toHaveLength(4);
   });
 
   // ExtractStmt { ScanStmt | ParseStmt | WithinBlock } — itself nested inside a
@@ -45,7 +46,7 @@ defextract Doc
   end
 end
 `);
-    const body = program.extracts[0]!.root.body;
+    const body = extractsOf(program)[0]!.root.body;
     expect(body.map(s => s.kind)).toEqual(["scan", "parse", "within"]);
     // The nested WithinBlock branch was descended into and kept its own scan.
     const nested = body.find(s => s.kind === "within");

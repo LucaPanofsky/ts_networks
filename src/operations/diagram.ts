@@ -1,5 +1,6 @@
 import { deflateSync } from "node:zlib";
-import { parseProgram } from "../data-network/tree-to-network.js";
+import { parseProgramStrict } from "../language/parse-strict.js";
+import { networksOf } from "../language/select.js";
 import type { DataNetworkAST } from "../data-network/types.js";
 import type { Operation } from "./types.js";
 
@@ -114,7 +115,7 @@ export const diagram: Operation<DiagramInput, DiagramOutput> = {
   handle(input) {
     let networks: DataNetworkAST[];
     try {
-      networks = parseProgram(input.source).networks;
+      networks = networksOf(parseProgramStrict(input.source));
     } catch (e) {
       return { ok: false, error: (e as Error).message };
     }

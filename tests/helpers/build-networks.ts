@@ -1,6 +1,7 @@
 import { emitJs } from "../../src/language/index.js";
 import { loadProgram } from "../../src/language/runtime/load.js";
-import { parseProgram } from "../../src/data-network/tree-to-network.js";
+import { parseProgramStrict } from "../../src/language/parse-strict.js";
+import { networksOf } from "../../src/language/select.js";
 import { astToDataNetwork } from "../../src/data-network/ast-to-data-network.js";
 import { NetworkRuntime } from "../../src/network-impl/runtime.js";
 
@@ -15,9 +16,9 @@ import { NetworkRuntime } from "../../src/network-impl/runtime.js";
 // `astToDataNetwork` here, exactly as before.
 export function buildNetworks(source: string): Map<string, NetworkRuntime> {
   const backing = loadProgram(emitJs(source)).registry.backing;
-  const program = parseProgram(source);
+  const program = parseProgramStrict(source);
   const networks = new Map<string, NetworkRuntime>();
-  for (const net of program.networks) {
+  for (const net of networksOf(program)) {
     networks.set(net.name, new NetworkRuntime(astToDataNetwork(net), backing));
   }
   return networks;
