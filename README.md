@@ -292,7 +292,7 @@ given-and-correct and changed only deliberately.
 
 ```
 scripts/    — thin CLI adapters over src/operations/ (one .tsn file per invocation)
-analysis/   — the codebase maintenance-analysis tool (see below)
+repo_workspace/analysis/   — the codebase maintenance-analysis tool (see below)
 examples/   — runnable .tsn programs
 documentation/ — language reference + how-to guides
 ```
@@ -359,7 +359,7 @@ There is no build step for the alpha — you run programs directly with `npx tsx
 
 ### Codebase analysis
 
-A maintenance tool in `analysis/` builds the module taxonomy above and computes the metrics
+A maintenance tool in `repo_workspace/analysis/` builds the module taxonomy above and computes the metrics
 that show **where to look for refactoring** — per-module LOC, test LOC and test:src ratio,
 the inter-module dependency graph (fan-in/out, instability, import cycles), git churn,
 statement coverage, and weak-typing risk markers. Modules are ranked by a **hotspot** score
@@ -370,10 +370,10 @@ npm run analyze         # run the suite + coverage, then write a themed HTML rep
 npm run analyze:quick   # report only, reusing on-disk coverage (fast, may be stale)
 ```
 
-The report is written to `analysis/REPORT.html` — a single self-contained file; open it in a
-browser. The pure metric logic lives in `analysis/metrics.ts` (functional core) and is
-covered by `tests/analysis/`; `analysis/gather.ts` is the I/O shell (filesystem, git, jest).
-Generated artifacts (`analysis/REPORT.html`, `coverage/`) are gitignored; the tool source is
+The report is written to `repo_workspace/analysis/REPORT.html` — a single self-contained file; open it in a
+browser. The pure metric logic lives in `repo_workspace/analysis/metrics.ts` (functional core) and is
+covered by `tests/analysis/`; `repo_workspace/analysis/gather.ts` is the I/O shell (filesystem, git, jest).
+Generated artifacts (`repo_workspace/analysis/REPORT.html`, `coverage/`) are gitignored; the tool source is
 tracked.
 
 ## Editor Support

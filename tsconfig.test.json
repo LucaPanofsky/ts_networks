@@ -5,5 +5,5 @@
     "types": ["node", "jest"],
     "allowJs": true
   },
-  "include": ["src/**/*", "tests/**/*", "analysis/**/*"]
+  "include": ["src/**/*", "tests/**/*", "repo_workspace/analysis/**/*"]
 }

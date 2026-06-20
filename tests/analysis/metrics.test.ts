@@ -9,8 +9,8 @@ import {
   type FileChurn,
   type FileCoverage,
   type ModuleMetrics,
-} from "../../analysis/metrics.js";
-import type { ModuleDef } from "../../analysis/manifest.js";
+} from "../../repo_workspace/analysis/metrics.js";
+import type { ModuleDef } from "../../repo_workspace/analysis/manifest.js";
 
 // A small synthetic taxonomy keeps the pure-logic tests deterministic and independent of
 // the real manifest (which changes as the codebase does).

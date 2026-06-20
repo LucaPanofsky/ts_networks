@@ -7,7 +7,7 @@ coverage
 .github
 WORKSPACE
 report
-analysis
+repo_workspace
 dev
 ui
 editors

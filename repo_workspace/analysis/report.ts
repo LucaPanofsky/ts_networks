@@ -27,7 +27,7 @@ function main(): void {
   const generatedAt = new Date().toISOString().slice(0, 10);
   const html = formatHtml(result, hotspots, { generatedAt, hasCoverage: coverage != null });
 
-  const out = path.join(process.cwd(), "analysis", "REPORT.html");
+  const out = path.join(process.cwd(), "repo_workspace", "analysis", "REPORT.html");
   writeFileSync(out, html);
 
   // Short stdout summary so the terminal is useful on its own.
