@@ -10,7 +10,7 @@ jest.mock("../../src/sandbox/llmfn-client.js", () => ({ callLLMFn: jest.fn() }))
 
 import { callLLMFn } from "../../src/sandbox/llmfn-client.js";
 import { emitJs, parseProgram } from "../../src/language/index.js";
-import { parseProgram as oracleParse } from "../../src/data-network/tree-to-network.js";
+import { parseProgramLezer as oracleParse } from "../../src/data-network/tree-to-network.js";
 import * as rt from "../../src/language/runtime/index.js";
 import { APromise } from "../../src/information-structures/apromise.js";
 import { Something, Contradiction } from "../../src/info-structure.js";
@@ -54,6 +54,24 @@ describe("defllmfn slice — parse + emit + the memoized async leaf", () => {
   test("parses to an llmfn node equal to the Lezer oracle's (signature, with:, prompt)", () => {
     const node = parseProgram(src).nodes.find((n) => n.kind === "llmfn");
     expect(node).toEqual(oracleParse(src).llmFns[0]);
+  });
+
+  test("a multi-pair `with:` with an underscore key parses like the oracle (regression)", () => {
+    // `max_tokens` exercises `_` in a config key (identChar) and comma-separated pairs —
+    // the form the original slice fixture (single `model = …`) didn't cover.
+    const multi = `
+defllmfn classify
+  signature: from [String?(text)] to String?;
+  with: model = 'claude-opus-4-7', max_tokens = '4096';
+  user """Classify {{text}}""";
+end
+`;
+    const node = parseProgram(multi).nodes.find((n) => n.kind === "llmfn");
+    expect(node).toEqual(oracleParse(multi).llmFns[0]);
+    expect((node as { config: Record<string, string> }).config).toEqual({
+      model: "claude-opus-4-7",
+      max_tokens: "4096",
+    });
   });
 
   test("a system clause + a bare-prompt shorthand parse like the oracle (system stable, bare → user)", () => {

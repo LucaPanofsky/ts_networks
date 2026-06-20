@@ -29,7 +29,7 @@ Llmfn {
   number = "-"? digit+ ("." digit+)?
   tripleString = "\"\"\"" (~"\"\"\"" any)* "\"\"\""
   ident = letter identChar*
-  identChar = alnum | "?"
+  identChar = alnum | "?" | "_"
 }
 `;
 

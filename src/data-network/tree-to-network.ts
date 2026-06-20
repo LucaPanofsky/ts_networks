@@ -1,4 +1,6 @@
 import { parser } from "./parser.js";
+import { toProgramAST } from "../language/adapter.js";
+import { parseProgramStrict } from "../language/parse-strict.js";
 import type {
   ProgramAST, DataNetworkAST, RecordAST, FnAST, DeriveAST, LLMFnAST, EnumAST, GrammarAST, ParameterAST,
   ExtractAST, ExtractWithin, ExtractStmt, TTableAST,
@@ -13,7 +15,20 @@ function posToLineCol(input: string, pos: number): { line: number; col: number }
   return { line: lines.length, col: (lines.at(-1)?.length ?? 0) + 1 };
 }
 
+// ── THE CHOKE POINT ─────────────────────────────────────────────────────────────
+// `parseProgram` is now backed by the modular Ohm front end (`src/language/`): it parses
+// to a node bag, normalizes failures to the engine's `Syntax error at line X, col Y`
+// shape, and adapts the result to a `ProgramAST`. Every production consumer keeps calling
+// this exact entry and gets the exact same return type — the swap is invisible to them.
+//
+// `parseProgramLezer` below is the ORIGINAL Lezer-walking implementation, kept solely as a
+// differential ORACLE for the parity tests while both front ends coexist. Stage 5 deletes
+// it (and the generated parser / grammar) once the parity tests are frozen to goldens.
 export function parseProgram(input: string): ProgramAST {
+  return toProgramAST(parseProgramStrict(input));
+}
+
+export function parseProgramLezer(input: string): ProgramAST {
   const tree = parser.parse(input);
 
   // Lezer is error-tolerant and never throws — detect syntax errors via error nodes.

@@ -19,7 +19,8 @@ DefNetwork {
   AsClause = "as" name
   PropTail = With   -- with
            | ";"    -- bare
-  Switch = "switch" fnRef? "from" CellList "to" name ";"
+  Switch = "switch" (~fromKw fnRef)? "from" CellList "to" name ";"
+  fromKw = "from" ~nameRest
   Constant = "constant" name "=" value ";"
   CellDecl = "cell" name "=" value ";"
   With = "with" ":" ListOf<ConfigPair, ","> ";"

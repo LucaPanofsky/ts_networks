@@ -22,7 +22,10 @@ DefNetwork {
   AsClause = "as" name
   PropTail = With   -- with
            | ";"    -- bare
-  Switch = "switch" fnRef? "from" CellList "to" name ";"
+  // The predicate is optional; the `~fromKw` guard stops the optional fnRef from swallowing
+  // the `from` keyword in the bare `switch from […]` form (a predicate-less gate).
+  Switch = "switch" (~fromKw fnRef)? "from" CellList "to" name ";"
+  fromKw = "from" ~nameRest
   Constant = "constant" name "=" value ";"
   CellDecl = "cell" name "=" value ";"
   With = "with" ":" ListOf<ConfigPair, ","> ";"

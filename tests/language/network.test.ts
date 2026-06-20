@@ -10,7 +10,7 @@ jest.mock("../../src/sandbox/llmfn-client.js", () => ({ callLLMFn: jest.fn() }))
 
 import { callLLMFn } from "../../src/sandbox/llmfn-client.js";
 import { emitJs, parseProgram } from "../../src/language/index.js";
-import { parseProgram as oracleParse } from "../../src/data-network/tree-to-network.js";
+import { parseProgramLezer as oracleParse } from "../../src/data-network/tree-to-network.js";
 import * as rt from "../../src/language/runtime/index.js";
 import { APromise } from "../../src/information-structures/apromise.js";
 import { Something } from "../../src/info-structure.js";
@@ -53,6 +53,21 @@ end
 `;
     const node = parseProgram(src).nodes.find((n) => n.kind === "network");
     expect(node).toEqual(oracleParse(src).networks[0]);
+  });
+
+  test("a predicate-less `switch from […]` parses (fn: null) like the oracle (regression)", () => {
+    // The optional fnRef must not swallow the `from` keyword in the bare form. Guarded by a
+    // `~fromKw` lookahead in the grammar; this is the case the original slice fixtures missed.
+    const src = `
+defnetwork gate
+  signature: from [flag, v] to out;
+  switch from [flag, v] to out;
+end
+`;
+    const node = parseProgram(src).nodes.find((n) => n.kind === "network");
+    expect(node).toEqual(oracleParse(src).networks[0]);
+    const term = (node as { terms: { kind: string; fn: string | null }[] }).terms[0]!;
+    expect(term).toMatchObject({ kind: "switch", fn: null });
   });
 
   test("end-to-end: a network propagating a user fn computes through the real engine", async () => {

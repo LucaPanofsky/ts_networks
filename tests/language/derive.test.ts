@@ -3,7 +3,7 @@
 // no registry artifact while the rest of the program still works.
 
 import { emitJs, parseProgram } from "../../src/language/index.js";
-import { parseProgram as oracleParse } from "../../src/data-network/tree-to-network.js";
+import { parseProgramLezer as oracleParse } from "../../src/data-network/tree-to-network.js";
 import * as rt from "../../src/language/runtime/index.js";
 import type { Registry } from "../../src/language/core/runtime-api.js";
 

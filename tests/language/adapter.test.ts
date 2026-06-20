@@ -7,7 +7,7 @@
 // unresolved leaf refs are irrelevant; both front ends just parse the source as written.)
 
 import { parseProgram } from "../../src/language/index.js";
-import { parseProgram as oracleParse } from "../../src/data-network/tree-to-network.js";
+import { parseProgramLezer as oracleParse } from "../../src/data-network/tree-to-network.js";
 import { toProgramAST } from "../../src/language/adapter.js";
 import type { ProgramAST } from "../../src/data-network/types.js";
 

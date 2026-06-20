@@ -18,6 +18,20 @@ describe("parse-strict — Syntax error format parity", () => {
     );
   });
 
+  test("unanchored source (no construct keyword) is a Syntax error, not an empty program", () => {
+    // The splitter drops text before the first anchor; the engine flags it. Both the
+    // all-garbage case and stray text BEFORE a valid construct must throw.
+    expect(() => parseProgramStrict("this is not (((a program")).toThrow(/^Syntax error/);
+    expect(() => parseProgramStrict("garbage\ndefrecord R\n  x: String?;\nend\n")).toThrow(
+      /^Syntax error at line 1, col 1$/,
+    );
+  });
+
+  test("an empty or comment-only source is a valid (empty) program", () => {
+    expect(parseProgramStrict("").nodes).toEqual([]);
+    expect(parseProgramStrict("// just a comment\n\n").nodes).toEqual([]);
+  });
+
   test("the reported position is ABSOLUTE to the source, not block-relative", () => {
     // The first record is well-formed; the SECOND (starting at line 5) is malformed
     // (missing `:`). A block-relative report would say line ~2; absolute must be ≥ 5.

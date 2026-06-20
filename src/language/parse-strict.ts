@@ -39,10 +39,34 @@ function blockPosToAbsolute(text: string, base: number, line: number, col: numbe
   return off + (col - 1);
 }
 
+// The next-anchor splitter silently drops any text BEFORE the first definition keyword
+// (content between/after constructs is absorbed into a block and caught by Ohm's full-match;
+// only the leading region escapes). The Lezer front end flags such stray text as an error,
+// so we must too. Only comments (`// …`) and blank lines are legal there; the first other
+// non-whitespace char is the failure position. Returns its source offset, or null.
+function leadingGarbagePos(prefix: string): number | null {
+  let pos = 0;
+  for (const line of prefix.split("\n")) {
+    const code = line.split("//")[0]!; // no string literals are legal before a construct
+    if (code.trim() !== "") return pos + (code.length - code.trimStart().length);
+    pos += line.length + 1; // + the "\n"
+  }
+  return null;
+}
+
 // Parse a program, failing in the engine's exact `Syntax error at line X, col Y` format
 // (absolute positions). Behaves like `index.ts`'s `parseProgram` on success.
 export function parseProgramStrict(source: string): Program {
   const blocks = split(source);
+
+  // Reject stray text before the first construct (an empty / comment-only source is valid).
+  const coveredStart = blocks.length > 0 ? blocks[0]!.offset : source.length;
+  const garbage = leadingGarbagePos(source.slice(0, coveredStart));
+  if (garbage !== null) {
+    const { line, col } = posToLineCol(source, garbage);
+    throw new Error(`Syntax error at line ${line}, col ${col}`);
+  }
+
   const nodes: AstNode[] = blocks.map((block) => {
     try {
       return MODULES[block.kind].parse(block);

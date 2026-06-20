@@ -5,7 +5,7 @@
 // network wrapper — slice 5 resolves `extract/<name>` directly.
 
 import { emitJs, parseProgram } from "../../src/language/index.js";
-import { parseProgram as oracleParse } from "../../src/data-network/tree-to-network.js";
+import { parseProgramLezer as oracleParse } from "../../src/data-network/tree-to-network.js";
 import * as rt from "../../src/language/runtime/index.js";
 import type { Registry } from "../../src/language/core/runtime-api.js";
 
