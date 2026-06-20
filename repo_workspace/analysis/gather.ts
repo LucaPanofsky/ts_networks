@@ -85,7 +85,7 @@ export function gatherTestFiles(): TestFile[] {
 /**
  * Resolve a relative import specifier from `fromFile` (repo-relative) to a candidate
  * repo-relative .ts path. Purely lexical — no stat — which is enough for module-level
- * bucketing: `../tools.js` from src/sandbox/jsgen/ → src/sandbox/tools.ts.
+ * bucketing: `../select.js` from src/language/constructs/ → src/language/select.ts.
  */
 function resolveImport(fromFile: string, spec: string): string | null {
   if (!spec.startsWith(".")) return null; // external package — not part of the internal graph

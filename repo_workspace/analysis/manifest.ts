@@ -3,6 +3,14 @@
 // computes is keyed off this hand-written manifest — the one place that needs a human
 // when the layout changes.
 //
+// One exception to "first-level": the GavaLang DSL front end (`src/language/`) is large
+// enough that we report it by its internal LAYERS (`core`/`constructs`/`pipeline`/`expr`/
+// `runtime`) as separate modules, so the acyclic `core ← constructs ← pipeline` layering is
+// visible and cycle-checkable. `moduleOf` resolves most-specific-dir-first, so a deeper
+// `language-*` wins over the `language` catch-all (which collects the loose top-level files).
+// Its tests live per-construct under `tests/language/`, which don't mirror the layer dirs, so
+// each is attached to its layer explicitly via `tests` below.
+//
 // `kind` drives reporting, not measurement:
 //   core    — algebra + central wiring. The merge / I / naryUnpacking algebra is
 //             given-and-correct (off-limits); we want to SEE these but not refactor them.
@@ -53,6 +61,52 @@ export const MODULES: ModuleDef[] = [
   { name: "network-impl", dir: "src/network-impl", kind: "runtime" },
   { name: "sandbox", dir: "src/sandbox", kind: "runtime" },
   { name: "operations", dir: "src/operations", kind: "runtime" },
+
+  // ---- runtime: the GavaLang DSL front end, by internal layer (core ← constructs ← pipeline) ----
+  { name: "language-core", dir: "src/language/core", kind: "runtime" },
+  {
+    name: "language-constructs",
+    dir: "src/language/constructs",
+    kind: "runtime",
+    // The per-construct slice tests (each parses + emits + runs one construct end to end).
+    tests: [
+      "tests/language/defrecord.test.ts",
+      "tests/language/defn.test.ts",
+      "tests/language/enum.test.ts",
+      "tests/language/derive.test.ts",
+      "tests/language/grammar.test.ts",
+      "tests/language/extract.test.ts",
+      "tests/language/ttable.test.ts",
+      "tests/language/llmfn.test.ts",
+      "tests/language/parameter.test.ts",
+      "tests/language/network.test.ts",
+    ],
+  },
+  {
+    name: "language-pipeline",
+    dir: "src/language/pipeline",
+    kind: "runtime",
+    tests: ["tests/language/split.test.ts"],
+  },
+  {
+    name: "language-expr",
+    dir: "src/language/expr",
+    kind: "runtime",
+    tests: ["tests/language/compile-expr.test.ts", "tests/language/expr.test.ts"],
+  },
+  {
+    name: "language-runtime",
+    dir: "src/language/runtime",
+    kind: "runtime",
+    tests: ["tests/language/artifact.test.ts"],
+  },
+  // Catch-all for the loose top-level files (index/select/parse-strict/reserved-words);
+  // parse-strict.test.ts mirrors here naturally. Sub-layers above win for their own dirs.
+  { name: "language", dir: "src/language", kind: "runtime" },
+
+  // ---- runtime: IO leaves ----
+  { name: "fs", dir: "src/fs", kind: "runtime" },
+  { name: "pdf", dir: "src/pdf", kind: "runtime" },
 
   // ---- tooling ----
   { name: "mcp", dir: "src/mcp", kind: "tooling" },
