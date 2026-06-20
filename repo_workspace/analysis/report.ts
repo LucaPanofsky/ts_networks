@@ -1,7 +1,7 @@
 // Entrypoint: gather raw data (shell) → compute metrics (pure) → format (pure) → write
-// analysis/REPORT.md and print a short summary. Run with `npm run analyze`.
+// a versioned HTML report and print a short summary. Run with `npm run analyze`.
 
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import * as path from "node:path";
 import { MODULES } from "./manifest.js";
 import { computeMetrics, hotspotRank } from "./metrics.js";
@@ -16,6 +16,17 @@ import {
   gatherGitInfo,
 } from "./gather.js";
 
+// The report inlines the shared house stylesheet (design/report.css) so it stays a single
+// self-contained, committable file — a frozen snapshot, not a live link that re-themes when
+// report.css later changes. Read at generate-time so there's one source of truth, not a copy.
+function readHouseCss(): string {
+  try {
+    return readFileSync(path.join(process.cwd(), "design", "report.css"), "utf8");
+  } catch {
+    return ""; // no stylesheet available (e.g. run outside the repo) — degrade, still self-contained
+  }
+}
+
 function main(): void {
   const srcFiles = gatherSrcFiles();
   const testFiles = gatherTestFiles();
@@ -28,7 +39,12 @@ function main(): void {
   const hotspots = hotspotRank(result.modules);
 
   const generatedAt = new Date().toISOString().slice(0, 10);
-  const html = formatHtml(result, hotspots, { generatedAt, hasCoverage: coverage != null });
+  const html = formatHtml(result, hotspots, {
+    generatedAt,
+    hasCoverage: coverage != null,
+    git,
+    reportCss: readHouseCss(),
+  });
 
   // Versioned, committable output: outputs/<date>-<shortsha>.html. Reports are committed on
   // demand, so each run is its own file rather than clobbering a single REPORT.html.
