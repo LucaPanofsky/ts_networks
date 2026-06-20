@@ -1,5 +1,5 @@
 import { parseProgram } from "../data-network/tree-to-network.js";
-import { createSandbox } from "../sandbox/jsgen/runtime.js";
+import { recordCtorSandbox } from "../sandbox/record-sandbox.js";
 import {
   compileGrammar,
   validateGrammarSyntax,
@@ -57,15 +57,10 @@ export const runGrammar: Operation<RunGrammarInput, RunGrammarOutput> = {
     const [staticError] = [...validateGrammarSyntax(ast), ...validateGrammarSignature(ast, program)];
     if (staticError) return { ok: false, kind: "syntax", error: staticError };
 
-    // Compile a sandbox over the program but with ONLY this grammar, so a broken
-    // sibling grammar (createSandbox compiles them all eagerly and throws on the first
-    // bad body) cannot block testing this one. Records/predicates/etc. are unchanged.
-    let sandbox;
-    try {
-      sandbox = createSandbox({ ...program, grammars: [ast] });
-    } catch (e) {
-      return { ok: false, kind: "syntax", error: (e as Error).message };
-    }
+    // The grammar's only sandbox use is the output record's constructor (grammar-runtime
+    // `buildRecord`), so a sandbox of plain record constructors is all that's needed — and it
+    // builds NO sibling grammars, so a broken sibling can't block testing this one.
+    const sandbox = recordCtorSandbox(program.records);
 
     const mode =
       !ast.signature ? "recognizer" : ast.signature.returnType.kind === "vector" ? "scan" : "scalar";

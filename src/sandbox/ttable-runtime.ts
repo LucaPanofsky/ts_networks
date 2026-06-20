@@ -1,5 +1,5 @@
 import type { TTableAST, ProgramAST } from "../data-network/types.js";
-import type { Sandbox } from "./jsgen/runtime.js";
+import type { Sandbox } from "./record-sandbox.js";
 import { Contradiction } from "../info-structure.js";
 
 // A compiled TTable: a synchronous leaf, callable as `TTable/<name>` with arity 1

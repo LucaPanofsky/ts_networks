@@ -26,7 +26,7 @@ import { Something, Contradiction } from "../../info-structure.js";
 import { Deferred } from "../../information-structures/deferred.js";
 import { APromise } from "../../information-structures/apromise.js";
 import { defaultExecutor } from "../../network-impl/executor.js";
-import type { Sandbox } from "../../sandbox/jsgen/runtime.js";
+import type { Sandbox } from "../../sandbox/record-sandbox.js";
 import type {
   GrammarAST,
   TTableAST,

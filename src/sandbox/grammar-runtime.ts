@@ -1,7 +1,7 @@
 import { grammar as ohmGrammar, type Grammar, type Node, type Semantics } from "ohm-js";
 import type { GrammarAST, ProgramAST, RecordAST } from "../data-network/types.js";
 import { Contradiction } from "../info-structure.js";
-import type { Sandbox } from "./jsgen/runtime.js";
+import type { Sandbox } from "./record-sandbox.js";
 
 // A defgrammar compiled against the program. The impl is a *synchronous* leaf (Ohm
 // matching is synchronous), so unlike network/<name> and defllmfn it returns a value
