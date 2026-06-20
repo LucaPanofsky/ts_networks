@@ -1,9 +1,11 @@
 import { emitJs } from "../../src/language/index.js";
 import { loadProgram } from "../../src/language/runtime/load.js";
-import { parseProgram } from "../../src/data-network/tree-to-network.js";
+import { parseProgramStrict as parseProgram } from "../../src/language/parse-strict.js";
+import { fnsOf } from "../../src/language/select.js";
+import { withPrelude } from "../../src/language/pipeline/prelude.js";
 import { run } from "../../src/operations/run.js";
 import { typecheck } from "../../src/operations/typecheck.js";
-import { PRELUDE_SOURCE, withPrelude } from "../../src/sandbox/prelude.js";
+import { PRELUDE_SOURCE } from "../../src/sandbox/prelude.js";
 
 // The prelude is the standard library: a set of `defn`s (booleans, arithmetic,
 // comparisons, math) auto-supplied to every program so a stranger never hits
@@ -129,12 +131,12 @@ describe("prelude: invariants", () => {
     const user = parseProgram(`
       defn not signature: from [Boolean?(x)] to Boolean?; expression x; end
     `);
-    const merged = withPrelude(user);
-    const notDefs = merged.fns.filter(f => f.name === "not");
+    const merged = withPrelude(user.nodes);
+    const notDefs = fnsOf({ nodes: merged }).filter(f => f.name === "not");
     expect(notDefs).toHaveLength(1);
     // the surviving `not` is the user's identity body, not the prelude's negation
-    const userNot = merged.fns.find(f => f.name === "not")!;
-    expect(userNot).toBe(user.fns.find(f => f.name === "not"));
+    const userNot = fnsOf({ nodes: merged }).find(f => f.name === "not")!;
+    expect(userNot).toBe(fnsOf(user).find(f => f.name === "not"));
   });
 
   test("the prelude is environment, not source: it does not leak into a parsed AST", () => {
@@ -143,7 +145,7 @@ describe("prelude: invariants", () => {
     const ast = parseProgram(`
       defn only signature: from [Number?(n)] to Number?; expression n; end
     `);
-    expect(ast.fns.map(f => f.name)).toEqual(["only"]);
+    expect(fnsOf(ast).map(f => f.name)).toEqual(["only"]);
   });
 });
 
