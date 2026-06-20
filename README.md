@@ -365,11 +365,12 @@ npm run analyze         # run the suite + coverage, then write a themed HTML rep
 npm run analyze:quick   # report only, reusing on-disk coverage (fast, may be stale)
 ```
 
-The report is written to `repo_workspace/analysis/REPORT.html` — a single self-contained file; open it in a
-browser. The pure metric logic lives in `repo_workspace/analysis/metrics.ts` (functional core) and is
+Each run writes a versioned, self-contained file to `repo_workspace/analysis/outputs/<date>-<shortsha>.html`
+— stamped in the house style with the branch, commit and date it was generated from — so reports can be
+**committed on demand** and compared over time. Open it in a browser. The pure metric logic lives in
+`repo_workspace/analysis/metrics.ts` (functional core, with `provenance.ts` for the stamp + filename) and is
 covered by `tests/analysis/`; `repo_workspace/analysis/gather.ts` is the I/O shell (filesystem, git, jest).
-Generated artifacts (`repo_workspace/analysis/REPORT.html`, `coverage/`) are gitignored; the tool source is
-tracked.
+The tool source and the reports under `outputs/` are tracked; only jest's `coverage/` dump is gitignored.
 
 ## Editor Support
 

@@ -14,8 +14,9 @@ dev
 .playwright-mcp/
 # Agent scratch workspace (PDFs/txt the agent materializes — not source)
 WORKSPACE/
-# Generated maintenance-analysis artifacts (the repo_workspace/analysis/*.ts tool IS tracked)
-repo_workspace/analysis/REPORT.html
+# Maintenance-analysis: the tool (repo_workspace/analysis/*.ts) and reports under
+# outputs/ are tracked — reports are committed on demand. Only jest's coverage dump
+# is generated noise.
 coverage/
 
 # Agent host-side work dir (bind-mounted to /workspace)
