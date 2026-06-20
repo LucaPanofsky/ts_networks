@@ -69,13 +69,22 @@ export function emitProgram(program: Program, ctx: EmitCtx = defaultCtx): string
   const fragments = nodes.map((node) => MODULES[node.kind].emit(node, ectx));
 
   // A self-describing manifest: each network's input cells (in order) and output cell, so a
-  // loader can run the artifact by name without the source. Emitted as a single-line `export
+  // loader can run the artifact by name without the source. `values` lists the program's
+  // value bindings (fns + record constructors) whose name is a legal JS identifier — so a
+  // loader can evaluate a cell expression that references them (`cell=myFn(3)`), seeding the
+  // same scope the engine `run` builds from its sandbox. Emitted as a single-line `export
   // const` (the in-process loader keeps it as a local; see runtime/load.ts).
   const isNetwork = (n: AstNode): n is NetworkNode => n.kind === ConstructKind.Network;
+  const isFn = (n: AstNode): n is FnNode => n.kind === ConstructKind.Fn;
+  const JS_IDENT = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/;
   const manifest = {
     networks: Object.fromEntries(
       nodes.filter(isNetwork).map((n) => [n.name, { from: n.signature.from, to: n.signature.to }]),
     ),
+    // A fn/record registers under its bare DSL name (= its constructor/impl). Names carrying
+    // ?/!/ (e.g. predicates) are not legal identifiers and cannot be named in an expression,
+    // so they are dropped here — matching what the engine sandbox can expose to a cell expr.
+    values: nodes.filter((n) => isFn(n) || isRecord(n)).map((n) => n.name).filter((name) => JS_IDENT.test(name)),
   };
   const manifestFragment = `export const __manifest = ${JSON.stringify(manifest)};`;
 

@@ -97,6 +97,14 @@ describe("compiled artifact — compile-js → run-compiled", () => {
     if (art.ok) expect(art.cells.c).toBe(5);
   });
 
+  test("a cell expression can call the program's own fn (sandbox parity with run)", async () => {
+    // `add2` is a program fn; seeding `a = add2(1, 1)` exercises the artifact's value scope,
+    // and bothMatch confirms it produces the same cells as the engine run (which evaluates
+    // cell exprs against its sandbox). Result: a=2, b=3 → c=5.
+    const art = await bothMatch(PURE, "sum", { a: "add2(1, 1)", b: "3" });
+    if (art.ok) expect(art.cells.c).toBe(5);
+  });
+
   test("round-trip: a grammar-in-network matches the engine run", async () => {
     const art = await bothMatch(GRAMMAR, "parsePair", { text: "'a=1'" });
     if (art.ok) expect(art.cells.pair).toEqual({ __type: "Pair", key: "a", value: "1" });

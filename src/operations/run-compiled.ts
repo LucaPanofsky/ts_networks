@@ -31,8 +31,9 @@ export const runCompiled: Operation<RunCompiledInput, Promise<RunCompiledOutput>
       cells: {
         type: "object",
         description:
-          "Map of input cell names to values. Each value is a JavaScript literal/JSON expression, " +
-          "or `@filename` to seed the raw text of a workspace file (read verbatim, not evaluated).",
+          "Map of cell names to values (any cell, seeded by name). Each value is a JavaScript " +
+          "expression — literals/JSON or a call to one of the program's own fns / record " +
+          "constructors — or `@filename` to seed the raw text of a workspace file (read verbatim).",
         additionalProperties: { type: "string" },
       },
     },
@@ -53,7 +54,13 @@ export const runCompiled: Operation<RunCompiledInput, Promise<RunCompiledOutput>
     const sig = loaded.manifest.networks[networkName];
     if (!sig) return { ok: false, error: `network "${networkName}" not found in the artifact` };
 
+    // Rebuild the program's value scope from the manifest, so a cell expression can call the
+    // program's own fns / record constructors (`cell=myFn(3)`) — mirroring the engine `run`,
+    // which evaluates cell exprs against its sandbox. Each name resolves late through the
+    // registry, so emit order is irrelevant.
     const ws = new Workspace(workspaceRoot());
+    const sandboxKeys = (loaded.manifest.values ?? []).filter((k) => /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(k));
+    const sandboxVals = sandboxKeys.map((k) => loaded.registry.resolve(k));
     const inputs: Record<string, unknown> = {};
     for (const [name, expr] of Object.entries(cellExprs)) {
       // `@filename` seeds the RAW TEXT of a workspace file — read verbatim, never evaluated.
@@ -71,7 +78,7 @@ export const runCompiled: Operation<RunCompiledInput, Promise<RunCompiledOutput>
         continue;
       }
       try {
-        inputs[name] = new Function(`return ${expr}`)();
+        inputs[name] = new Function(...sandboxKeys, `return ${expr}`)(...sandboxVals);
       } catch (e) {
         return { ok: false, error: `cannot evaluate cell "${name}": ${e}` };
       }
