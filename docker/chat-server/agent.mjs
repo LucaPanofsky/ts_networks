@@ -13,30 +13,24 @@
 
 import { execFileSync } from 'node:child_process';
 import { query } from '@anthropic-ai/claude-agent-sdk';
+import { buildTurnOptions } from './options.mjs';
 
-// The interactive contract, appended to (not replacing) Claude Code's default system
-// prompt so the always-loaded agent-home CLAUDE.md and its principles still apply. The
-// principle file stays mode-agnostic on purpose; the "you are in a chat" framing lives
-// here, per session. v1 is plain text — the HTML-fragment / reply(html) contract is a
-// later, additive change.
-const CHAT_CONTRACT = `
-You are the assistant in an interactive, single-thread chat with a user (a web chat UI:
-one continuous conversation). Converse normally in plain text / markdown.
+// Gavagai's identity, appended to (not replacing) Claude Code's default system prompt — Layer 1
+// of the prompt strategy. Deliberately minimal: who he is and his two sources of expertise. The
+// language know-how lives in the always-loaded ~/.claude/CLAUDE.md (Layer 2, the map), the
+// authoring method in the on-demand authoring-tsn-programs skill (Layer 3), and the construct
+// reference + worked examples in /knowledge (Layer 4). Each thing is said once, in the layer
+// that loads it when it is needed. This append is static text, so the prompt cache stays warm.
+const IDENTITY = `
+You are Gavagai, an expert in the ts-networks language.
 
-Because this is interactive, your real advantage over a one-shot run is that you can ASK.
-When a request is ambiguous or underspecified — which fields to extract, which document,
-how general the program should be — ask a brief, concrete clarifying question instead of
-guessing. Resolve intent through dialogue first, then build.
+Your expertise stems from two sources:
+- the language knowledge base
+- the language tools and the workspace
 
-Files the user shares arrive in /workspace/uploads/. Treat them as read-only inputs: read
-them there, but never edit or delete them — they are the user's, not yours. When you need a
-derived file (e.g. a .txt from a PDF for doc=@ seeding), copy the upload to the /workspace
-root first and work from the copy (tsn-pdf and doc=@ read from /workspace, not uploads/).
+You will use these tools and knowledge to assist the user, who will instruct you about what he expects from you.
 
-Everything else follows your standing instructions: use the ts-networks runtime and the
-knowledge base, verify with the tsn-* tools (check -> typecheck -> run), and leave a
-finished program at /workspace/out/program.tsn with a short /workspace/out/recap.md.
-Keep replies focused.
+The user talks to you through a UI. He may upload files, and you can produce outputs he can download — all inside your /workspace folder.
 `.trim();
 
 // Locate the claude executable the SDK should spawn. We reuse the globally-installed
@@ -66,22 +60,13 @@ function traceLabel(block) {
 export function createSdkAgent(opts = {}) {
   const cwd = opts.cwd ?? process.env.TSN_WORKSPACE ?? '/workspace';
   const additionalDirectories = opts.additionalDirectories ?? ['/app/ts-networks', '/knowledge'];
-  const append = opts.systemPromptAppend ?? CHAT_CONTRACT;
+  const append = opts.systemPromptAppend ?? IDENTITY;
   const pathToClaudeCodeExecutable = opts.claudePath ?? resolveClaudePath();
 
-  // Build the per-turn options. `resume` carries the conversation; on the first turn there
-  // is no session yet, so we omit it and let the SDK mint one.
-  function optionsFor(sessionId) {
-    const options = {
-      cwd,
-      additionalDirectories,
-      permissionMode: 'bypassPermissions',
-      systemPrompt: { type: 'preset', preset: 'claude_code', append },
-    };
-    if (sessionId) options.resume = sessionId;
-    if (pathToClaudeCodeExecutable) options.pathToClaudeCodeExecutable = pathToClaudeCodeExecutable;
-    return options;
-  }
+  // Per-turn options come from the pure builder (options.mjs). `resume` carries the
+  // conversation; on the first turn there is no session yet, so it is omitted.
+  const optionsFor = (sessionId) =>
+    buildTurnOptions({ sessionId, cwd, additionalDirectories, append, claudePath: pathToClaudeCodeExecutable });
 
   return {
     /**

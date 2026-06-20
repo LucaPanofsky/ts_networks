@@ -46,7 +46,7 @@ COPY docker/chat-server/package.json /app/chat-server/package.json
 RUN cd /app/chat-server \
  && npm install --omit=dev --omit=optional \
  && npm cache clean --force
-COPY docker/chat-server/agent.mjs docker/chat-server/server.mjs /app/chat-server/
+COPY docker/chat-server/agent.mjs docker/chat-server/options.mjs docker/chat-server/server.mjs /app/chat-server/
 COPY docker/chat-server/public /app/chat-server/public
 
 # The language runtime: root-owned, read-only to the agent (the security boundary).
@@ -60,9 +60,11 @@ COPY docker/runtime-bin/ /usr/local/bin/
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/tsn-* /usr/local/bin/entrypoint.sh
 
-# The agent's user-global memory (Claude Code always loads ~/.claude/CLAUDE.md).
+# The agent's user-global config, loaded via the SDK's settingSources:['user']:
+#   CLAUDE.md            — the always-loaded "map" (Layer 2)
+#   skills/<name>/SKILL.md — on-demand authoring method (Layer 3), auto-discovered from here
 RUN mkdir -p /home/node/.claude
-COPY docker/agent-home/CLAUDE.md /home/node/.claude/CLAUDE.md
+COPY docker/agent-home/ /home/node/.claude/
 
 # The only writable surface, owned by the non-root agent user.
 RUN mkdir -p /workspace \
