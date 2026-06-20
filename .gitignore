@@ -23,3 +23,10 @@ coverage/
 
 # Agent host-side work dir (bind-mounted to /workspace)
 tsn-work/
+
+# Local deployment secrets (holds ANTHROPIC_API_KEY) — never commit; .env.example is tracked
+.env
+docker/.env
+
+# Vision white paper — work in progress, commit deliberately when ready
+design/proof-of-reasoning.html

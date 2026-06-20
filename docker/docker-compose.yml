@@ -1,0 +1,33 @@
+# Single-user PoC deployment of the ts-networks authoring agent (Gavagai) — chat mode.
+#
+# Quickstart (from this docker/ directory):
+#   cp .env.example .env          # then put your ANTHROPIC_API_KEY in .env
+#   docker compose up --build     # builds the image and serves the chat UI
+#   open http://localhost:8787
+#   docker compose down           # stop (the workspace persists on the host)
+#
+# /workspace is a bind mount (TSN_AGENT_WORKDIR, default <repo>/tsn-work): it is both the file
+# channel and the persistence layer — uploads and the agent's out/ survive `down` and restarts.
+# There is no size cap; it uses host disk. To start clean, delete the host dir.
+#
+# This serves the chat UI only. For headless authoring (`author`) or an interactive shell,
+# use the docker/bin/tsn-agent driver.
+name: gavagai
+services:
+  gavagai:
+    build:
+      context: ..                  # repo root — the Dockerfile COPYs src/, scripts/, docker/
+      dockerfile: docker/Dockerfile
+    image: ${TSN_AGENT_IMAGE:-tsn-agent}
+    command: chat
+    init: true                     # tini as PID 1 → Ctrl-C / `compose stop` reach the node server
+    # The key is passed in at runtime, never baked into the image. It can come from your shell
+    # environment (export ANTHROPIC_API_KEY) OR from a .env file in this directory (compose
+    # auto-loads ./.env). No .env file is required — exporting in your shell is enough.
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    ports:
+      - "${TSN_AGENT_PORT:-8787}:8787"   # host : container (the server always binds 8787 inside)
+    volumes:
+      - "${TSN_AGENT_WORKDIR:-../tsn-work}:/workspace"
+    restart: unless-stopped
