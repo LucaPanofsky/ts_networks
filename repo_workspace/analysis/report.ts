@@ -1,17 +1,19 @@
 // Entrypoint: gather raw data (shell) → compute metrics (pure) → format (pure) → write
 // analysis/REPORT.md and print a short summary. Run with `npm run analyze`.
 
-import { writeFileSync } from "node:fs";
+import { writeFileSync, mkdirSync } from "node:fs";
 import * as path from "node:path";
 import { MODULES } from "./manifest.js";
 import { computeMetrics, hotspotRank } from "./metrics.js";
 import { formatHtml } from "./format-html.js";
+import { reportSlug } from "./provenance.js";
 import {
   gatherSrcFiles,
   gatherTestFiles,
   gatherEdges,
   gatherChurn,
   gatherCoverage,
+  gatherGitInfo,
 } from "./gather.js";
 
 function main(): void {
@@ -20,6 +22,7 @@ function main(): void {
   const edges = gatherEdges(srcFiles);
   const churn = gatherChurn();
   const coverage = gatherCoverage();
+  const git = gatherGitInfo();
 
   const result = computeMetrics({ modules: MODULES, srcFiles, testFiles, edges, churn, coverage });
   const hotspots = hotspotRank(result.modules);
@@ -27,7 +30,11 @@ function main(): void {
   const generatedAt = new Date().toISOString().slice(0, 10);
   const html = formatHtml(result, hotspots, { generatedAt, hasCoverage: coverage != null });
 
-  const out = path.join(process.cwd(), "repo_workspace", "analysis", "REPORT.html");
+  // Versioned, committable output: outputs/<date>-<shortsha>.html. Reports are committed on
+  // demand, so each run is its own file rather than clobbering a single REPORT.html.
+  const outDir = path.join(process.cwd(), "repo_workspace", "analysis", "outputs");
+  mkdirSync(outDir, { recursive: true });
+  const out = path.join(outDir, `${reportSlug(generatedAt, git)}.html`);
   writeFileSync(out, html);
 
   // Short stdout summary so the terminal is useful on its own.
