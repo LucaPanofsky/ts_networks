@@ -28,3 +28,6 @@ docker/.env
 
 # Vision white paper — work in progress, commit deliberately when ready
 design/proof-of-reasoning.html
+
+# Meta-language abstraction exploration — local scratch, not for the repo
+gavalang_exploration/
