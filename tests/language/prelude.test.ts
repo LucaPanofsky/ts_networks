@@ -5,7 +5,7 @@ import { fnsOf } from "../../src/language/select.js";
 import { withPrelude } from "../../src/language/pipeline/prelude.js";
 import { run } from "../../src/operations/run.js";
 import { typecheck } from "../../src/operations/typecheck.js";
-import { PRELUDE_SOURCE } from "../../src/sandbox/prelude.js";
+import { PRELUDE_SOURCE } from "../../src/language/pipeline/prelude-source.js";
 
 // The prelude is the standard library: a set of `defn`s (booleans, arithmetic,
 // comparisons, math) auto-supplied to every program so a stranger never hits

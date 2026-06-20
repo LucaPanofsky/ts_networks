@@ -1,10 +1,11 @@
 // The `{{path}}` placeholder mini-syntax shared by `interpolate` function bodies and
 // `defllmfn` prompts. This module is the *compile-time* half — the placeholder grammar
-// and the extraction of referenced paths. It lives in data-network (the lower layer)
-// so both the type-checker (path validation) and codegen (which roots to pass) can read
-// it without depending on the sandbox runtime. The *runtime* half — substituting the
-// holes against argument values — is renderPrompt in sandbox/prompt-template.ts, which
-// imports the same PLACEHOLDER regex so the two never drift.
+// and the extraction of referenced paths. It is a NEUTRAL ROOT LEAF (imports nothing) so
+// all three layers that need it depend on it DOWNWARD, with no cross-layer cycle: the engine
+// type-checker (path validation), the language front end's codegen (which roots to pass), and
+// the sandbox runtime renderer. The *runtime* half — substituting the holes against argument
+// values — is renderPrompt in sandbox/prompt-template.ts, which imports the same PLACEHOLDER
+// regex so the two never drift.
 //
 // A placeholder key is a dotted path: a bare name (`{{title}}`) or a walk into a record
 // argument (`{{rec.body}}`). Only `{{…}}` is a placeholder; a lone `{` is literal text.

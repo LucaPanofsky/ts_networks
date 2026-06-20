@@ -1,6 +1,6 @@
 import type { DataNetworkAST } from "./types.js";
 import { typeRefToString } from "./types.js";
-import { placeholderPaths } from "./placeholders.js";
+import { placeholderPaths } from "../placeholders.js";
 import type { Program } from "../language/pipeline/program.js";
 import { fnsOf, llmFnsOf, grammarsOf, recordsOf, enumsOf, networksOf } from "../language/select.js";
 

@@ -1,4 +1,4 @@
-import { placeholderPaths } from "../../src/data-network/placeholders.js";
+import { placeholderPaths } from "../src/placeholders.js";
 
 describe("placeholderPaths", () => {
   // Capability — the feature codegen needs: the distinct paths a template references,

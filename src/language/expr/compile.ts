@@ -6,7 +6,7 @@
 // path reused.)
 
 import type { Expr, RecordPattern } from "../../data-network/types.js";
-import { placeholderPaths } from "../../data-network/placeholders.js";
+import { placeholderPaths } from "../../placeholders.js";
 
 export function mangle(name: string): string {
   // DSL names may contain `?`, `!`, and `/` (the last for qualified names like

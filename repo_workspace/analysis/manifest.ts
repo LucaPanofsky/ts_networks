@@ -104,7 +104,10 @@ export const MODULES: ModuleDef[] = [
   // parse-strict.test.ts mirrors here naturally. Sub-layers above win for their own dirs.
   { name: "language", dir: "src/language", kind: "runtime" },
 
-  // ---- runtime: IO leaves ----
+  // ---- runtime: shared leaves ----
+  // The `{{placeholder}}` grammar — a neutral leaf depended on by the engine, the front end,
+  // and the sandbox (kept out of any of them so none form a cross-layer cycle).
+  { name: "placeholders", dir: "src/placeholders.ts", kind: "runtime" },
   { name: "fs", dir: "src/fs", kind: "runtime" },
   { name: "pdf", dir: "src/pdf", kind: "runtime" },
 

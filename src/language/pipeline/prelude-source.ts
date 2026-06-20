@@ -7,7 +7,7 @@
 // exactly like a hand-written function.
 //
 // A user `defn` of the same name SHADOWS the prelude entry (the user always wins); see
-// `withPrelude` below — the same rule the compiler applies to the inline BUILTIN_DEFS.
+// `withPrelude` in the sibling `prelude.ts` — the same rule the compiler applies to BUILTIN_DEFS.
 //
 // Written in the language itself (not implemented in TypeScript) so it stays legible and
 // editable — an authoring agent can read and extend it — and so it is type-checked like
