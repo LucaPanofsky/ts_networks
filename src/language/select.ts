@@ -17,7 +17,7 @@
 import { ConstructKind } from "./core/enums.js";
 import type { AstNode, Program } from "./pipeline/program.js";
 import type {
-  RecordAST, FnAST, LLMFnAST, EnumAST, GrammarAST, DataNetworkAST,
+  RecordAST, FnAST, LLMFnAST, EnumAST, GrammarAST, DataNetworkAST, ExtractAST, TTableAST,
 } from "../data-network/types.js";
 
 // The cast the adapter makes per node, lifted to the filtered array: a modular node of a
@@ -43,6 +43,12 @@ export const enumsOf = (p: Program): EnumAST[] =>
 
 export const networksOf = (p: Program): DataNetworkAST[] =>
   byKind(p, ConstructKind.Network) as DataNetworkAST[];
+
+export const extractsOf = (p: Program): ExtractAST[] =>
+  byKind(p, ConstructKind.Extract) as ExtractAST[];
+
+export const ttablesOf = (p: Program): TTableAST[] =>
+  byKind(p, ConstructKind.TTable) as TTableAST[];
 
 // A predicate IS a fn carrying `isPredicate` (no separate `ConstructKind`).
 export const predicatesOf = (p: Program): FnAST[] =>
