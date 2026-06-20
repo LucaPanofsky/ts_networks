@@ -17,7 +17,7 @@ import { renderPrompt } from "../../sandbox/prompt-template.js";
 import { compileGrammar } from "../../sandbox/grammar-runtime.js";
 import { compileTTable } from "../../sandbox/ttable-runtime.js";
 import { compileExtract, type GrammarLeaves } from "../../sandbox/extract-runtime.js";
-import { canonicalKey } from "../../sandbox/jsgen/registry.js";
+import { canonicalKey } from "../../sandbox/canonical-key.js";
 import { callLLMFn } from "../../sandbox/llmfn-client.js";
 import { toolsFromConfig } from "../../sandbox/tools.js";
 import type { ToolResolver } from "../../sandbox/tools.js";

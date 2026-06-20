@@ -3,7 +3,7 @@ import { typeCheckProgram, validateInterpolate, validateLLMFn } from "../data-ne
 import { validateGrammarSyntax, validateGrammarSignature } from "../sandbox/grammar-runtime.js";
 import { validateExtract } from "../sandbox/extract-runtime.js";
 import { validateTTable } from "../sandbox/ttable-runtime.js";
-import { reservedFieldErrors } from "../sandbox/jsgen/compiler.js";
+import { reservedFieldErrors } from "../language/reserved-words.js";
 import type { Operation, SerializedEnrichedNetwork, SerializedError } from "./types.js";
 import type { EnrichedNetwork } from "../data-network/type-checker.js";
 
