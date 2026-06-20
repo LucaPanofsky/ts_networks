@@ -131,6 +131,15 @@ describe("compiled artifact — compile-js → run-compiled", () => {
     expect(r.networks).toEqual({ sum: { from: ["a", "b"], to: "c" } });
   });
 
+  test("compile-js rejects leading garbage through the strict syntax gate (parity with run/check)", () => {
+    // The emit splitter is lenient and would silently DROP stray text before the first
+    // construct; compile-js now validates through parseProgramStrict first, so it fails like
+    // run/check/parse instead of emitting an artifact from a partially-ignored source.
+    const r = compileJs.handle({ source: "this is not tsn\n" + PURE });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/Syntax error at line/);
+  });
+
   test("round-trip: a pure network matches the engine run", async () => {
     const art = await bothMatch(PURE, "sum", { a: "2", b: "3" });
     if (art.ok) expect(art.cells.c).toBe(5);

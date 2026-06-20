@@ -16,8 +16,8 @@ import { MODULES } from "./pipeline/registry.js";
 import type { AstNode, Program } from "./pipeline/program.js";
 
 // 1-based line/col of an absolute char position. Identical to the engine's reporting
-// (was a local in tree-to-network.ts); the canonical copy now lives here, on the new
-// front end, and the reimplemented choke point imports it.
+// (was a local in tree-to-network.ts); the canonical copy lives here, on the modular front
+// end, used by `parseProgramStrict` below (and asserted directly by a test).
 export function posToLineCol(input: string, pos: number): { line: number; col: number } {
   const lines = input.slice(0, pos).split("\n");
   return { line: lines.length, col: (lines.at(-1)?.length ?? 0) + 1 };

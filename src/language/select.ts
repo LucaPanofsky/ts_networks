@@ -59,10 +59,6 @@ export const extractsOf = (p: Program): ExtractAST[] =>
 export const ttablesOf = (p: Program): TTableAST[] =>
   byKind(p, ConstructKind.TTable) as TTableAST[];
 
-// A predicate IS a fn carrying `isPredicate` (no separate `ConstructKind`).
-export const predicatesOf = (p: Program): FnAST[] =>
-  fnsOf(p).filter((f) => f.isPredicate);
-
 // The two constructs whose engine AST type was deleted with `ProgramAST`: the modular node
 // IS the return type, so no cast. `derivesOf` keeps `DeriveNode.name` (the combine key); both
 // are carry-only today (subsumption + parameter run-wiring are dormant).
