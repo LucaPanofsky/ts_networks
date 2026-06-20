@@ -286,9 +286,7 @@ given-and-correct and changed only deliberately.
 | `network-impl/` | runtime | the propagator engine: cells, propagators, the sync + async runners |
 | `sandbox/` | runtime | compiles a program to a self-contained JS module; grammar / TTable / extract runtimes; the llmfn client + in-language tools |
 | `operations/` | runtime | the uniform `Operation` interface — `parse`, `check`, `typecheck`, `run`, `compile-schemas`, `run-grammar`, `run-ttable`, `diagram` |
-| `cli.ts` | tooling | command-line entrypoint |
 | `mcp/` | tooling | an MCP server fronting every operation as a tool over stdio (`npm run mcp`) |
-| `editor/`, `ui-server/` (+ top-level `ui/`) | stale | an **abandoned** browser UI — kept for reference, **not part of the alpha, not to be revived**; excluded from analysis. Each dir carries a STALE `README.md`. |
 
 ```
 scripts/    — thin CLI adapters over src/operations/ (one .tsn file per invocation)
@@ -351,11 +349,8 @@ npm test        # run all tests (regenerates the Lezer parser + typechecks src +
 ```
 
 There is no build step for the alpha — you run programs directly with `npx tsx`
-(see [Getting Started](#getting-started)), so `dist/` is not needed.
-
-> The `npm run build`, `npm run bundle`, and `npm run dev` scripts drive the **stale**
-> browser editor (`src/editor/`, `src/ui-server/`) and are not part of the alpha — see the
-> note below.
+(see [Getting Started](#getting-started)), so `dist/` is not needed. (`npm run build`
+exists only as a CI compile-check: it regenerates the parser and runs `tsc`.)
 
 ### Codebase analysis
 

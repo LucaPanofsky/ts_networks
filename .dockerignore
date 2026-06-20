@@ -9,9 +9,7 @@ WORKSPACE
 report
 repo_workspace
 dev
-ui
 editors
-public
 tests
 documentation
 *.db

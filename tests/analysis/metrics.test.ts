@@ -20,7 +20,6 @@ const MODULES: ModuleDef[] = [
   { name: "information-structures", dir: "src/information-structures", kind: "core" },
   { name: "sandbox", dir: "src/sandbox", kind: "runtime" },
   { name: "operations", dir: "src/operations", kind: "runtime" },
-  { name: "editor", dir: "src/editor", kind: "stale" },
 ];
 
 describe("moduleOf — path → module assignment", () => {
