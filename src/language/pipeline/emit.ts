@@ -7,6 +7,7 @@ import type { Program, AstNode } from "./program.js";
 import type { RecordNode } from "../constructs/defrecord/ast.js";
 import type { FnNode } from "../constructs/defn/ast.js";
 import type { EnumNode } from "../constructs/defenum/ast.js";
+import type { NetworkNode } from "../constructs/defnetwork/ast.js";
 import type { EmitCtx } from "../core/module.js";
 import { ConstructKind } from "../core/enums.js";
 import type { RecordDescriptor, LlmTypeEnv } from "../core/types.js";
@@ -66,6 +67,18 @@ export function emitProgram(program: Program, ctx: EmitCtx = defaultCtx): string
   const ectx: EmitCtx = { ...ctx, record: (name) => recordsByName.get(name), typeEnv: () => typeEnv };
 
   const fragments = nodes.map((node) => MODULES[node.kind].emit(node, ectx));
-  const parts = [HEADER, ...(builtins ? [builtins] : []), ...fragments, FOOTER];
+
+  // A self-describing manifest: each network's input cells (in order) and output cell, so a
+  // loader can run the artifact by name without the source. Emitted as a single-line `export
+  // const` (the in-process loader keeps it as a local; see runtime/load.ts).
+  const isNetwork = (n: AstNode): n is NetworkNode => n.kind === ConstructKind.Network;
+  const manifest = {
+    networks: Object.fromEntries(
+      nodes.filter(isNetwork).map((n) => [n.name, { from: n.signature.from, to: n.signature.to }]),
+    ),
+  };
+  const manifestFragment = `export const __manifest = ${JSON.stringify(manifest)};`;
+
+  const parts = [HEADER, ...(builtins ? [builtins] : []), ...fragments, manifestFragment, FOOTER];
   return parts.join("\n\n") + "\n";
 }

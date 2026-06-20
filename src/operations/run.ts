@@ -1,10 +1,7 @@
 import { compile } from "../sandbox/jsgen/index.js";
 import { toolsFromConfig } from "./tools.js";
 import { Workspace, WorkspaceError, workspaceRoot } from "../fs/workspace.js";
-import { Something, Contradiction, type InfoStructure } from "../info-structure.js";
-import { MergeObject } from "../information-structures/merge-object.js";
-import { MergeSet } from "../information-structures/merge-set.js";
-import { APromise } from "../information-structures/apromise.js";
+import { projectInfo } from "./project.js";
 import type { Operation } from "./types.js";
 
 type RunInput = {
@@ -96,21 +93,9 @@ export const run: Operation<RunInput, Promise<RunOutput>> = {
 
     const cells: Record<string, unknown> = {};
     for (const [name, cell] of result.cells) {
-      // A terminal async leaf (llmfn) leaves its cell holding an unresolved APromise
-      // that no downstream propagator forced — await it here so the result is the
-      // real value, not `∅`.
-      let info = cell.knows();
-      if (info instanceof APromise) info = (await info.deferred.promise) as InfoStructure<unknown>;
-      // Surface failures instead of hiding them as `∅`: a Contradiction carries the
-      // reason that caused it (e.g. an API error or a parse failure).
-      if (info instanceof Contradiction) {
-        cells[name] = { __contradiction: info.type, reason: String(info.reason ?? "") };
-        continue;
-      }
-      cells[name] =
-        info instanceof Something || info instanceof MergeObject || info instanceof MergeSet
-          ? info.content()
-          : null;
+      // Project each cell to a plain value (await async leaves, surface Contradictions,
+      // unwrap content) — shared with `run-compiled` so the artifact output matches.
+      cells[name] = await projectInfo(cell.knows());
     }
 
     return { ok: true, network: networkName, cells };
