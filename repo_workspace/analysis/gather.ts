@@ -95,20 +95,59 @@ function resolveImport(fromFile: string, spec: string): string | null {
   return target.startsWith("src/") ? target : null;
 }
 
-const STATIC_IMPORT_RE = /\b(?:from|import)\s+["']([^"']+)["']/g;
-const DYNAMIC_IMPORT_RE = /\bimport\(\s*["']([^"']+)["']\s*\)/g;
+// A static/dynamic import or re-export found in a file: its raw specifier and whether the
+// statement is TYPE-ONLY (`import type …` / `export type …`). TypeScript ERASES type-only
+// imports, so they create no runtime dependency — the module graph counts runtime edges only.
+// That is what makes a reported "cycle" mean a real runtime cycle (an init-order hazard)
+// rather than the harmless type-level back-references that pervade an adapt-the-engine design
+// (e.g. `language` referencing the engine's AST types while the engine reads `language`'s
+// `Program` — bidirectional in the type graph, a clean DAG at runtime).
+export interface ImportRef {
+  spec: string;
+  typeOnly: boolean;
+}
 
+// `import … from "x"` / `export … from "x"`: the clause between the keyword and `from` decides
+// value-vs-type. Anchored at a statement boundary; the clause class excludes quotes so it can't
+// run into a string literal, and matches newlines so multi-line clauses are fine.
+const FROM_RE = /(?:^|[\n;])\s*(?:import|export)\b([^;'"]*?)\bfrom\s*["']([^"']+)["']/g;
+// Side-effect import (`import "x";`) and dynamic `import("x")` — always runtime.
+const SIDE_EFFECT_RE = /(?:^|[\n;])\s*import\s*["']([^"']+)["']/g;
+const DYNAMIC_RE = /\bimport\(\s*["']([^"']+)["']\s*\)/g;
+
+/**
+ * Extract every import/re-export specifier from a source file, flagging type-only statements.
+ * Pure (string → refs) so the value-vs-type classification — the one piece of real logic here —
+ * is unit-testable without the filesystem.
+ *
+ * Granularity: only STATEMENT-LEVEL `import type` / `export type` counts as type-only. A mixed
+ * `import { type T, value }` is (correctly) a runtime edge; a hypothetical all-`{ type T }` inline
+ * list would be conservatively counted as runtime too (none exist in this codebase) — which can
+ * only ever KEEP a phantom edge, never hide a real runtime one.
+ */
+export function parseImports(content: string): ImportRef[] {
+  const refs: ImportRef[] = [];
+  let m: RegExpExecArray | null;
+  FROM_RE.lastIndex = 0;
+  while ((m = FROM_RE.exec(content)) !== null) {
+    refs.push({ spec: m[2]!, typeOnly: /^type\b/.test(m[1]!.trim()) });
+  }
+  for (const re of [SIDE_EFFECT_RE, DYNAMIC_RE]) {
+    re.lastIndex = 0;
+    while ((m = re.exec(content)) !== null) refs.push({ spec: m[1]!, typeOnly: false });
+  }
+  return refs;
+}
+
+/** Runtime dependency edges — type-only imports are dropped (erased at compile time). */
 export function gatherEdges(srcFiles: SrcFile[]): FileEdge[] {
   const edges: FileEdge[] = [];
   for (const f of srcFiles) {
     const content = readFileSync(path.join(ROOT, f.path), "utf8");
-    for (const re of [STATIC_IMPORT_RE, DYNAMIC_IMPORT_RE]) {
-      re.lastIndex = 0;
-      let m: RegExpExecArray | null;
-      while ((m = re.exec(content)) !== null) {
-        const to = resolveImport(f.path, m[1]!);
-        if (to) edges.push({ from: f.path, to });
-      }
+    for (const ref of parseImports(content)) {
+      if (ref.typeOnly) continue; // erased at compile time — not a runtime dependency
+      const to = resolveImport(f.path, ref.spec);
+      if (to) edges.push({ from: f.path, to });
     }
   }
   return edges;
