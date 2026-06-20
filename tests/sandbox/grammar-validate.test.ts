@@ -1,13 +1,15 @@
 import { validateGrammarSyntax, validateGrammarSignature, compileGrammar } from "../../src/sandbox/grammar-runtime.js";
-import { parseProgram } from "../../src/data-network/tree-to-network.js";
+import { parseProgramStrict as parseProgram } from "../../src/language/parse-strict.js";
+import { recordsOf, grammarsOf } from "../../src/language/select.js";
 import { recordCtorSandbox } from "../../src/sandbox/record-sandbox.js";
-import type { GrammarAST, ProgramAST } from "../../src/data-network/types.js";
+import type { GrammarAST } from "../../src/data-network/types.js";
+import type { Program } from "../../src/language/pipeline/program.js";
 
 // Parse a DSL program and pull out a named grammar AST. The validators are pure
 // (no sandbox), so this is all the setup they need.
-function grammarOf(dsl: string, name: string): { ast: GrammarAST; program: ProgramAST } {
+function grammarOf(dsl: string, name: string): { ast: GrammarAST; program: Program } {
   const program = parseProgram(dsl);
-  const ast = program.grammars.find(g => g.name === name)!;
+  const ast = grammarsOf(program).find(g => g.name === name)!;
   return { ast, program };
 }
 
@@ -164,7 +166,7 @@ describe("validators and compileGrammar stay in lockstep", () => {
     const { ast, program } = grammarOf(dsl, name);
     expect(validateGrammarSyntax(ast)).toEqual([]);
     expect(validateGrammarSignature(ast, program)).toEqual([]);
-    const sandbox = recordCtorSandbox(program.records);
+    const sandbox = recordCtorSandbox(recordsOf(program));
     expect(() => compileGrammar(ast, program, sandbox)).not.toThrow();
   });
 

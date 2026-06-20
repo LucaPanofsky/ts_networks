@@ -141,7 +141,9 @@ export function grammar(
   resolve: Registry["resolve"],
 ): CompiledLeaf {
   const { records, sandbox } = recordEnv(record, resolve);
-  const compiled = compileGrammar(spec as unknown as GrammarAST, programWith({ records }), sandbox);
+  // compileGrammar now reads a modular Program; the record ASTs are structurally nodes (the
+  // select.ts selectors cast them back). ttable() keeps programWith until Phase 3 converts it.
+  const compiled = compileGrammar(spec as unknown as GrammarAST, { nodes: records as unknown as AstNode[] }, sandbox);
   return { arity: compiled.arity, impl: compiled.impl, scan: compiled.scan };
 }
 

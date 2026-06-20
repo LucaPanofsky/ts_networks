@@ -1,5 +1,7 @@
 import { grammar as ohmGrammar, type Grammar, type Node, type Semantics } from "ohm-js";
-import type { GrammarAST, ProgramAST, RecordAST } from "../data-network/types.js";
+import type { GrammarAST, RecordAST } from "../data-network/types.js";
+import type { Program } from "../language/pipeline/program.js";
+import { recordsOf } from "../language/select.js";
 import { Contradiction } from "../info-structure.js";
 import type { Sandbox } from "./record-sandbox.js";
 
@@ -60,10 +62,10 @@ export function validateGrammarSyntax(ast: GrammarAST): string[] {
 // Semantic checks against the program: a signed grammar's bound record must exist.
 // (Bare recognizers carry no signature and so have nothing to check here.) Does not
 // re-validate the Ohm body — that is validateGrammarSyntax's responsibility.
-export function validateGrammarSignature(ast: GrammarAST, program: ProgramAST): string[] {
+export function validateGrammarSignature(ast: GrammarAST, program: Program): string[] {
   const recName = signatureRecordName(ast);
   if (recName === null) return [];
-  const rec = program.records.find(r => r.name === recName);
+  const rec = recordsOf(program).find(r => r.name === recName);
   if (!rec) {
     return [`defgrammar ${ast.name}: unknown record "${recName}" in signature`];
   }
@@ -151,7 +153,7 @@ function buildScanner(g: Grammar, astName: string, rec: RecordAST, fields: Set<s
   };
 }
 
-export function compileGrammar(ast: GrammarAST, program: ProgramAST, sandbox: Sandbox): CompiledGrammar {
+export function compileGrammar(ast: GrammarAST, program: Program, sandbox: Sandbox): CompiledGrammar {
   // Reuse the static validators so the run-time and check-time paths report the same
   // errors. Syntax first (a broken body makes the signature check meaningless), then
   // the signature's record. ohmGrammar(ast.source) below cannot fail past this point.
@@ -176,7 +178,7 @@ export function compileGrammar(ast: GrammarAST, program: ProgramAST, sandbox: Sa
 
   const isScan = sig.returnType.kind === "vector";
   // validateGrammarSignature already guaranteed this record exists.
-  const rec = program.records.find(r => r.name === signatureRecordName(ast))!;
+  const rec = recordsOf(program).find(r => r.name === signatureRecordName(ast))!;
   const fields = new Set(rec.fields.map(f => f.name));
 
   // A signed grammar exposes a span-aware island scanner, built lazily on first use.

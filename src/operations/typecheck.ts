@@ -1,5 +1,6 @@
 import { parseProgramStrict } from "../language/parse-strict.js";
 import { toProgramAST } from "../language/adapter.js";
+import { grammarsOf } from "../language/select.js";
 import { typeCheckProgram, validateInterpolate, validateLLMFn } from "../data-network/type-checker.js";
 import { validateGrammarSyntax, validateGrammarSignature } from "../sandbox/grammar-runtime.js";
 import { validateExtract } from "../sandbox/extract-runtime.js";
@@ -44,14 +45,14 @@ export const typecheck: Operation<TypecheckInput, TypecheckOutput> = {
   handle(input) {
     try {
       const nodes = parseProgramStrict(input.source);
-      // Bridge: the grammar/extract/ttable/reserved-word validators still read a ProgramAST
-      // (their Part-2 conversion drops this line); the type-checker passes read `nodes`.
+      // Bridge: the extract/ttable/reserved-word validators still read a ProgramAST (their
+      // Part-2 conversion drops this line); the converted passes read `nodes`.
       const program = toProgramAST(nodes);
       // Grammar bodies are opaque to the parser and the type checker. Run the structural
       // checks (as `check` does) plus the semantic signature check (the bound record must
       // exist) before type-checking. First error wins.
-      for (const grammar of program.grammars) {
-        const [error] = [...validateGrammarSyntax(grammar), ...validateGrammarSignature(grammar, program)];
+      for (const grammar of grammarsOf(nodes)) {
+        const [error] = [...validateGrammarSyntax(grammar), ...validateGrammarSignature(grammar, nodes)];
         if (error) return { ok: false, error };
       }
       // A defextract is checked against the records and grammars it wires together

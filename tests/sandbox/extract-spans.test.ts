@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { parseProgram } from "../../src/data-network/tree-to-network.js";
+import { parseProgramStrict as parseProgram } from "../../src/language/parse-strict.js";
+import { recordsOf, grammarsOf, extractsOf } from "../../src/language/select.js";
 import { recordCtorSandbox } from "../../src/sandbox/record-sandbox.js";
 import { compileGrammar } from "../../src/sandbox/grammar-runtime.js";
 import { compileExtract, type GrammarLeaves } from "../../src/sandbox/extract-runtime.js";
@@ -78,9 +79,9 @@ end
 
 function build() {
   const program = parseProgram(dsl);
-  const sandbox = recordCtorSandbox(program.records);
+  const sandbox = recordCtorSandbox(recordsOf(program));
   const leaves: GrammarLeaves = {};
-  for (const g of program.grammars) {
+  for (const g of grammarsOf(program)) {
     const { impl, scan } = compileGrammar(g, program, sandbox);
     leaves[`grammar/${g.name}`] = { impl, scan };
   }
@@ -89,7 +90,7 @@ function build() {
 
 describe("scan exposes each match's span", () => {
   const { program, sandbox } = build();
-  const para = compileGrammar(program.grammars.find(g => g.name === "Paragraph")!, program, sandbox);
+  const para = compileGrammar(grammarsOf(program).find(g => g.name === "Paragraph")!, program, sandbox);
 
   test("a signed grammar exposes a `scan` that returns records paired with spans", () => {
     expect(typeof para.scan).toBe("function");
@@ -117,7 +118,7 @@ describe("scan exposes each match's span", () => {
 
 describe("defextract recurses over spans, with NO body field", () => {
   const { program, leaves } = build();
-  const { impl } = compileExtract(program.extracts[0]!, leaves);
+  const { impl } = compileExtract(extractsOf(program)[0]!, leaves);
 
   test("points nest under their paragraph even though Paragraph has no body field", () => {
     const out = impl(text) as {

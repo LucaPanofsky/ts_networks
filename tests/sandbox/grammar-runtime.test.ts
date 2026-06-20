@@ -1,5 +1,6 @@
 import { compileGrammar } from "../../src/sandbox/grammar-runtime.js";
-import { parseProgram } from "../../src/data-network/tree-to-network.js";
+import { parseProgramStrict as parseProgram } from "../../src/language/parse-strict.js";
+import { recordsOf, grammarsOf } from "../../src/language/select.js";
 import { recordCtorSandbox } from "../../src/sandbox/record-sandbox.js";
 import { Contradiction } from "../../src/info-structure.js";
 
@@ -7,8 +8,8 @@ import { Contradiction } from "../../src/info-structure.js";
 // record constructors into a sandbox, then compile the named grammar against it.
 function build(dsl: string, grammarName: string) {
   const program = parseProgram(dsl);
-  const sandbox = recordCtorSandbox(program.records);
-  const ast = program.grammars.find(g => g.name === grammarName)!;
+  const sandbox = recordCtorSandbox(recordsOf(program));
+  const ast = grammarsOf(program).find(g => g.name === grammarName)!;
   return compileGrammar(ast, program, sandbox);
 }
 
