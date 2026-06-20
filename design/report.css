@@ -5,7 +5,7 @@
    in design/. Reports link it (<link rel="stylesheet" href="report.css">) rather
    than inlining it, so a fix here improves every report at once.
 
-   Palette & language come from resources/logo.html (ink-on-paper, editorial,
+   Palette & language come from repo_workspace/resources/logo.html (ink-on-paper, editorial,
    red reserved for accents and the rabbit's question mark).
 
    ── MAINTENANCE DISCIPLINE (read before editing) ────────────────────────────

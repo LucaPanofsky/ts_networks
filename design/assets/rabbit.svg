@@ -1,5 +1,5 @@
 <!-- Gavagai mark — the sitting hare with a question-mark face (Quine's gavagai).
-     Canonical source: resources/logo.html / resources/rabbit.svg. This is a reference
+     Canonical source: repo_workspace/resources/logo.html / repo_workspace/resources/rabbit.svg. This is a reference
      copy for the report framework. In a report the mark is INLINED as a <symbol
      id="rabbit"> (body uses currentColor so CSS can colour it) and referenced with
      <use href="#rabbit"/>. See the html-report skill. -->
