@@ -1,0 +1,20 @@
+// The installed modules, keyed by kind. This is the "register a module" half of the
+// additivity rule (the other half is the ConstructKind entry in core/enums.ts). The
+// splitter produces a Block tagged with a kind; the pipeline looks the module up here.
+//
+// Typed to ConstructModule<AstNode>: the pipeline narrows the contract's AstNodeBase to
+// the concrete union, so parse() yields a real AstNode.
+
+import type { ConstructModule } from "../core/module.js";
+import { ConstructKind } from "../core/enums.js";
+import type { AstNode } from "./program.js";
+
+import recordModule from "../constructs/defrecord/index.js";
+import fnModule from "../constructs/defn/index.js";
+import networkModule from "../constructs/defnetwork/index.js";
+
+export const MODULES: Readonly<Record<ConstructKind, ConstructModule<AstNode>>> = {
+  [ConstructKind.Record]: recordModule,
+  [ConstructKind.Fn]: fnModule,
+  [ConstructKind.Network]: networkModule,
+};

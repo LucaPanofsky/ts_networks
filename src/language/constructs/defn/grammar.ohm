@@ -1,0 +1,27 @@
+// `defn` recogniser. The signature is structured; the body is captured RAW for now
+// (see ast.ts — the expression grammar is a separate slice). Note the body's own
+// delimiters/keywords are why the splitter must already have isolated this block.
+//
+//   defn rectangleArea
+//     signature: from [Rectangle?(r)] to Number?;
+//     expression
+//       r.width * r.height;
+
+Defn {
+  fn        = "defn" spaces name spaces signature spaces body
+  name      = letter alnum*
+
+  signature = "signature:" spaces "from" spaces "[" param* "]" spaces "to" spaces typeRef ";"
+  param     = predicate "?"? "(" pname ")" sep?
+  pname     = letter alnum*
+  predicate = letter alnum*
+  sep       = spaces "," spaces
+
+  typeRef   = vector | scalar
+  vector    = "[" spaces scalar spaces "]"
+  scalar    = predicate "?"?
+
+  // body kept raw: either `expression <expr>;` or `interpolate """..."""`
+  body      = ("expression" | "interpolate") spaces rawBody
+  rawBody   = (~"end" any)*
+}

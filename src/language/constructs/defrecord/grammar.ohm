@@ -1,0 +1,21 @@
+// This module's parser (canonical copy — kept in sync by hand with the GRAMMAR_SOURCE
+// string in parse.ts, which is what actually runs; .ohm files are not importable under
+// NodeNext/jest). The splitter has already isolated one `defrecord` block, so this
+// grammar only recognises a single record; parse.ts walks it into a RecordNode.
+//
+//   defrecord Point
+//     x: Number?;
+//     y: Number?;
+//   end
+//
+// Uppercase rules are syntactic (Ohm skips whitespace between their terms); `ident` is
+// lexical and may carry a trailing `?` (so a predicate like `Number?` is one token).
+
+Record {
+  Main  = "defrecord" ident Field* "end"
+  Field = ident ":" Type ";"
+  Type  = "[" ident "]"  -- vector
+        | ident          -- scalar
+  ident = letter identChar*
+  identChar = alnum | "?"
+}

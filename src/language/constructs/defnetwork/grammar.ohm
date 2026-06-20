@@ -1,0 +1,27 @@
+// `defnetwork` recogniser. One Term per statement; the term keyword selects the variant.
+// (Compare repo_workspace/examples/tsn_network_extract — the same grammar, but there it
+// accumulated into defrecords; here it targets the typed NetworkNode.)
+//
+//   defnetwork rectangleMetrics
+//     signature: from [rect] to area;
+//     propagate rectangleArea from [rect] to area;
+//   end
+
+DefNetwork {
+  network   = "defnetwork" spaces name spaces signature spaces term* "end"
+  name      = letter alnum*
+
+  signature = "signature:" spaces "from" spaces cellList spaces "to" spaces cell ";"
+  cellList  = "[" (cell sep?)* "]"
+  cell      = letter alnum*
+  sep       = spaces "," spaces
+
+  term      = propagate | switch | constant | cellDecl
+  propagate = "propagate" spaces fn spaces "from" spaces cellList spaces "to" spaces cell ";"
+  switch    = "switch" spaces fn? spaces "from" spaces cellList spaces "to" spaces cell ";"
+  constant  = "constant" spaces cell spaces "=" spaces value ";"
+  cellDecl  = "cell" spaces cell spaces "=" spaces value ";"
+
+  fn        = (~space any)+   // qualified leaf names: extract/Foo, grammar/Bar
+  value     = (~";" any)*
+}
