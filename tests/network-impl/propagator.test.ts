@@ -1,6 +1,6 @@
 import { Propagator, none } from "../../src/network-impl/propagator.js";
 import { Cell } from "../../src/network-impl/cell.js";
-import { Nothing, Something } from "../../src/info-structure.js";
+import { Something } from "../../src/info-structure.js";
 import { naryUnpacking } from "../../src/nary-unpacking.js";
 
 const add = naryUnpacking((a: unknown, b: unknown) => (a as number) + (b as number), 2);

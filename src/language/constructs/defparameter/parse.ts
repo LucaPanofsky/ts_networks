@@ -5,7 +5,7 @@
 // NodeNext/jest).
 
 import { grammar as ohmGrammar } from "ohm-js";
-import type { Block, TypeRef } from "../../core/types.js";
+import type { Block } from "../../core/types.js";
 import { ConstructKind } from "../../core/enums.js";
 import type { ParameterNode } from "./ast.js";
 
