@@ -3,8 +3,10 @@
 // defrecord test (top-level import/export stripped, `rt` injected).
 
 import { emitJs, parseProgram } from "../../src/language/index.js";
+import { parseProgram as oracleParse } from "../../src/data-network/tree-to-network.js";
 import * as rt from "../../src/language/runtime/index.js";
 import type { Registry } from "../../src/language/core/runtime-api.js";
+import type { FnNode } from "../../src/language/constructs/defn/ast.js";
 
 function run(js: string): Registry {
   const body =
@@ -91,5 +93,100 @@ defn bad
 end
 `),
     ).toThrow();
+  });
+});
+
+describe("defn slice — interpolate body", () => {
+  const interpSrc = `
+defn greet
+  signature: from [String?(who)] to String?;
+  interpolate """Hi {{who}}, welcome!""";
+end
+`;
+
+  test("parses to an interpolate Expr (oracle parity)", () => {
+    const node = parseProgram(interpSrc).nodes[0] as FnNode;
+    expect(node.body).toEqual({ kind: "interpolate", template: "Hi {{who}}, welcome!" });
+    // ...and exactly what the existing (Lezer) parser produces for the same body.
+    expect(node.body).toEqual(oracleParse(interpSrc).fns[0]!.body);
+  });
+
+  test("the body renders against its argument at run time (__interp wired)", () => {
+    const reg = run(emitJs(interpSrc));
+    expect(reg.resolve("greet")("Ada")).toBe("Hi Ada, welcome!");
+  });
+});
+
+describe("defn slice — builtins", () => {
+  test("a native str/* intrinsic is in scope", () => {
+    const reg = run(
+      emitJs(`
+defn shout
+  signature: from [String?(s)] to String?;
+  expression str/upper(s);
+end
+`),
+    );
+    expect(reg.resolve("shout")("hi")).toBe("HI");
+  });
+
+  test("a native math/* intrinsic is in scope", () => {
+    const reg = run(
+      emitJs(`
+defn root
+  signature: from [Number?(n)] to Number?;
+  expression math/sqrt(n);
+end
+`),
+    );
+    expect(reg.resolve("root")(9)).toBe(3);
+  });
+
+  test("a prelude function is auto-supplied (callable without defining it)", () => {
+    const reg = run(
+      emitJs(`
+defn plus3
+  signature: from [Number?(n)] to Number?;
+  expression add(n, 3);
+end
+`),
+    );
+    expect(reg.resolve("plus3")(4)).toBe(7);
+    // the prelude entry is itself registered/propagatable
+    expect(reg.resolve("add")(2, 5)).toBe(7);
+  });
+
+  test("a user definition SHADOWS the prelude (user wins)", () => {
+    const reg = run(
+      emitJs(`
+defn add
+  signature: from [Number?(a), Number?(b)] to Number?;
+  expression a * b;
+end
+`),
+    );
+    expect(reg.resolve("add")(2, 3)).toBe(6); // multiply, not the prelude's add
+  });
+});
+
+describe("defpredicate slice — folded into the Fn module", () => {
+  const src = `
+defpredicate positive?
+  signature: from [Number?(n)] to Boolean?;
+  expression n > 0;
+end
+`;
+
+  test("parses as a fn with isPredicate set", () => {
+    const node = parseProgram(src).nodes[0] as FnNode;
+    expect(node.kind).toBe("fn");
+    expect(node.isPredicate).toBe(true);
+    expect(node.name).toBe("positive?");
+  });
+
+  test("registers under its ?-name and computes a Boolean", () => {
+    const reg = run(emitJs(src));
+    expect(reg.resolve("positive?")(5)).toBe(true);
+    expect(reg.resolve("positive?")(-2)).toBe(false);
   });
 });

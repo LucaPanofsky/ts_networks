@@ -16,7 +16,11 @@ import type { FnNode, TypedParam } from "./ast.js";
 
 const GRAMMAR_SOURCE = String.raw`
 TsnDefn <: TsnExpr {
-  Main = "defn" ident Signature "expression" ExprBody "end"
+  Main = defKw ident Signature Body "end"
+  defKw = "defpredicate" | "defn"
+  Body = "expression" ExprBody          -- expr
+       | "interpolate" tripleString ";" -- interp
+  tripleString = "\"\"\"" (~"\"\"\"" any)* "\"\"\""
   Signature = "signature" ":" "from" Params? "to" TypeRef ";"
   Params = "[" ListOf<Param, ","> "]"
   Param = ident "(" ident ")"
@@ -29,16 +33,31 @@ const g = ohmGrammar(GRAMMAR_SOURCE, { TsnExpr: exprGrammar });
 
 const DEFN_ACTIONS: ActionDict<unknown> = {
   ...EXPR_ACTIONS,
-  Main(_defn, name, sig, _expr, body, _end) {
+  Main(kw, name, sig, body, _end) {
     const s = sig.ast() as { params: TypedParam[]; returnType: TypeRef };
     return {
       kind: ConstructKind.Fn,
-      isPredicate: false,
+      // `defpredicate` and `defn` share this module — the keyword is the only difference.
+      // The flag is emit-irrelevant today (a predicate compiles like any fn); it carries
+      // the distinction the type-checker will need (known-predicate set, `as filtering`).
+      isPredicate: kw.sourceString === "defpredicate",
       name: name.ast() as string,
       params: s.params,
       returnType: s.returnType,
       body: body.ast() as Expr,
     } satisfies FnNode;
+  },
+  // `expression` → the inherited expression body; `interpolate` → an InterpolateExpr (part
+  // of the `Expr` union) carrying the trimmed template. `compileExpr` lowers it to the
+  // `__interp(...)` call the runtime backs — emit needs no special case.
+  Body_expr(_expr, exprBody) {
+    return exprBody.ast() as Expr;
+  },
+  Body_interp(_interp, template, _semi) {
+    return { kind: "interpolate", template: template.ast() as string } satisfies Expr;
+  },
+  tripleString(_open, inner, _close) {
+    return inner.sourceString.trim();
   },
   Signature(_sig, _colon, _from, paramsOpt, _to, typeRef, _semi) {
     const params = paramsOpt.numChildren > 0 ? (paramsOpt.children[0]!.ast() as TypedParam[]) : [];

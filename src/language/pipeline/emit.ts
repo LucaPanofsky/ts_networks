@@ -6,6 +6,8 @@
 import type { Program } from "./program.js";
 import type { EmitCtx } from "../core/module.js";
 import { MODULES } from "./registry.js";
+import { withPrelude } from "./prelude.js";
+import { emitBuiltins } from "./builtins.js";
 
 // The runtime import alias every emitted file uses.
 const RT = "rt";
@@ -20,10 +22,22 @@ export const defaultCtx: EmitCtx = {
   ref: (name) => `__reg.resolve(${JSON.stringify(name)})`,
 };
 
-const PRELUDE = `import * as ${RT} from "@tsn/runtime";\nconst __reg = ${RT}.registry();`;
+// The frozen preamble: import the runtime, open a registry, and bind the host helpers an
+// `interpolate` body lowers to (`__interp`). The native-intrinsics block and the prelude
+// are added per-program below (they depend on what the program shadows).
+const HEADER = `import * as ${RT} from "@tsn/runtime";\nconst __reg = ${RT}.registry();\nconst __interp = ${RT}.interp;`;
 const FOOTER = `export default __reg;`;
 
 export function emitProgram(program: Program, ctx: EmitCtx = defaultCtx): string {
-  const fragments = program.nodes.map((node) => MODULES[node.kind].emit(node, ctx));
-  return [PRELUDE, ...fragments, FOOTER].join("\n\n") + "\n";
+  // The prelude (standard library) is supplied here, at emit time, so `parseProgram` keeps
+  // reporting exactly the user's AST. A user definition of a prelude name shadows it.
+  const nodes = withPrelude(program.nodes);
+  // Everything the program binds (user + prelude), mangled — used to skip any native
+  // intrinsic the program shadows (else a duplicate `const` declaration).
+  const declared = new Set(nodes.map((node) => ctx.mangle(node.name)));
+  const builtins = emitBuiltins(declared, ctx.mangle);
+
+  const fragments = nodes.map((node) => MODULES[node.kind].emit(node, ctx));
+  const parts = [HEADER, ...(builtins ? [builtins] : []), ...fragments, FOOTER];
+  return parts.join("\n\n") + "\n";
 }

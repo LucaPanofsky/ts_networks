@@ -81,6 +81,14 @@ export interface Registry {
   resolve(key: string): Impl;
 }
 
+// ── Host helpers the emitted module binds at the top ───────────────────────────────
+// `interp` backs an `interpolate` body. The emitted `compileExpr` lowers such a body to
+// a bare `__interp(template, { root: root, … })` call (the roots are the function's own
+// parameters), so the module preamble binds `const __interp = rt.interp;`. It is a host
+// closure (it renders through the same template engine as `defllmfn` prompts) and so
+// cannot be emitted as source — exactly the kind of thing this frozen surface exists for.
+export type Interp = (template: string, args: Record<string, unknown>) => string;
+
 // ── Construct runtimes: the heavy machinery the pure layer doesn't need ───────────
 // Pure constructs (record, fn, predicate, enum) emit plain JS and touch only the
 // registry. These four are what the rest of the surface exists for: each takes an
@@ -113,6 +121,9 @@ export interface RuntimeApi extends ValueProtocol, ConstructRuntime {
   // A fresh registry for one compiled program. The emitted module does:
   //   const __reg = rt.registry();  …register every binding…  export default __reg;
   registry(): Registry;
+
+  // The interpolation renderer an `interpolate` body lowers to (see `Interp`).
+  interp: Interp;
 }
 
 // ── Spec shapes (sketch) ──────────────────────────────────────────────────────────

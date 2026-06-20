@@ -10,7 +10,21 @@
 // constructs do, each wrapping its existing engine counterpart.
 
 import { createRegistry } from "../../registry.js";
+import { renderPrompt } from "../../sandbox/prompt-template.js";
 import type { Registry, RegistryEntry, Impl } from "../core/runtime-api.js";
+
+// The interpolation renderer (see runtime-api.ts `Interp`). Reuses the existing pure
+// `renderPrompt` — the same engine `defllmfn` prompts render through, so dotted-path /
+// record→JSON / missing-key semantics are identical. A missing reference is a hard error:
+// a well-typed program never hits it (the checker validates the paths), so it only fires
+// on a path the checker could not see — fail loud rather than render a silent gap.
+export function interp(template: string, args: Record<string, unknown>): string {
+  const result = renderPrompt(template, args);
+  if (!result.ok) {
+    throw new Error(`interpolate: references undefined variable(s): ${result.missing.join(", ")}`);
+  }
+  return result.prompt;
+}
 
 export function registry(): Registry {
   const backing = createRegistry();

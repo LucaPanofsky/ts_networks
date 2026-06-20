@@ -17,9 +17,10 @@ export enum ConstructKind {
 // blocks the splitter actually emits and the pipeline can parse/emit. A construct's
 // keyword moves here when its module lands.
 export const KEYWORD_TO_KIND: Readonly<Record<string, ConstructKind>> = {
-  defrecord:  ConstructKind.Record,
-  defn:       ConstructKind.Fn,
-  defnetwork: ConstructKind.Network,
+  defrecord:    ConstructKind.Record,
+  defn:         ConstructKind.Fn,
+  defpredicate: ConstructKind.Fn, // a predicate IS a fn (isPredicate flag); same module
+  defnetwork:   ConstructKind.Network,
 };
 
 // The full lexical surface: every top-level definition keyword the language has. The

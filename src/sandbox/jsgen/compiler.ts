@@ -146,7 +146,7 @@ function compileExportMap(program: ProgramAST): string {
 // are namespaced under `str/` (a qualified name — the `/` is mangled like any other
 // identifier char). Strings are deliberately non-regex: literal split/join for
 // replace, includes-based predicates. Regex is a separate, later decision.
-const BUILTIN_DEFS: Record<string, string> = {
+export const BUILTIN_DEFS: Record<string, string> = {
   every: `function(pred, coll) { return coll.every(function(x) { return pred(x); }); }`,
   some:  `function(pred, coll) { return coll.some(function(x) { return pred(x); }); }`,
   str:   `function() { return Array.prototype.slice.call(arguments).join(""); }`,
