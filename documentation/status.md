@@ -16,5 +16,4 @@
 - [x] Operations layer — `parse`, `check`, `typecheck`, `compile-schemas`, `run`, `run-grammar`, `run-ttable` (uniform `Operation` interface)
 - [x] CLI scripts — thin adapters over operations
 - [x] MCP server — exposes every operation as a tool over stdio (`npm run mcp`); generic adapter over the `operations` array, stdio transport, errors returned as values
-- [x] (STALE) SSE dev UI — two-column editor/graph, zoom/pan/resize, REPL (wip)
-  - [ ] Trace output
+- [x] Gavagai authoring agent (v1) — containerized Claude Code that authors `.tsn` programs against the read-only-mounted runtime; runs headless or as a browser chat (SSE + POST, workspace mirror). See [`lang_agent.md`](lang_agent.md).

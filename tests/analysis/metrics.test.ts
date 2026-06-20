@@ -161,13 +161,6 @@ describe("hotspotRank", () => {
     expect(ranked[0]!.score).toBeGreaterThan(ranked[1]!.score);
   });
 
-  test("stale modules are excluded from the ranking", () => {
-    const stale = mk({ name: "old", kind: "stale", churn: 9999, coverage: 0, fanIn: 9 });
-    const live = mk({ name: "live", churn: 1 });
-    const ranked = hotspotRank([stale, live]);
-    expect(ranked.map((h) => h.name)).toEqual(["live"]);
-  });
-
   test("off-limits algebra is ranked but flagged so it is never mistaken for a target", () => {
     const algebra = mk({ name: "info-structure", kind: "core", offLimits: true, churn: 800, coverage: 0.2, fanIn: 9 });
     const ranked = hotspotRank([algebra]);

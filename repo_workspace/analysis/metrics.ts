@@ -251,19 +251,18 @@ export interface Hotspot {
 
 /**
  * Rank modules by the hotspot triad — high churn × under-tested × high blast-radius, with
- * size as a minor amplifier. Stale modules are excluded; off-limits algebra is ranked but
- * flagged so it's never mistaken for a refactor target. Each component is normalized 0..1
- * across the live modules, so the score is relative to THIS codebase.
+ * size as a minor amplifier. Off-limits algebra is ranked but flagged so it's never mistaken
+ * for a refactor target. Each component is normalized 0..1 across the modules, so the score is
+ * relative to THIS codebase.
  */
 export function hotspotRank(metrics: ModuleMetrics[]): Hotspot[] {
-  const live = metrics.filter((m) => m.kind !== "stale");
   const maxOf = (sel: (m: ModuleMetrics) => number): number =>
-    Math.max(1, ...live.map(sel));
+    Math.max(1, ...metrics.map(sel));
   const mChurn = maxOf((m) => m.churn);
   const mLoc = maxOf((m) => m.srcLoc);
   const mFanIn = maxOf((m) => m.fanIn);
 
-  const hs = live.map((m): Hotspot => {
+  const hs = metrics.map((m): Hotspot => {
     const churnN = m.churn / mChurn;
     const locN = m.srcLoc / mLoc;
     const blast = m.fanIn / mFanIn;
