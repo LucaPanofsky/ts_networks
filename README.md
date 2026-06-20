@@ -24,7 +24,7 @@ one of its networks with seeded cell values (each `cell=jsExpr`):
 
 ```bash
 # Rectangle area: feed a record, get a derived field
-npx tsx scripts/run.ts examples/geometry.tsn rectangleMetrics 'rect={width:3,height:4}'
+npx tsx scripts/run.ts repo_workspace/examples/geometry.tsn rectangleMetrics 'rect={width:3,height:4}'
 #   rect = {"width":3,"height":4}
 #   area = 12
 ```
@@ -33,15 +33,15 @@ Propagation is **bidirectional** — the same network solves for whichever cell 
 The `equation` network encodes `a + b = c`; give any two, get the third:
 
 ```bash
-npx tsx scripts/run.ts examples/equation.tsn equation 'a=2' 'b=3'   # → c = 5
-npx tsx scripts/run.ts examples/equation.tsn equation 'a=2' 'c=5'   # → b = 3
+npx tsx scripts/run.ts repo_workspace/examples/equation.tsn equation 'a=2' 'b=3'   # → c = 5
+npx tsx scripts/run.ts repo_workspace/examples/equation.tsn equation 'a=2' 'c=5'   # → b = 3
 ```
 
 **3. Inspect a program** without running it — parse, type-check, or draw it:
 
 ```bash
-npx tsx scripts/typecheck.ts examples/citations.tsn     # static checks; prints `ok`
-npx tsx scripts/diagram.ts   examples/equation.tsn live  # a mermaid.live editor link
+npx tsx scripts/typecheck.ts repo_workspace/examples/citations.tsn     # static checks; prints `ok`
+npx tsx scripts/diagram.ts   repo_workspace/examples/equation.tsn live  # a mermaid.live editor link
 ```
 
 Every script takes a `.tsn` file as its first argument and prints `ok` (or a result) on
@@ -53,7 +53,7 @@ need a key:
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
-npx tsx scripts/run.ts examples/llmfn_network_document_analysis_example.tsn documentPipeline \
+npx tsx scripts/run.ts repo_workspace/examples/llmfn_network_document_analysis_example.tsn documentPipeline \
   "text='Quarterly revenue rose 12% on strong cloud demand.'"
 ```
 
@@ -68,7 +68,7 @@ npm run mcp          # serves the operations over stdio
 Point your client at it with `cwd` set to this repo root — see
 [Running the MCP server](documentation/how_to/mcp_server.md) for the client config.
 
-**Next:** browse [`examples/`](examples/) for runnable programs, read the
+**Next:** browse [`repo_workspace/examples/`](repo_workspace/examples/) for runnable programs, read the
 [Language Reference](documentation/language.md) (start with the
 [standard library](documentation/language.md#standard-library-the-prelude)), and run
 `npm test` to confirm the suite is green.
@@ -186,7 +186,7 @@ The **return type chooses the mode**:
 
 Scan is the island-parsing pattern (e.g. pulling all citations out of a long legal document); it is implemented with a synthesized Ohm supergrammar. With **no signature** a `defgrammar` is a bare recognizer returning the matched text. Two invariants are checked at compile time: the Ohm grammar must be valid, and its internal name must equal the `defgrammar` name.
 
-See `examples/citations.tsn` for a runnable end-to-end example.
+See `repo_workspace/examples/citations.tsn` for a runnable end-to-end example.
 
 ### Structured Extraction (`defextract`)
 
@@ -207,7 +207,7 @@ end
 - **`scan`** fills a vector field (many matches); **`parse`** fills a scalar field (one). The **verb decides cardinality** — the grammar is a single-element recognizer (`to <Record>?`) used either way.
 - **`within <field>`** recurses into each scanned element, scoped to the **span that element matched**, so a nested scan sees only its parent's text (points stay inside their paragraph) — no region field to declare.
 
-`typecheck` verifies the wiring: `scan`↔vector / `parse`↔scalar, the bind record == the field's element == the grammar's return, `within` targets a vector-of-record field, and the root grammar returns the root record. The tree is fixed-depth (no self-recursion yet). See `examples/gdpr_article_extract.tsn` for the full Article-33 extractor, runnable end-to-end.
+`typecheck` verifies the wiring: `scan`↔vector / `parse`↔scalar, the bind record == the field's element == the grammar's return, `within` targets a vector-of-record field, and the root grammar returns the root record. The tree is fixed-depth (no self-recursion yet). See `repo_workspace/examples/gdpr_article_extract.tsn` for the full Article-33 extractor, runnable end-to-end.
 
 ### LLM Functions (`defllmfn`)
 
@@ -292,8 +292,8 @@ given-and-correct and changed only deliberately.
 
 ```
 scripts/    — thin CLI adapters over src/operations/ (one .tsn file per invocation)
-analysis/   — the codebase maintenance-analysis tool (see below)
-examples/   — runnable .tsn programs
+repo_workspace/analysis/   — the codebase maintenance-analysis tool (see below)
+repo_workspace/examples/   — runnable .tsn programs
 documentation/ — language reference + how-to guides
 ```
 
@@ -359,7 +359,7 @@ There is no build step for the alpha — you run programs directly with `npx tsx
 
 ### Codebase analysis
 
-A maintenance tool in `analysis/` builds the module taxonomy above and computes the metrics
+A maintenance tool in `repo_workspace/analysis/` builds the module taxonomy above and computes the metrics
 that show **where to look for refactoring** — per-module LOC, test LOC and test:src ratio,
 the inter-module dependency graph (fan-in/out, instability, import cycles), git churn,
 statement coverage, and weak-typing risk markers. Modules are ranked by a **hotspot** score
@@ -370,10 +370,10 @@ npm run analyze         # run the suite + coverage, then write a themed HTML rep
 npm run analyze:quick   # report only, reusing on-disk coverage (fast, may be stale)
 ```
 
-The report is written to `analysis/REPORT.html` — a single self-contained file; open it in a
-browser. The pure metric logic lives in `analysis/metrics.ts` (functional core) and is
-covered by `tests/analysis/`; `analysis/gather.ts` is the I/O shell (filesystem, git, jest).
-Generated artifacts (`analysis/REPORT.html`, `coverage/`) are gitignored; the tool source is
+The report is written to `repo_workspace/analysis/REPORT.html` — a single self-contained file; open it in a
+browser. The pure metric logic lives in `repo_workspace/analysis/metrics.ts` (functional core) and is
+covered by `tests/analysis/`; `repo_workspace/analysis/gather.ts` is the I/O shell (filesystem, git, jest).
+Generated artifacts (`repo_workspace/analysis/REPORT.html`, `coverage/`) are gitignored; the tool source is
 tracked.
 
 ## Editor Support

@@ -20,7 +20,7 @@ const STEPS = [
   'reading the document',
   'running tsn-check',
   'running tsn-typecheck',
-  'running tsn-run examples/geometry.tsn',
+  'running tsn-run repo_workspace/examples/geometry.tsn',
   'writing /workspace/out/program.tsn',
 ];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

@@ -486,7 +486,7 @@ end
 ```
 
 Combined with `as mapping`, this lets a scalar grammar enrich each element of a
-vector produced by another grammar — see [`examples/gdpr_article_structured_extraction.tsn`](../examples/gdpr_article_structured_extraction.tsn).
+vector produced by another grammar — see [`repo_workspace/examples/gdpr_article_structured_extraction.tsn`](../repo_workspace/examples/gdpr_article_structured_extraction.tsn).
 
 ---
 
@@ -542,7 +542,7 @@ vector field and `parse` a scalar one; the bind's record, the field's element re
 and the grammar's return record must agree; a `within` must target a vector-of-record
 field; and the root grammar must return the root record.
 
-See [`examples/gdpr_article_extract.tsn`](../examples/gdpr_article_extract.tsn) for the
+See [`repo_workspace/examples/gdpr_article_extract.tsn`](../repo_workspace/examples/gdpr_article_extract.tsn) for the
 full Article-33 extractor, runnable end-to-end.
 
 ---
@@ -593,7 +593,7 @@ is refused, not guessed.
 A `TTable` can be the **leaf of a `defextract`** wherever a scan-mode grammar would go,
 because both return a typed vector (`scan Equivalence as rows using TTable/Rows`). The
 extract orchestrates; the leaf — grammar or TTable — just returns typed records. See
-[`examples/treaty_table/treaty_total.tsn`](../examples/treaty_table/treaty_total.tsn).
+[`repo_workspace/examples/treaty_table/treaty_total.tsn`](../repo_workspace/examples/treaty_table/treaty_total.tsn).
 
 ### Type-checking
 
@@ -901,4 +901,4 @@ end
 - Compiles to a guarded IIFE with `if (__v.__type === ...)` chains — no runtime dependency.
 
 > See [`tests/sandbox/jsgen/expressions.test.ts`](../tests/sandbox/jsgen/expressions.test.ts) for expression tests and usage.
-> See also [`examples/`](../examples/) for complete programs.
+> See also [`repo_workspace/examples/`](../repo_workspace/examples/) for complete programs.

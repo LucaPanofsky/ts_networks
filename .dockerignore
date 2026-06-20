@@ -7,19 +7,17 @@ coverage
 .github
 WORKSPACE
 report
-analysis
+repo_workspace
 dev
 ui
 editors
 public
 tests
-examples
 documentation
 *.db
 .clj-kondo
 .lsp
 .claude
-CLAUDE_TUNNEL.md
 # generated parser is regenerated in the build stage
 src/data-network/parser.js
 src/data-network/parser.terms.js

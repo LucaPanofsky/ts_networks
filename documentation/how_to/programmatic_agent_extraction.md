@@ -153,7 +153,7 @@ These are the facts that decide whether a grammar is *correct*. Full detail in
 
 ## Worked example, end to end
 
-[`examples/invoice_example/`](../../examples/invoice_example/) is a complete instance of
+[`repo_workspace/examples/invoice_example/`](../../repo_workspace/examples/invoice_example/) is a complete instance of
 this playbook — a GoRails-style invoice → a nested `Invoice` record (metadata, a `seller`
 and a `billTo` `Party`, a `[LineItem?]` table, and totals). It bundles the source PDF, the
 extracted `.txt`, the `invoice.tsn` program, and the `result.json` it produces. It shows the
@@ -161,12 +161,12 @@ two-column split (decided from the image), label-anchored scalar capture, and th
 shape-based item/total discrimination.
 
 ```bash
-npx tsx scripts/run.ts examples/invoice_example/invoice.tsn extractInvoice \
+npx tsx scripts/run.ts repo_workspace/examples/invoice_example/invoice.tsn extractInvoice \
   doc=@example_invoice.txt
 ```
 
 For a multi-level nested document (Article → Paragraphs → Points), see
-[`examples/gdpr_article_extract.tsn`](../../examples/gdpr_article_extract.tsn).
+[`repo_workspace/examples/gdpr_article_extract.tsn`](../../repo_workspace/examples/gdpr_article_extract.tsn).
 
 ---
 
@@ -191,7 +191,7 @@ For a multi-level nested document (Article → Paragraphs → Points), see
 - Constructs: [defining grammars](defining_grammars.md),
   [extracting documents](extracting_documents.md), [extracting tables](extracting_tables.md).
 - Tools for the loop: [MCP server](mcp_server.md) (`run-grammar`, `run-ttable`, `run`).
-- Worked example: [`examples/invoice_example/`](../../examples/invoice_example/).
+- Worked example: [`repo_workspace/examples/invoice_example/`](../../repo_workspace/examples/invoice_example/).
 
 ## Changelog
 

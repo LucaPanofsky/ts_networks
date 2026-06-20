@@ -40,7 +40,7 @@ single-file portable — see *Delivering a standalone file* below for when you n
 
 ## The palette
 
-From `resources/logo.html`. Tokens in `:root`:
+From `repo_workspace/resources/logo.html`. Tokens in `:root`:
 
 - `--ink #111111` — text, borders, the action/solid colour
 - `--paper #f3efe6` — background

@@ -73,4 +73,4 @@ npx tsx scripts/parse.ts my-program.tsn | jq '.networks[0]'
 - [Extending the language agent UI](how_to/extending_lang_agent_ui.md) — add a feature to the Gavagai chat, through its event-driven functional architecture
 - [Running the MCP server](how_to/mcp_server.md) — expose the program-reasoning tools to an external agent over stdio
 - [Working with the scripts](how_to/working_with_the_scripts.md) — the full reference for the `scripts/` CLI adapters: parse, check, typecheck, run (with `cell=`/`@file` seeding), schemas, diagram, pdf
-- [The session tunnel file](how_to/tunnel_file.md) — the format and maintenance of `CLAUDE_TUNNEL.md`, the hand-maintained handoff that tunnels a fresh agent to the live edge of development
+- Session handoff between agents now lives in **GitHub issues**, replacing the old, gitignored `CLAUDE_TUNNEL.md` flat file; an automated issue-driven handoff is a planned follow-up

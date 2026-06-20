@@ -70,7 +70,7 @@ Two project rules govern the whole process:
    `tests/` — it won't report these. `npm test` surfaces them as "suite failed to
    run." After changing a shared type, run the full suite, not `tsc` alone.
 6. **(Callables only)** type-checker, then sandbox/registry
-   (`src/sandbox/jsgen/registry.ts`), then a runnable `examples/*.tsn`, then a
+   (`src/sandbox/jsgen/registry.ts`), then a runnable `repo_workspace/examples/*.tsn`, then a
    note in `README.md`.
 
 Verify continuously: `npm test`, and `npx tsc --noEmit` after type changes.
@@ -151,7 +151,7 @@ else if (cn() === "ParameterDef") parameters.push(collectParameterDef());
 
 That was the whole change for a declaration. A callable would continue: teach
 `type-checker.ts` about the new node, register a runtime implementation in
-`src/sandbox/jsgen/registry.ts`, add an `examples/*.tsn`, and document it in
+`src/sandbox/jsgen/registry.ts`, add an `repo_workspace/examples/*.tsn`, and document it in
 `README.md`.
 
 ---
@@ -190,5 +190,5 @@ That was the whole change for a declaration. A callable would continue: teach
   callable as `extract/<name>`. Threaded through every stage — parser, AST,
   collector, runtime (`src/sandbox/extract-runtime.ts`, registered in the registry
   beside `grammar/`/`network/`), and the type-checker (`validateExtract`, run by the
-  `typecheck` operation). Runs end-to-end (`examples/gdpr_article_extract.tsn`).
+  `typecheck` operation). Runs end-to-end (`repo_workspace/examples/gdpr_article_extract.tsn`).
   Surfaced the alternation-wrapper-node gotcha documented above.

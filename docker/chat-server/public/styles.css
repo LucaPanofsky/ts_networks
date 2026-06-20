@@ -15,7 +15,7 @@
 
 :root {
   color-scheme: light;
-  /* Editorial ink-on-paper palette (from resources/logo.html, the brand guide). */
+  /* Editorial ink-on-paper palette (from repo_workspace/resources/logo.html, the brand guide). */
   --bg: #f3efe6;          /* paper — the main canvas */
   --sidebar: #ffffff;     /* white panel on paper */
   --panel: #ffffff;       /* composer + user bubble (white card on paper) */

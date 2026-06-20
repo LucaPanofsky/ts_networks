@@ -5,7 +5,7 @@ The language has three layers: **types** (records and predicates), **functions**
 computation), and **networks** that wire functions together into propagator graphs. See
 [`README.md`](README.md) for a short introduction to the project.
 
-See the [`examples/`](examples/) folder for a quick tour of the language's features through small
+See the [`repo_workspace/examples/`](repo_workspace/examples/) folder for a quick tour of the language's features through small
 programs you can run and adapt — geometry and search networks, document/table extraction, and an
 LLM-function pipeline, among others.
 
@@ -31,7 +31,9 @@ In [`documentation/how_to/`](documentation/how_to/) you will find knowledge abou
 - [`extending_lang_agent_ui.md`](documentation/how_to/extending_lang_agent_ui.md) — add a feature to the Gavagai chat UI through its event-driven functional (re-frame) architecture.
 - [`mcp_server.md`](documentation/how_to/mcp_server.md) — expose the program-reasoning operations to an external agent over stdio (MCP).
 - [`working_with_the_scripts.md`](documentation/how_to/working_with_the_scripts.md) — the full reference for the `scripts/` CLI adapters (`parse`/`check`/`typecheck`/`run`/`compile-schemas`/`diagram`/`pdf`), with examples and `cell=`/`@file` seeding.
-- [`tunnel_file.md`](documentation/how_to/tunnel_file.md) — the format and maintenance of `CLAUDE_TUNNEL.md`, the hand-maintained handoff that tunnels a fresh agent to the live edge of development.
+
+> Session handoff between agents now lives in **GitHub issues** (replacing the old, gitignored
+> `CLAUDE_TUNNEL.md` flat file). An automated issue-driven handoff is a planned follow-up.
 
 ## Working with the scripts
 

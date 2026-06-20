@@ -7,8 +7,8 @@ import { typecheck } from "../../src/operations/typecheck.js";
 // (`scan Equivalence as rows using TTable/Rows`) to parse the table inside each TITLE
 // section. Drives the real pipeline, plus a typecheck that the composition is accepted.
 
-const totalSource = readFileSync(join(__dirname, "../../examples/treaty_table/treaty_total.tsn"), "utf8");
-const text = readFileSync(join(__dirname, "../../examples/treaty_table/treaty_extract.txt"), "utf8");
+const totalSource = readFileSync(join(__dirname, "../../repo_workspace/examples/treaty_table/treaty_total.tsn"), "utf8");
+const text = readFileSync(join(__dirname, "../../repo_workspace/examples/treaty_table/treaty_extract.txt"), "utf8");
 
 describe("defextract + declared TTable: treaty grouped by TITLE (Route B, no fold)", () => {
   type Cells = { old: string; lisbon: string; newNum: string };

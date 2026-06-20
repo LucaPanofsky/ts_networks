@@ -6,7 +6,7 @@ import { compileGrammar } from "../../src/sandbox/grammar-runtime.js";
 
 // Point A of the defextract path: author the three Article-33 recognisers (Article
 // header, Paragraph, Point) as valid, correct Ohm, and prove they extract the real
-// fixture (examples/gdpr_article_33.txt). They run through the EXISTING grammar
+// fixture (repo_workspace/examples/gdpr_article_33.txt). They run through the EXISTING grammar
 // runtime — the same machinery defextract will desugar onto — so the grammars are
 // trusted before the extract runtime is built.
 //
@@ -70,7 +70,7 @@ defgrammar Point
 end
 `;
 
-const text = readFileSync(join(__dirname, "../../examples/gdpr_article_33.txt"), "utf8");
+const text = readFileSync(join(__dirname, "../../repo_workspace/examples/gdpr_article_33.txt"), "utf8");
 
 function compiled(name: string) {
   const program = parseProgram(dsl);

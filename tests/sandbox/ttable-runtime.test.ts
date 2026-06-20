@@ -8,7 +8,7 @@ import { Contradiction } from "../../src/info-structure.js";
 // Step 2: compileTTable in isolation, against the real treaty fixture. Tests the pure
 // core before any registry wiring.
 
-const text = readFileSync(join(__dirname, "../../examples/treaty_table/treaty_extract.txt"), "utf8");
+const text = readFileSync(join(__dirname, "../../repo_workspace/examples/treaty_table/treaty_extract.txt"), "utf8");
 
 const dsl = `
 defrecord Equivalence

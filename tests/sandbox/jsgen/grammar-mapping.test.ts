@@ -94,7 +94,7 @@ describe("enrichParagraph as mapping over [Paragraph?]", () => {
 // ── Chained: a grammar SCAN output feeding the mapping (the real pipeline) ───────
 // This is the only structural difference from the passing cases above: the vector
 // fed to `as mapping` is produced by another propagator (`grammar/ParaScan`) rather
-// than seeded directly. It reproduces the `∅` seen in examples/article33_experiment.
+// than seeded directly. It reproduces the `∅` seen in repo_workspace/examples/article33_experiment.
 
 const chainDsl = `
 defrecord Point
