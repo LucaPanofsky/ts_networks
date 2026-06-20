@@ -63,7 +63,7 @@ end
     expect(blocks[2]!.text).toContain("defrecord B");
   });
 
-  test("derive (no `end`, ends with ;) is a clean boundary", () => {
+  test("derive (no `end`, ends with ;) is its own one-line block", () => {
     const src = `
 defrecord E
   e: Number?;
@@ -76,10 +76,13 @@ defrecord F
 end
 `;
     const blocks = split(src);
-    expect(blocks).toHaveLength(2);
+    // derive is implemented; with no `end` the next-anchor rule still bounds it to its line.
+    expect(blocks).toHaveLength(3);
+    expect(blocks.map((b) => b.kind)).toEqual([ConstructKind.Record, ConstructKind.Derive, ConstructKind.Record]);
     expect(blocks[0]!.text).toContain("defrecord E");
-    expect(blocks[0]!.text).not.toContain("derive");
-    expect(blocks[1]!.text).toContain("defrecord F");
+    expect(blocks[1]!.text).toContain("derive Adult from Person");
+    expect(blocks[1]!.text).not.toContain("defrecord"); // bounded to the derive line only
+    expect(blocks[2]!.text).toContain("defrecord F");
   });
 
   test("leading preamble comments and blank lines are ignored", () => {

@@ -1,0 +1,17 @@
+// Canonical, readable copy of the defenum grammar. Kept in sync by hand with the
+// GRAMMAR_SOURCE string in parse.ts (the live copy; .ohm files are not importable under
+// NodeNext/jest).
+//
+// A closed set of single-quoted values, comma-separated, then `;` and `end`. Emits one
+// membership predicate `Name?`; the values are bare strings elsewhere.
+//
+//   defenum Sentiment
+//     'positive', 'negative', 'neutral';
+//   end
+
+Enum {
+  Main = "defenum" ident string ("," string)* ";" "end"
+  string = "'" (~"'" any)* "'"
+  ident = letter identChar*
+  identChar = alnum | "?"
+}
