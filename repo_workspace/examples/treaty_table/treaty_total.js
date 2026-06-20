@@ -140,6 +140,6 @@ __reg.register("extract/TreatyTotal", { arity: 1, impl: extract$TreatyTotal, mor
 const extractTotal = rt.network({"kind":"network","name":"extractTotal","signature":{"from":["doc"],"to":"annex"},"terms":[{"kind":"propagate","fn":"extract/TreatyTotal","from":["doc"],"to":"annex","params":{}}]}, __reg);
 __reg.register("network/extractTotal", { arity: 1, impl: extractTotal, morphism: { from: ["Any?"], to: "Any?" } });
 
-export const __manifest = {"networks":{"extractTotal":{"from":["doc"],"to":"annex"}}};
+export const __manifest = {"networks":{"extractTotal":{"from":["doc"],"to":"annex"}},"values":["not","and","or","add","sub","mul","div","eq","gt","lt","gte","lte","sqrt","abs","round","floor","ceil","mod","pow","max","min","Equivalence","TitleRow","TitleGroup","Annex"]};
 
 export default __reg;

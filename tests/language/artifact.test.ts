@@ -40,6 +40,26 @@ defnetwork sum
 end
 `;
 
+// `chain` has an INTERNAL cell `b` (neither signature input nor output) and an internal cell
+// `k` we seed by name — exercises all-cells output and by-name seeding of a non-signature cell.
+const CHAIN = `
+defn inc
+  signature: from [Number?(x)] to Number?;
+  expression x + 1;
+end
+
+defn add2
+  signature: from [Number?(a), Number?(b)] to Number?;
+  expression a + b;
+end
+
+defnetwork chain
+  signature: from [a] to c;
+  propagate inc from [a] to b;
+  propagate add2 from [b, k] to c;
+end
+`;
+
 const GRAMMAR = `
 defrecord Pair
   key: String?;
@@ -114,6 +134,17 @@ describe("compiled artifact — compile-js → run-compiled", () => {
   test("round-trip: a pure network matches the engine run", async () => {
     const art = await bothMatch(PURE, "sum", { a: "2", b: "3" });
     if (art.ok) expect(art.cells.c).toBe(5);
+  });
+
+  test("returns ALL cells, and an internal cell can be seeded BY NAME", async () => {
+    // `k` is neither a signature input nor the output — seeding it by name must reach the
+    // runtime (Gap 2), and every cell (incl. internal `b`) must come back (Gap 1).
+    const art = await bothMatch(CHAIN, "chain", { a: "1", k: "10" });
+    if (art.ok) {
+      expect(art.cells.b).toBe(2); // inc: a=1 → b=2
+      expect(art.cells.c).toBe(12); // add2: b=2 + k=10 → c=12
+      expect(Object.keys(art.cells).sort()).toEqual(["a", "b", "c", "k"]);
+    }
   });
 
   test("a cell expression can call the program's own fn (sandbox parity with run)", async () => {
