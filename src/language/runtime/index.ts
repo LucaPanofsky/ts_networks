@@ -41,6 +41,8 @@ import type {
 } from "../../data-network/types.js";
 import type { Registry, RegistryEntry, Impl, CompiledLeaf, GrammarSpec, TTableSpec, ExtractSpec, ExtractWithinSpec, LlmFnSpec, NetworkSpec } from "../core/runtime-api.js";
 import type { ScanMatch, RecordDescriptor } from "../core/types.js";
+import { ConstructKind } from "../core/enums.js";
+import type { AstNode, Program } from "../pipeline/program.js";
 
 // The interpolation renderer (see runtime-api.ts `Interp`). Reuses the existing pure
 // `renderPrompt` — the same engine `defllmfn` prompts render through, so dotted-path /
@@ -196,13 +198,18 @@ export function extract(
 //   • memoize — a re-fire over identical inputs shares the in-flight APromise (one model
 //     call, same reference), so re-merging the result can never self-contradict.
 export function llmFn(spec: LlmFnSpec, reg: Registry): Impl {
-  const program = programWith({
-    records: spec.typeEnv.records.map((r) => ({ kind: "record", name: r.name, fields: r.fields })),
-    enums: spec.typeEnv.enums.map((e) => ({ kind: "enum", name: e.name, values: e.values }) satisfies EnumAST),
-    fns: spec.typeEnv.predicates.map(
-      (p) => ({ kind: "fn", isPredicate: true, name: p.name, params: p.params, returnType: p.returnType, body: p.body as Expr }) satisfies FnAST,
-    ),
-  });
+  // `deriveProtocol` now reads a modular `Program`; synthesize one carrying only the type
+  // collections it walks (records + enums + predicate fns). The nodes are structurally the
+  // engine ASTs (the `select.ts` selectors cast them back), so one cast suffices.
+  const program: Program = {
+    nodes: [
+      ...spec.typeEnv.records.map((r) => ({ kind: ConstructKind.Record, name: r.name, fields: r.fields })),
+      ...spec.typeEnv.enums.map((e) => ({ kind: ConstructKind.Enum, name: e.name, values: e.values })),
+      ...spec.typeEnv.predicates.map(
+        (p) => ({ kind: ConstructKind.Fn, isPredicate: true, name: p.name, params: p.params, returnType: p.returnType, body: p.body as Expr }),
+      ),
+    ] as AstNode[],
+  };
   const protocol = deriveProtocol(spec.returnType as TypeRef, program);
   const paramNames = spec.params.map((p) => p.name);
   const memo = new Map<string, APromise<unknown>>();
