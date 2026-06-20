@@ -11,7 +11,7 @@
 import type { MetricsResult, ModuleMetrics, Hotspot } from "./metrics.js";
 import { provenanceBadges, type GitInfo, type Badge } from "./provenance.js";
 
-const KIND_ORDER = { core: 0, runtime: 1, tooling: 2, stale: 3 } as const;
+const KIND_ORDER = { core: 0, runtime: 1, tooling: 2 } as const;
 
 const esc = (s: string): string =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -135,7 +135,7 @@ function legendSection(): string {
     `<dt>${esc(term)}</dt><dd>${desc}</dd>`;
   return `<div class="legend">
     <dl>
-      ${metric("score", "Hotspot rank 0–100 — <b>where to look first</b>. A weighted blend of churn, under-testedness, and blast-radius (fan-in), with size as a minor amplifier. Each input is normalized across the live modules, so the score is <i>relative to this codebase</i>, not absolute. Stale modules are excluded.")}
+      ${metric("score", "Hotspot rank 0–100 — <b>where to look first</b>. A weighted blend of churn, under-testedness, and blast-radius (fan-in), with size as a minor amplifier. Each input is normalized across the modules, so the score is <i>relative to this codebase</i>, not absolute.")}
       ${metric("src LOC", "Lines of source in the module's <code>.ts</code> files (newline count, à la <code>wc -l</code>). Generated files (<code>parser.js</code>, <code>*.d.ts</code>) are excluded.")}
       ${metric("test LOC", "Lines in the mirrored <code>tests/</code> files for the module (plus any explicitly-attached cross-cutting test files).")}
       ${metric("test:src", "test LOC ÷ src LOC — a rough test-investment proxy. Low can mean under-tested; high doesn't guarantee good tests (use <code>cov</code> for that).")}
@@ -146,7 +146,7 @@ function legendSection(): string {
       ${metric("commits", "Number of git commits in history that touched any file in the module.")}
       ${metric("churn", "Total lines added + deleted across all those commits — how much the module has <i>moved</i> over time.")}
       ${metric("risk", "Count of weak-typing / unfinished markers: <code>as any</code>, <code>: any</code>, <code>@ts-ignore</code>, <code>@ts-expect-error</code>, <code>TODO</code>, <code>FIXME</code>, <code>XXX</code>.")}
-      ${metric("kind", "<span class=\"ktag ktag-core\">core</span> algebra + central wiring · <span class=\"ktag ktag-runtime\">runtime</span> DSL frontend, engine, sandbox, operations · <span class=\"ktag ktag-tooling\">tooling</span> entrypoints/adapters · <span class=\"ktag ktag-stale\">stale</span> abandoned (excluded from the ranking).")}
+      ${metric("kind", "<span class=\"ktag ktag-core\">core</span> algebra + central wiring · <span class=\"ktag ktag-runtime\">runtime</span> DSL frontend, engine, sandbox, operations · <span class=\"ktag ktag-tooling\">tooling</span> entrypoints/adapters.")}
       ${metric("⚠", "Algebra surface (merge / I / naryUnpacking and friends) — given-and-correct; <b>change only with explicit permission</b>. Ranked but flagged, never a refactor target.")}
     </dl>
   </div>`;
@@ -196,7 +196,7 @@ export function formatHtml(
   const sections: { id: string; label: string; title: string; lead: string; body: string }[] = [
     {
       id: "hotspots", label: "Hotspots", title: "Hotspots",
-      lead: "Where to look first — modules ranked by churn × under-testedness × blast-radius (fan-in), with size a minor amplifier. Stale modules are excluded.",
+      lead: "Where to look first — modules ranked by churn × under-testedness × blast-radius (fan-in), with size a minor amplifier.",
       body: coverageNote + statCards(result) + hotspotSection(hotspots),
     },
     {
@@ -356,8 +356,6 @@ const ANALYSIS_STYLE = `
 .r-analysis .ktag-core{background:var(--red);color:#fff;border-color:var(--red)}
 .r-analysis .ktag-runtime{background:var(--ink);color:var(--paper)}
 .r-analysis .ktag-tooling{background:#fff;color:var(--ink)}
-.r-analysis .ktag-stale{background:var(--paper);color:var(--muted);border-color:var(--line)}
-.r-analysis tr.kind-stale td{opacity:.6}
 .r-analysis .warn-flag{color:var(--red);font-weight:800}
 .r-analysis .cycles{margin:6px 0;padding-left:20px}
 .r-analysis .cycles li{margin:4px 0}

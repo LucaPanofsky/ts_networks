@@ -7,11 +7,9 @@
 //   core    — algebra + central wiring. The merge / I / naryUnpacking algebra is
 //             given-and-correct (off-limits); we want to SEE these but not refactor them.
 //   runtime — the DSL frontend + propagator engine + sandbox + operations.
-//   tooling — entrypoints and adapters (cli, mcp).
-//   stale   — the abandoned UI. Excluded from the hotspot ranking so it doesn't masquerade
-//             as "untested weak code" worth attention.
+//   tooling — entrypoints and adapters (mcp).
 
-export type ModuleKind = "core" | "runtime" | "tooling" | "stale";
+export type ModuleKind = "core" | "runtime" | "tooling";
 
 export interface ModuleDef {
   /** Display name. */
