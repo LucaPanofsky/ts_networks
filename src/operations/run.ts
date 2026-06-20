@@ -1,7 +1,9 @@
-import { compile } from "../sandbox/jsgen/index.js";
-import { toolsFromConfig } from "./tools.js";
-import { Workspace, WorkspaceError, workspaceRoot } from "../fs/workspace.js";
-import { projectInfo } from "./project.js";
+import { emitJs } from "../language/index.js";
+// The STRICT parser (rejects leading garbage, reports line-numbered syntax errors) — the same
+// validator `check`/`typecheck` use. `emitJs` parses with the more lenient split-based parser,
+// so we validate here first to preserve the engine `run`'s syntax-error contract.
+import { parseProgram } from "../data-network/tree-to-network.js";
+import { runCompiled } from "./run-compiled.js";
 import type { Operation } from "./types.js";
 
 type RunInput = {
@@ -14,6 +16,11 @@ type RunOutput =
   | { ok: true; network: string; cells: Record<string, unknown> }
   | { ok: false; error: string };
 
+// Compile a ts-networks program and run one of its networks. This is the modular emit path:
+// `emitJs` compiles the source to a self-contained `.js` artifact (parse + merge-check +
+// emit), then `run-compiled` loads and runs it in-process. (The engine `jsgen` run path it
+// used to call is retired — there is now ONE emit path.) Cell seeding, the full tool resolver,
+// and all-cells output all live in `run-compiled`; this is the compile-from-source front door.
 export const run: Operation<RunInput, Promise<RunOutput>> = {
   name: "run",
   description: "Compile and execute a ts-networks network with given cell inputs.",
@@ -34,70 +41,22 @@ export const run: Operation<RunInput, Promise<RunOutput>> = {
     required: ["source", "network", "cells"],
   },
   async handle(input) {
-    const { source, network: networkName, cells: cellExprs } = input;
+    const { source, network, cells } = input;
     if (!source) return { ok: false, error: "source is required" };
-    if (!networkName) return { ok: false, error: "network is required" };
+    if (!network) return { ok: false, error: "network is required" };
 
-    let compiled;
+    let code: string;
     try {
-      // Inject the full program-reasoning resolver: an executed llmfn's `with: tools`
-      // can reach every operation (run-grammar, typecheck, run, …), not just `parse`.
-      compiled = compile(source, toolsFromConfig);
+      // Validate syntax through the STRICT parser first — it rejects leading garbage and
+      // reports line-numbered `Syntax error at line X, col Y` (the emit splitter is more
+      // lenient and would silently drop unparseable leading text). Then emit: combine
+      // (merge-check) + codegen. Either failure is a compile error, with the engine's prefix.
+      parseProgram(source);
+      code = emitJs(source);
     } catch (e) {
       return { ok: false, error: `compile error: ${e}` };
     }
 
-    const network = compiled.networks.get(networkName);
-    if (!network) return { ok: false, error: `network "${networkName}" not found` };
-
-    const validEntries = Object.entries(compiled.sandbox).filter(([k]) =>
-      /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(k)
-    );
-    const sandboxKeys = validEntries.map(([k]) => k);
-    const sandboxVals = validEntries.map(([, v]) => v);
-    const ws = new Workspace(workspaceRoot());
-    const inputs: Record<string, unknown> = {};
-    for (const [name, expr] of Object.entries(cellExprs)) {
-      // `@filename` seeds the RAW TEXT of a workspace file as a string — read
-      // verbatim, never evaluated as JS (a document is data, not code).
-      if (expr.startsWith("@")) {
-        const fileName = expr.slice(1);
-        try {
-          inputs[name] = await ws.readText(fileName);
-        } catch (e) {
-          if (e instanceof WorkspaceError) return { ok: false, error: `cell "${name}": ${e.message}` };
-          if ((e as NodeJS.ErrnoException).code === "ENOENT") {
-            return { ok: false, error: `cell "${name}": no such file in the workspace: ${fileName}` };
-          }
-          return { ok: false, error: `cell "${name}": ${(e as Error).message}` };
-        }
-        continue;
-      }
-      try {
-        inputs[name] = new Function(...sandboxKeys, `return ${expr}`)(...sandboxVals);
-      } catch (e) {
-        return { ok: false, error: `cannot evaluate cell "${name}": ${e}` };
-      }
-    }
-
-    // Drive the ASYNC runtime: async leaves (llmfn) return an APromise that the sync
-    // runner would never await, leaving the cell as an unresolved promise (shown as
-    // `∅`). invokeAsync awaits them; it is also correct for purely synchronous
-    // networks (sync propagators are wrapped), so this is the single run path.
-    let result;
-    try {
-      result = await network.invokeAsync(inputs);
-    } catch (e) {
-      return { ok: false, error: `runtime error: ${e}` };
-    }
-
-    const cells: Record<string, unknown> = {};
-    for (const [name, cell] of result.cells) {
-      // Project each cell to a plain value (await async leaves, surface Contradictions,
-      // unwrap content) — shared with `run-compiled` so the artifact output matches.
-      cells[name] = await projectInfo(cell.knows());
-    }
-
-    return { ok: true, network: networkName, cells };
+    return runCompiled.handle({ code, network, cells });
   },
 };
