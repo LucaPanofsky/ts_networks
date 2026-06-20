@@ -10,6 +10,9 @@
 // constructs do, each wrapping its existing engine counterpart.
 
 import { createRegistry } from "../../registry.js";
+import type { Registry as EngineRegistry } from "../../registry.js";
+import { astToDataNetwork } from "../../data-network/ast-to-data-network.js";
+import { NetworkRuntime } from "../../network-impl/runtime.js";
 import { renderPrompt } from "../../sandbox/prompt-template.js";
 import { compileGrammar } from "../../sandbox/grammar-runtime.js";
 import { compileTTable } from "../../sandbox/ttable-runtime.js";
@@ -33,8 +36,9 @@ import type {
   EnumAST,
   Expr,
   TypeRef,
+  DataNetworkAST,
 } from "../../data-network/types.js";
-import type { Registry, RegistryEntry, Impl, CompiledLeaf, GrammarSpec, TTableSpec, ExtractSpec, ExtractWithinSpec, LlmFnSpec } from "../core/runtime-api.js";
+import type { Registry, RegistryEntry, Impl, CompiledLeaf, GrammarSpec, TTableSpec, ExtractSpec, ExtractWithinSpec, LlmFnSpec, NetworkSpec } from "../core/runtime-api.js";
 import type { ScanMatch, RecordDescriptor } from "../core/types.js";
 
 // The interpolation renderer (see runtime-api.ts `Interp`). Reuses the existing pure
@@ -50,13 +54,20 @@ export function interp(template: string, args: Record<string, unknown>): string 
   return result.prompt;
 }
 
-export function registry(): Registry {
+// The modular Registry plus its backing engine registry. `network()` needs the engine
+// `Registry` (impl AND arity per leaf) to build a NetworkRuntime — richer than the late-bound
+// `resolve` thunk — so `registry()` exposes it here. Kept out of `core/runtime-api.ts` so that
+// frozen surface stays engine-agnostic; only this engine-coupled adapter layer sees it.
+export type AdaptedRegistry = Registry & { readonly backing: EngineRegistry };
+
+export function registry(): AdaptedRegistry {
   const backing = createRegistry();
   // The existing engine's registry entry has no `scan` field, so the scan-mode grammar
   // leaves keep theirs in a sibling map alongside the backing registry. Read late (at RUN
   // time) by `scanOf`, so a `defextract` compiled before its grammars still finds them.
   const scans = new Map<string, (input: unknown) => ScanMatch[]>();
   return {
+    backing,
     register(key: string, entry: RegistryEntry): void {
       backing.register({
         fnName: key,
@@ -201,5 +212,50 @@ export function llmFn(spec: LlmFnSpec): Impl {
       .then((v) => d.resolve(new Something(v)))
       .catch((e) => d.resolve(new Contradiction("llmfn/error", new Set(), e)));
     return ap;
+  };
+}
+
+// defnetwork — compile a propagator graph into a callable leaf. Reuses the engine's
+// `astToDataNetwork` + `NetworkRuntime` VERBATIM (no algebra reimplemented). The returned
+// Impl mirrors the engine's `buildNetworks` leaf: map positional args onto the signature's
+// input cells, run the graph, and project the output cell's InfoStructure back, wrapped in an
+// APromise (a network is an async leaf — `invokeAsync` handles both sync propagators and async
+// llmfn / sub-network leaves uniformly).
+//
+// The NetworkRuntime is built LAZILY on FIRST INVOKE, not at this `rt.network` call. The
+// engine builds runtimes only after the whole program's registry is populated; the modular
+// pipeline emits fragments in source order, so a network may be emitted before its leaf fns.
+// Deferring construction to first invoke — by which point the module has finished evaluating
+// and every leaf (with its arity) is in the backing registry — makes emit order irrelevant
+// and lets mutual recursion / network-as-leaf resolve through the registry. (runtime-api.ts
+// sanctions lazy+memoized as a valid alternative to eager; here it is what buys order-independence.)
+export function network(spec: NetworkSpec, reg: Registry): Impl {
+  const ast = spec as unknown as DataNetworkAST;
+  const inputCells = ast.signature.from;
+  const outputCell = ast.signature.to;
+  const engine = (reg as AdaptedRegistry).backing;
+  let runtime: NetworkRuntime | undefined;
+  const ensure = (): NetworkRuntime => (runtime ??= new NetworkRuntime(astToDataNetwork(ast), engine));
+  return (...args: unknown[]) => {
+    const d = new Deferred<unknown>();
+    const inputs: Record<string, unknown> = {};
+    for (let i = 0; i < inputCells.length; i++) inputs[inputCells[i]!] = args[i];
+    void (async () => {
+      try {
+        const res = await ensure().invokeAsync(inputs);
+        if (res.type === "exit") {
+          d.resolve(new Contradiction("network/contradiction", new Set(), res.reason));
+          return;
+        }
+        // SETTLE the output cell: an async leaf (sub-network / llmfn) leaves an APromise in
+        // the cell. A `network/<name>` leaf must present a settled InfoStructure — like every
+        // other registry leaf — so we await it here rather than resolve with a nested APromise.
+        const out = res.cells.get(outputCell)!.knows();
+        d.resolve(out instanceof APromise ? await out.deferred.promise : out);
+      } catch (e) {
+        d.resolve(new Contradiction("network/error", new Set(), e));
+      }
+    })();
+    return new APromise(d);
   };
 }

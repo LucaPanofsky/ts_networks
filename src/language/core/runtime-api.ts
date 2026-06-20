@@ -124,11 +124,12 @@ export interface ConstructRuntime {
   // is ambient (env, via the engine's `getClient()`) — never emitted into the file.
   llmFn(spec: LlmFnSpec): Impl;
 
-  // defnetwork — COMPILE a propagator graph (eagerly, at this call) into an Impl that
-  // runs the graph to a fixpoint when invoked. Referenced leaves (fns, grammars, other
-  // networks) are resolved by name through `resolve`; late binding is what makes
-  // recursion and mutual reference work despite eager compilation.
-  network(spec: NetworkSpec, resolve: Registry["resolve"]): Impl;
+  // defnetwork — COMPILE a propagator graph into an Impl that runs the graph to a fixpoint
+  // when invoked. Takes the whole `registry` (not just `resolve`) because the reused engine
+  // NetworkRuntime needs the engine registry — impl AND arity per leaf — to wire propagators.
+  // Construction is deferred to first invoke (by which point every leaf is registered), which
+  // is what makes emit order, recursion, and mutual network reference all resolve correctly.
+  network(spec: NetworkSpec, registry: Registry): Impl;
 }
 
 // The whole surface emitted code sees behind the `rt` alias.
@@ -166,7 +167,15 @@ export type ExtractBindSpec = { kind: "scan" | "parse"; record: string; as: stri
 export type ExtractStmtSpec = ExtractWithinSpec | ExtractBindSpec;
 export type ExtractSpec = { kind: string; name: string; root: ExtractWithinSpec };
 
-export type NetworkSpec = unknown;
+// What a `defnetwork` inlines — its node, structurally the engine's DataNetworkAST (the
+// runtime adapter casts through). `terms` stay opaque here (the four term-kind shapes live in
+// the construct module); the adapter only reads the signature directly.
+export type NetworkSpec = {
+  kind: string;
+  name: string;
+  signature: { from: string[]; to: string };
+  terms: unknown[];
+};
 
 // What a `defllmfn` inlines — its node (structurally the engine's LLMFnAST) plus the
 // program's type environment, so `rt.llmFn` can reuse `deriveProtocol` verbatim. `config`

@@ -1,27 +1,39 @@
-// `defnetwork` recogniser. One Term per statement; the term keyword selects the variant.
-// (Compare repo_workspace/examples/tsn_network_extract — the same grammar, but there it
-// accumulated into defrecords; here it targets the typed NetworkNode.)
+// Canonical, readable copy of the defnetwork SHELL grammar. Kept in sync by hand with the
+// GRAMMAR_SOURCE string in parse.ts (the live copy; .ohm files are not importable under
+// NodeNext/jest).
 //
-//   defnetwork rectangleMetrics
-//     signature: from [rect] to area;
-//     propagate rectangleArea from [rect] to area;
+// Parses the signature (`from [cells] to cell`) and a bag of four term kinds — propagate
+// (with an optional `as` coercion and an optional `with:` param block), switch, cell,
+// constant — into a NetworkNode that mirrors the engine's DataNetworkAST. A `fnRef` is a
+// dotted path of Names; a Name may contain `/` and `?` (so `grammar/Foo`, `network/Bar`,
+// `positive?` are single Names), matching the engine's Lezer `Name` token + FunctionName.
+//
+//   defnetwork equation
+//     signature: from [a, b] to c;
+//     propagate add from [a, b] to c;
 //   end
 
 DefNetwork {
-  network   = "defnetwork" spaces name spaces signature spaces term* "end"
-  name      = letter alnum*
-
-  signature = "signature:" spaces "from" spaces cellList spaces "to" spaces cell ";"
-  cellList  = "[" (cell sep?)* "]"
-  cell      = letter alnum*
-  sep       = spaces "," spaces
-
-  term      = propagate | switch | constant | cellDecl
-  propagate = "propagate" spaces fn spaces "from" spaces cellList spaces "to" spaces cell ";"
-  switch    = "switch" spaces fn? spaces "from" spaces cellList spaces "to" spaces cell ";"
-  constant  = "constant" spaces cell spaces "=" spaces value ";"
-  cellDecl  = "cell" spaces cell spaces "=" spaces value ";"
-
-  fn        = (~space any)+   // qualified leaf names: extract/Foo, grammar/Bar
-  value     = (~";" any)*
+  Main = "defnetwork" name Signature Term* "end"
+  Signature = "signature" ":" "from" CellList "to" name ";"
+  CellList = "[" ListOf<name, ","> "]"
+  Term = Propagate | Switch | Constant | CellDecl
+  Propagate = "propagate" fnRef AsClause? "from" CellList "to" name PropTail
+  AsClause = "as" name
+  PropTail = With   -- with
+           | ";"    -- bare
+  Switch = "switch" fnRef? "from" CellList "to" name ";"
+  Constant = "constant" name "=" value ";"
+  CellDecl = "cell" name "=" value ";"
+  With = "with" ":" ListOf<ConfigPair, ","> ";"
+  ConfigPair = name "=" value
+  fnRef = name ("." name)*
+  value = string   -- str
+        | number   -- num
+        | name     -- word
+  string = "'" (~"'" any)* "'"
+  number = digit+ ("." digit+)?
+  name = nameStart nameRest*
+  nameStart = letter | "_"
+  nameRest = alnum | "_" | "?" | "!" | "-" | "/"
 }
