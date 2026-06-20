@@ -9,9 +9,26 @@ export type TypeRef = ScalarType | VectorType;
 export const typeRefToString = (t: TypeRef): string =>
   t.kind === "scalar" ? t.predicate : `[${t.element}]`;
 
+// A field declaration shared by records and the descriptors heavy constructs inline.
+export type FieldDecl = { name: string; type: TypeRef };
+
+// The descriptor a heavy construct (grammar, ttable) needs about a record it produces:
+// the name and the ordered, typed fields, so the reused engine compiler can map captures
+// → constructor args (scalar vs vector). Structurally a RecordNode / the engine's
+// RecordAST; named here so neither `core/module.ts` nor `core/runtime-api.ts` depends on
+// the defrecord module.
+export type RecordDescriptor = { name: string; fields: FieldDecl[] };
+
 // A network/extract-style port list: input cells and the single output cell. (A `defn`
 // signature is richer — typed, named params — so that shape lives in the defn module.)
 export type Signature = { from: string[]; to: string };
+
+// A scan-mode grammar match: the produced record paired with the EXACT substring the
+// grammar consumed to produce it. The span is what powers `defextract`'s span-scoped
+// nested recursion (a child scans only its parent's matched text). Mirrors the engine's
+// `ScanMatch` (src/sandbox/grammar-runtime.ts); declared here so the runtime boundary
+// (runtime-api.ts) need not import from the engine.
+export type ScanMatch = { record: unknown; span: string };
 
 // ── The node base ──────────────────────────────────────────────────────────────
 import type { ConstructKind } from "./enums.js";

@@ -4,10 +4,13 @@
 
 import type { RecordNode } from "../constructs/defrecord/ast.js";
 import type { FnNode } from "../constructs/defn/ast.js";
+import type { GrammarNode } from "../constructs/defgrammar/ast.js";
+import type { ExtractNode } from "../constructs/defextract/ast.js";
+import type { TTableNode } from "../constructs/ttable/ast.js";
 import type { NetworkNode } from "../constructs/defnetwork/ast.js";
 
-export type AstNode = RecordNode | FnNode | NetworkNode;
-// ⊕ EnumNode | PredicateNode | GrammarNode | ExtractNode | … as modules land
+export type AstNode = RecordNode | FnNode | GrammarNode | ExtractNode | TTableNode | NetworkNode;
+// ⊕ EnumNode | PredicateNode | … as modules land
 
 // A program is a bag of nodes (order is rhetoric, not semantics). Every node is named —
 // that is what `combine` keys the registry on.

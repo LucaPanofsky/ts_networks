@@ -5,6 +5,8 @@
 
 import type { Program } from "./program.js";
 import type { EmitCtx } from "../core/module.js";
+import { ConstructKind } from "../core/enums.js";
+import type { RecordDescriptor } from "../core/types.js";
 import { MODULES } from "./registry.js";
 import { withPrelude } from "./prelude.js";
 import { emitBuiltins } from "./builtins.js";
@@ -20,6 +22,9 @@ export const defaultCtx: EmitCtx = {
   rt: RT,
   mangle: (name) => name.replace(/\?/g, "$").replace(/!/g, "_").replace(/\//g, "$"),
   ref: (name) => `__reg.resolve(${JSON.stringify(name)})`,
+  // Base: no program context. `emitProgram` overrides this with a real lookup so heavy
+  // constructs can inline a record they produce.
+  record: () => undefined,
 };
 
 // The frozen preamble: import the runtime, open a registry, and bind the host helpers an
@@ -37,7 +42,14 @@ export function emitProgram(program: Program, ctx: EmitCtx = defaultCtx): string
   const declared = new Set(nodes.map((node) => ctx.mangle(node.name)));
   const builtins = emitBuiltins(declared, ctx.mangle);
 
-  const fragments = nodes.map((node) => MODULES[node.kind].emit(node, ctx));
+  // Records by name, so a heavy construct (grammar/ttable) can inline the descriptor of a
+  // record it produces (the reused engine compiler needs the field shape; the constructor
+  // stays late-bound via `ref`).
+  const recordsByName = new Map<string, RecordDescriptor>();
+  for (const node of nodes) if (node.kind === ConstructKind.Record) recordsByName.set(node.name, node);
+  const ectx: EmitCtx = { ...ctx, record: (name) => recordsByName.get(name) };
+
+  const fragments = nodes.map((node) => MODULES[node.kind].emit(node, ectx));
   const parts = [HEADER, ...(builtins ? [builtins] : []), ...fragments, FOOTER];
   return parts.join("\n\n") + "\n";
 }

@@ -11,8 +11,27 @@
 // That is exactly merge's discipline: monotone accumulation, contradiction on clash.
 
 import type { AstNode } from "./program.js";
+import { ConstructKind } from "../core/enums.js";
 
 export type Registry = Map<string, AstNode>;
+
+// The conflict-detection key for a node — its REGISTRY key, which is what `emit` registers
+// and therefore the namespace a clash actually lives in. The heavy constructs are
+// prefixed (`grammar/X`, `extract/X`, `TTable/X`), so a `defgrammar Foo` and a `defrecord
+// Foo` are DISTINCT (they bind `grammar/Foo` and `Foo`) — keying by bare name would
+// falsely conflate them. Records/fns key by their bare name (no prefix).
+export function registryKey(node: AstNode): string {
+  switch (node.kind) {
+    case ConstructKind.Grammar:
+      return `grammar/${node.name}`;
+    case ConstructKind.Extract:
+      return `extract/${node.name}`;
+    case ConstructKind.TTable:
+      return `TTable/${node.name}`;
+    default:
+      return node.name;
+  }
+}
 
 export class ConstructConflict extends Error {
   constructor(
@@ -28,11 +47,12 @@ export class ConstructConflict extends Error {
 export function combine(nodes: readonly AstNode[]): Registry {
   const registry: Registry = new Map();
   for (const node of nodes) {
-    const existing = registry.get(node.name);
+    const key = registryKey(node);
+    const existing = registry.get(key);
     if (existing && !structurallyEqual(existing, node)) {
-      throw new ConstructConflict(node.name, existing, node);
+      throw new ConstructConflict(key, existing, node);
     }
-    registry.set(node.name, node); // first-seen or idempotent re-merge
+    registry.set(key, node); // first-seen or idempotent re-merge
   }
   return registry;
 }

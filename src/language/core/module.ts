@@ -13,7 +13,7 @@
 // The contract speaks only AstNodeBase, never the concrete union — that is what keeps
 // `core/` from depending on `constructs/`. The pipeline narrows to the real union.
 
-import type { Block, AstNodeBase } from "./types.js";
+import type { Block, AstNodeBase, RecordDescriptor } from "./types.js";
 import type { ConstructKind } from "./enums.js";
 
 // What a module is given while emitting. Construct-agnostic: the runtime import alias to
@@ -29,6 +29,11 @@ export interface EmitCtx {
   // the registry (late-bound) so emitted fragments are order-independent and cyclic
   // references (mutual recursion) resolve at run time, not emit time.
   ref(name: string): string;
+  // The descriptor of a record DEFINED in this program, by name (or undefined). The heavy
+  // constructs (grammar, ttable) inline the record they produce into their emitted spec so
+  // the reused engine compiler can build it; the constructor itself stays late-bound via
+  // `ref`. Populated by the emitter from the program's record nodes; pure modules ignore it.
+  record(name: string): RecordDescriptor | undefined;
 }
 
 export interface ConstructModule<N extends AstNodeBase = AstNodeBase> {

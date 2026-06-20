@@ -24,11 +24,13 @@ defgrammar Foo
 end
 `;
     const blocks = split(src);
-    // defgrammar is unimplemented → not emitted; only the real record is.
-    expect(blocks).toHaveLength(1);
-    expect(blocks[0]!.kind).toBe(ConstructKind.Record);
+    // defgrammar is implemented → emitted; the point is the `defrecord Fake` and `end`
+    // INSIDE the """ body create no blocks of their own (the whole blob stays in Foo).
+    expect(blocks).toHaveLength(2);
+    expect(blocks.map((b) => b.kind)).toEqual([ConstructKind.Record, ConstructKind.Grammar]);
     expect(blocks[0]!.text).toContain("defrecord Point");
-    expect(blocks[0]!.text).not.toContain("Foo {"); // bounded before the grammar
+    expect(blocks[0]!.text).not.toContain("Foo {"); // record bounded before the grammar
+    expect(blocks[1]!.text).toContain("defrecord Fake"); // the fake keyword spawned no block
   });
 
   test("nested-end defextract: its three ends confuse nothing", () => {
@@ -51,11 +53,14 @@ defrecord B
 end
 `;
     const blocks = split(src);
-    expect(blocks).toHaveLength(2); // A and B; Ext (unimplemented) is a boundary only
-    expect(blocks.map((b) => b.kind)).toEqual([ConstructKind.Record, ConstructKind.Record]);
+    // A, Ext, B — defextract is implemented, and its three nested `end`s confuse nothing
+    // (next-anchor boundaries, no end-counting): the whole within-tree stays in one block.
+    expect(blocks).toHaveLength(3);
+    expect(blocks.map((b) => b.kind)).toEqual([ConstructKind.Record, ConstructKind.Extract, ConstructKind.Record]);
     expect(blocks[0]!.text).toContain("defrecord A");
-    expect(blocks[0]!.text).not.toContain("defextract");
-    expect(blocks[1]!.text).toContain("defrecord B");
+    expect(blocks[1]!.text).toContain("defextract Ext");
+    expect(blocks[1]!.text).toContain("scan Z as zs"); // the full nested body is captured
+    expect(blocks[2]!.text).toContain("defrecord B");
   });
 
   test("derive (no `end`, ends with ;) is a clean boundary", () => {
@@ -125,10 +130,10 @@ defrecord After
 end
 `;
     const blocks = split(src);
-    // Inline (unimplemented) is a boundary; After must still be found.
-    expect(blocks).toHaveLength(1);
-    expect(blocks[0]!.kind).toBe(ConstructKind.Record);
-    expect(blocks[0]!.text).toContain("defrecord After");
+    // Inline grammar + After record; the one-line blob does not leak state into After.
+    expect(blocks).toHaveLength(2);
+    expect(blocks.map((b) => b.kind)).toEqual([ConstructKind.Grammar, ConstructKind.Record]);
+    expect(blocks[1]!.text).toContain("defrecord After");
   });
 
   test("// inside a single-quoted string literal is preserved (not a comment)", () => {

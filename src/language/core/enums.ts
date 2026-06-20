@@ -9,8 +9,11 @@
 export enum ConstructKind {
   Record  = "record",
   Fn      = "fn",
+  Grammar = "grammar",
+  Extract = "extract",
+  TTable  = "ttable",
   Network = "network",
-  // Enum, Predicate, LLMFn, Derive, Grammar, Extract, TTable, Parameter — as modules land
+  // Enum, Predicate, LLMFn, Derive, Parameter — as modules land
 }
 
 // Surface keyword → kind. The IMPLEMENTED subset: which keywords have a module, so which
@@ -20,6 +23,9 @@ export const KEYWORD_TO_KIND: Readonly<Record<string, ConstructKind>> = {
   defrecord:    ConstructKind.Record,
   defn:         ConstructKind.Fn,
   defpredicate: ConstructKind.Fn, // a predicate IS a fn (isPredicate flag); same module
+  defgrammar:   ConstructKind.Grammar,
+  defextract:   ConstructKind.Extract,
+  TTable:       ConstructKind.TTable,
   defnetwork:   ConstructKind.Network,
 };
 

@@ -48,7 +48,7 @@
 //
 // Status: first cut. A boundary to refine, not a final ABI.
 
-import type { Morphism } from "./types.js";
+import type { Morphism, TypeRef, ScanMatch, RecordDescriptor } from "./types.js";
 
 // ── Foundational value protocol (the merge algebra) ───────────────────────────────
 // The crown jewel. Emitted code never reimplements merge; it calls into it. `Info` is
@@ -72,6 +72,10 @@ export type RegistryEntry = {
   arity: number;
   impl: Impl;
   morphism: Morphism;
+  // Scan-mode grammar leaves only: the span-aware matcher. A `defextract` needs each
+  // grammar leaf's `scan` (records + consumed spans) for span-scoped nested recursion —
+  // richer than the plain `impl`. Plain leaves (fns, ttables, parse-mode grammars) omit it.
+  scan?: (input: unknown) => ScanMatch[];
 };
 
 export interface Registry {
@@ -79,7 +83,13 @@ export interface Registry {
   // Late-bound lookup. Returns a callable that resolves `key` when invoked, so a
   // reference can be emitted before the target is registered (forward/cyclic refs).
   resolve(key: string): Impl;
+  // The `scan` of a registered leaf, or undefined. Late-bound (read at call time), so a
+  // `defextract` compiled before its grammars still sees their scans at RUN time.
+  scanOf(key: string): ((input: unknown) => ScanMatch[]) | undefined;
 }
+
+// What `grammar`/`ttable` compile to: a leaf callable plus (grammars only) its scan.
+export type CompiledLeaf = { arity: number; impl: Impl; scan?: (input: unknown) => ScanMatch[] };
 
 // ── Host helpers the emitted module binds at the top ───────────────────────────────
 // `interp` backs an `interpolate` body. The emitted `compileExpr` lowers such a body to
@@ -94,16 +104,19 @@ export type Interp = (template: string, args: Record<string, unknown>) => string
 // registry. These four are what the rest of the surface exists for: each takes an
 // inlined spec (emitted as a data literal) and returns a callable leaf.
 export interface ConstructRuntime {
-  // defgrammar — compile Ohm source into a String? → Record? (or [Record?]) leaf.
-  grammar(ohmSource: string, opts: { scan: boolean; returns: string }): Impl;
+  // defgrammar — compile Ohm source into a String? → Record? (or [Record?]) leaf. `record`
+  // is the bound record's inlined descriptor (the constructor stays late-bound via
+  // `resolve`); undefined for a bare recognizer. Returns the leaf + (scan mode) its scan.
+  grammar(spec: GrammarSpec, record: RecordDescriptor | undefined, resolve: Registry["resolve"]): CompiledLeaf;
 
-  // defextract — build the constituency orchestrator. Leaf grammars are resolved by
-  // name through `resolve` (so the extract and its grammars are independent fragments).
-  extract(spec: ExtractSpec, resolve: Registry["resolve"]): Impl;
+  // defextract — build the constituency orchestrator. Leaf grammars/tables are resolved by
+  // name through `resolve` (impl) and `scanOf` (span-aware scan), so the extract and its
+  // leaves stay independent fragments and late binding makes emit order irrelevant.
+  extract(spec: ExtractSpec, resolve: Registry["resolve"], scanOf: Registry["scanOf"]): Impl;
 
-  // defttable — read a delimited text table into records. (No module yet; here so the
-  // boundary anticipates it.)
-  ttable(spec: TTableSpec): Impl;
+  // defttable — read a delimited text table into [Row?]. `record` is the row record's
+  // inlined descriptor (constructor late-bound via `resolve`).
+  ttable(spec: TTableSpec, record: RecordDescriptor | undefined, resolve: Registry["resolve"]): CompiledLeaf;
 
   // defllmfn — an async, memoized LLM-backed leaf. Config (model, key) is injected by
   // the host, never emitted into the file.
@@ -126,12 +139,31 @@ export interface RuntimeApi extends ValueProtocol, ConstructRuntime {
   interp: Interp;
 }
 
-// ── Spec shapes (sketch) ──────────────────────────────────────────────────────────
-// These are what the emitter inlines as JS data literals. Kept loose for now; they
-// will firm up to mirror the construct AST nodes (which is the point — the spec a
-// runtime call receives is essentially the node minus the parts emitted inline).
-export type ExtractSpec = unknown;
-export type TTableSpec = unknown;
+// ── Spec shapes ─────────────────────────────────────────────────────────────────
+// What the emitter inlines as JS data literals — the construct's node minus the parts
+// emitted inline. The grammar/extract/ttable specs mirror their AST nodes (and the
+// engine's GrammarAST/ExtractAST/TTableAST, which they are structurally cast to in the
+// runtime adapter). Network/llmfn stay loose until their slices.
+export type GrammarSpec = {
+  kind: string;
+  name: string;
+  source: string;
+  signature?: { params: { predicate: string; name: string }[]; returnType: TypeRef };
+};
+
+export type TTableSpec = {
+  kind: string;
+  name: string;
+  row: string;
+  cell: string;
+  headers: { field: string; text?: string }[];
+};
+
+export type ExtractWithinSpec = { kind: "within"; target: string; grammar?: string; body: ExtractStmtSpec[] };
+export type ExtractBindSpec = { kind: "scan" | "parse"; record: string; as: string; grammar: string };
+export type ExtractStmtSpec = ExtractWithinSpec | ExtractBindSpec;
+export type ExtractSpec = { kind: string; name: string; root: ExtractWithinSpec };
+
 export type NetworkSpec = unknown;
 export type LlmFnSpec = unknown;
 export type LlmConfig = { model: string; [k: string]: unknown };
