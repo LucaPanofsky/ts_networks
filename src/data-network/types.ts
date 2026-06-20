@@ -166,14 +166,6 @@ export type EnumAST = {
   values: string[];
 };
 
-// ── Derive declarations ───────────────────────────────────────────────────────
-
-export type DeriveAST = {
-  kind: "derive";
-  sub: string;
-  sup: string;
-};
-
 // ── LLM function definitions ──────────────────────────────────────────────────
 
 export type LLMFnAST = {
@@ -262,31 +254,8 @@ export type TTableAST = {
   headers: TTableHeader[]; // the declared column headers
 };
 
-// ── Parameter definitions ─────────────────────────────────────────────────────
-
-// A named, overridable input. `type` is the value's type reference; `value` is the
-// optional default (the trimmed body of a triple-quoted blob, text only for now).
-// An absent `value` means the default is Nothing — a network reading an unfilled
-// parameter simply produces no information. A `run` entry point (later) wires
-// parameters into network cells and lets the CLI override them.
-export type ParameterAST = {
-  kind: "parameter";
-  name: string;
-  type: TypeRef;
-  value?: string;
-};
-
-// ── Program ───────────────────────────────────────────────────────────────────
-
-export type ProgramAST = {
-  networks: DataNetworkAST[];
-  records: RecordAST[];
-  fns: FnAST[];
-  derives: DeriveAST[];
-  llmFns: LLMFnAST[];
-  enums: EnumAST[];
-  grammars: GrammarAST[];
-  extracts: ExtractAST[];
-  ttables: TTableAST[];
-  parameters: ParameterAST[];
-};
+// NOTE: the per-construct engine AST types above are what the modular `select.ts` selectors
+// cast their filtered nodes to. The grouped `ProgramAST` container, plus the (name-less)
+// `DeriveAST` and `ParameterAST` that only it used, were deleted with the Lezer-removal bridge
+// (the adapter) — the modular `Program = { nodes }` (`src/language/pipeline/program.ts`) is now
+// the single program shape, and `derive`/`defparameter` carry their own modular node types.

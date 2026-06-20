@@ -1,12 +1,12 @@
 // ── Typed selectors over a modular `Program` ────────────────────────────────────────
 //
-// The lazy successor to the adapter's eager group-by-`kind` fold (`adapter.ts`
-// `toProgramAST`). Where the adapter materializes ten typed arrays up front, these
-// selectors filter `program.nodes` by `ConstructKind` on demand and return the
-// corresponding engine AST type. A consumer that reads `program.fns` off a `ProgramAST`
-// reads `fnsOf(program)` off a `Program` instead — body unchanged.
+// The sole group-by-`kind` mechanism over a program — the lazy successor to the (now
+// removed) `toProgramAST` adapter's eager fold. Where that adapter materialized ten typed
+// arrays up front, these selectors filter `program.nodes` by `ConstructKind` on demand and
+// return the corresponding engine AST type. A consumer reads `fnsOf(program)` off a
+// `Program` where it once read `program.fns` off the engine's grouped `ProgramAST`.
 //
-// The cast is the SAME one the adapter makes (`node as FnAST`): a modular node is
+// The cast is the SAME one the adapter made (`node as FnAST`): a modular node is
 // structurally the engine AST, but not assignable to it — its `.kind` is a `ConstructKind`
 // enum member, the engine AST's `.kind` is a string literal, which TypeScript treats as
 // nominally distinct. The oracle-parity tests prove the structural equality the cast relies
@@ -29,9 +29,9 @@ import type {
   RecordAST, FnAST, LLMFnAST, EnumAST, GrammarAST, DataNetworkAST, ExtractAST, TTableAST,
 } from "../data-network/types.js";
 
-// The cast the adapter makes per node, lifted to the filtered array: a modular node of a
-// given kind IS the engine AST of that kind (oracle-proven), bar the nominally-distinct
-// `.kind`. `byKind` narrows; each selector applies the one cast the adapter does.
+// The per-node cast, lifted to the filtered array: a modular node of a given kind IS the
+// engine AST of that kind (oracle-proven), bar the nominally-distinct `.kind`. `byKind`
+// narrows; each selector applies that one cast (the same the removed adapter applied).
 const byKind = (p: Program, kind: ConstructKind): AstNode[] =>
   p.nodes.filter((n) => n.kind === kind);
 
