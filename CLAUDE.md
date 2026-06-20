@@ -1,6 +1,7 @@
 # ts-networks — Claude Code Instructions
 
-ts-networks is a **propagation-network runtime** hosting a small language parsed with **Lezer**.
+ts-networks is a **propagation-network runtime** hosting a small language parsed by a modular,
+per-construct **Ohm** front end under [`src/language/`](src/language/).
 The language has three layers: **types** (records and predicates), **functions** (pure
 computation), and **networks** that wire functions together into propagator graphs. See
 [`README.md`](README.md) for a short introduction to the project.
@@ -62,7 +63,7 @@ Always run the full test suite through `npm test`, not `npx jest` directly:
 npm test
 ```
 
-`npm test` regenerates the lezer grammar parser before running jest. Running `npx jest` raw skips this step and produces false failures.
+Always use `npm test`, not `npx jest` raw: the `pretest` hook typechecks src + tests first, and `npm test` runs both the CJS and ESM passes (see below). Raw `npx jest` skips both and gives a misleading picture.
 
 `npm test` runs **two jest passes**: the default CJS pass for most tests, then an ESM pass (`npm run test:esm`, with `--experimental-vm-modules`) for tests that depend on ESM-only packages — currently anything touching `unpdf`/pdf.js, which uses `import.meta` and cannot run in jest's CJS mode. **Tests that transitively import `unpdf` must live under `tests/pdf/`** (the ESM pass's match glob); placing such a test elsewhere makes it fail to load in the CJS pass. The default pass relies on `__dirname`, so the whole suite can't simply switch to ESM.
 
