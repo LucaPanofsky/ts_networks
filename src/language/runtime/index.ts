@@ -1,13 +1,13 @@
-// The @tsn/runtime implementation — slice 1.
+// The @tsn/runtime implementation.
 //
-// Decision: ADAPT the existing engine. This is a thin translation layer between the new
+// Decision: ADAPT the existing engine. This is a thin translation layer between the
 // pipeline's boundary (core/runtime-api.ts: `register(key, entry)` + late-bound
 // `resolve(key) -> Impl`) and the existing registry (src/registry.ts: `register(entry)`
 // with `entry.fnName`, `get(fnName) -> entry`). No algebra is reimplemented.
 //
-// Only `registry()` is provided here — that is all the pure (record/fn) path needs.
-// The construct runtimes (`grammar`/`extract`/`network`/`llmFn`) arrive when those
-// constructs do, each wrapping its existing engine counterpart.
+// All construct runtimes are present as engine adapters: `registry()` for the pure
+// (record/fn) path, plus `grammar`/`ttable`/`extract`/`network`/`llmFn`, each wrapping its
+// existing engine counterpart.
 
 import { createRegistry } from "../../registry.js";
 import type { Registry as EngineRegistry } from "../../registry.js";

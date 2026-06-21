@@ -30,6 +30,10 @@ a field can be another record (`seller: Party?`) or a vector of records (`items:
 **Records are the deliverable shape**: sketch them first, the grammars just fill them. Extraction
 records are almost always `String?` fields (you capture text spans; convert later if asked).
 
+> **Names** (records, enums, fields, params, fns) are letters/digits/`_`, may start with a letter
+> or `_`, and may carry the Clojure-style `?`/`!` suffixes — e.g. `bar_baz`, `ok?`, `valid!`. (The
+> `?` in a *type* like `String?` is the predicate marker, separate from the field name.)
+
 ## `defenum` — a finite set of strings
 
 ```

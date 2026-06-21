@@ -4,14 +4,14 @@
 import { grammar as ohmGrammar } from "ohm-js";
 import type { Block } from "../../core/types.js";
 import { ConstructKind } from "../../core/enums.js";
+import { IDENT_RULES } from "../../shared/grammar.js";
 import type { EnumNode } from "./ast.js";
 
 const GRAMMAR_SOURCE = String.raw`
 Enum {
   Main = "defenum" ident string ("," string)* ";" "end"
   string = "'" (~"'" any)* "'"
-  ident = letter identChar*
-  identChar = alnum | "?"
+  ${IDENT_RULES}
 }
 `;
 

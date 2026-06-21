@@ -12,6 +12,7 @@
 
 import type { AstNode } from "./program.js";
 import { ConstructKind } from "../core/enums.js";
+import { valueEquals } from "../../info-structure.js";
 
 export type Registry = Map<string, AstNode>;
 
@@ -54,7 +55,7 @@ export function combine(nodes: readonly AstNode[]): Registry {
   for (const node of nodes) {
     const key = registryKey(node);
     const existing = registry.get(key);
-    if (existing && !structurallyEqual(existing, node)) {
+    if (existing && !valueEquals(existing, node)) {
       throw new ConstructConflict(key, existing, node);
     }
     registry.set(key, node); // first-seen or idempotent re-merge
@@ -62,9 +63,8 @@ export function combine(nodes: readonly AstNode[]): Registry {
   return registry;
 }
 
-// Placeholder for the equality the merge algebra will eventually supply. Structural
-// JSON equality is enough for the sketch (it makes re-declaration idempotent and any
-// real difference a conflict); the real version is value merge over the registry shape.
-function structurallyEqual(a: AstNode, b: AstNode): boolean {
-  return JSON.stringify(a) === JSON.stringify(b);
-}
+// Equality for "same declaration?" — the algebra's own structural `valueEquals` (the single
+// function the merge protocol routes through). ORDER-INDEPENDENT for plain objects (key-set +
+// field-wise), so two structurally-identical nodes built with different field order are an
+// idempotent re-merge, not a false conflict — unlike the JSON.stringify it replaced. (Reuses
+// the algebra; does not change it.)

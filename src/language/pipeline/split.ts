@@ -108,7 +108,11 @@ function toBlocks(infos: LineInfo[]): Block[] {
 
     const keyword = infos[start]!.keyword!;
     const kind = KEYWORD_TO_KIND[keyword];
-    if (kind === undefined) continue; // unimplemented construct → boundary only
+    // A keyword in DEFINITION_KEYWORDS but not KEYWORD_TO_KIND would be a boundary-only
+    // anchor (a construct without a module). The two sets are identical today, so this is
+    // unreachable — kept as the extension point for adding a future construct's boundary
+    // before its module lands (so it isn't swallowed into the preceding block).
+    if (kind === undefined) continue;
 
     // trim trailing blank lines (comment-only lines are now blank after stripping)
     let last = end - 1;
@@ -119,7 +123,7 @@ function toBlocks(infos: LineInfo[]): Block[] {
       .map((info) => info.stripped)
       .join("\n");
 
-    blocks.push({ kind, keyword, text, offset: infos[start]!.offset });
+    blocks.push({ kind, text, offset: infos[start]!.offset });
   }
   return blocks;
 }

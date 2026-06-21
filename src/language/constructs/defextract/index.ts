@@ -6,7 +6,6 @@ import { emitExtract } from "./emit.js";
 
 const extractModule: ConstructModule<ExtractNode> = {
   kind: ConstructKind.Extract,
-  keyword: "defextract",
   parse: parseExtract,
   emit: emitExtract,
 };

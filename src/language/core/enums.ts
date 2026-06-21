@@ -3,8 +3,8 @@
 //
 // This is the "file with all enums of the language" — the single source of truth for
 // the construct vocabulary. The full inventory is 11 forms (record, enum, predicate,
-// fn, llmfn, derive, grammar, extract, ttable, network, parameter); the sketch wires
-// the three we are prototyping and leaves the rest commented as the migration target.
+// fn, llmfn, derive, grammar, extract, ttable, network, parameter); all are implemented
+// (predicate folds into fn via an `isPredicate` flag, so there are 10 ConstructKind members).
 
 export enum ConstructKind {
   Record  = "record",
@@ -38,10 +38,11 @@ export const KEYWORD_TO_KIND: Readonly<Record<string, ConstructKind>> = {
 };
 
 // The full lexical surface: every top-level definition keyword the language has. The
-// splitter ANCHORS on this set (a region runs to the next definition), even for
-// constructs without a module yet — otherwise an unimplemented def (e.g. `defgrammar`)
-// would be swallowed into the preceding block. Unimplemented keywords act purely as
-// boundaries; only KEYWORD_TO_KIND members are emitted as blocks.
+// splitter ANCHORS on this set (a region runs to the next definition). It is identical to
+// `KEYWORD_TO_KIND`'s keys today (every keyword has a module). The two are kept separate as
+// an extension point: a future construct's keyword can be added here FIRST (so it acts as a
+// boundary and isn't swallowed into the preceding block) before its module lands in
+// KEYWORD_TO_KIND — only KEYWORD_TO_KIND members are emitted as blocks.
 //
 // `derive` ends with `;` (no `end`) and `defextract` nests `within … end` — neither
 // matters to the splitter, which never counts `end`s (next-anchor boundaries).

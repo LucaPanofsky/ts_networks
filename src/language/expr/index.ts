@@ -2,4 +2,4 @@
 // lowerer). Shared by defn/defpredicate.
 
 export { parseExpression } from "./parse.js";
-export { compileExpr } from "./compile.js";
+export { compileExpr, mangle } from "./compile.js";

@@ -26,8 +26,9 @@ source ─split─▶ Block[] ─parse─▶ AstNode[] ─combine─▶ Registry
 ```
 
 - **[`pipeline/split.ts`](pipeline/split.ts)** — the *one* shared parser concern. It
-  chunks the source into definition blocks (leading keyword + balanced `end`, skipping
-  comments and the triple-quoted Ohm/expression blobs) and tags each with its
+  chunks the source into definition blocks (next-anchor: each region runs from a definition
+  keyword to where the next one begins — it never counts `end`s; skipping comments and the
+  triple-quoted Ohm/expression blobs) and tags each with its
   `ConstructKind`. The modules never have to compose grammars: each parses an
   already-isolated block.
 - **a module per construct** (`constructs/defrecord/`, `defn/`, `defnetwork/`, …) — each

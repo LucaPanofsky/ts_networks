@@ -6,7 +6,6 @@ import { emitFn } from "./emit.js";
 
 const fnModule: ConstructModule<FnNode> = {
   kind: ConstructKind.Fn,
-  keyword: "defn",
   parse: parseFn,
   emit: emitFn,
 };

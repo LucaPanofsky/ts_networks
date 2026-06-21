@@ -12,6 +12,11 @@ export const typeRefToString = (t: TypeRef): string =>
 // A field declaration shared by records and the descriptors heavy constructs inline.
 export type FieldDecl = { name: string; type: TypeRef };
 
+// A typed, named parameter — a type predicate plus the bound name (`Number?(n)` →
+// `{ predicate: "Number?", name: "n" }`). Shared by every fn-style signature
+// (`defn`/`defpredicate`/`defllmfn`/`defgrammar`).
+export type TypedParam = { predicate: string; name: string };
+
 // The descriptor a heavy construct (grammar, ttable) needs about a record it produces:
 // the name and the ordered, typed fields, so the reused engine compiler can map captures
 // → constructor args (scalar vs vector). Structurally a RecordNode; named here so neither
@@ -27,7 +32,7 @@ export type RecordDescriptor = { name: string; fields: FieldDecl[] };
 export type EnumDescriptor = { name: string; values: string[] };
 export type PredicateDescriptor = {
   name: string;
-  params: { predicate: string; name: string }[];
+  params: TypedParam[];
   returnType: TypeRef;
   body: unknown;
 };
@@ -37,9 +42,13 @@ export type LlmTypeEnv = {
   predicates: PredicateDescriptor[];
 };
 
-// A network/extract-style port list: input cells and the single output cell. (A `defn`
-// signature is richer — typed, named params — so that shape lives in the defn module.)
+// A network/extract-style port list: input cells and the single output cell.
 export type Signature = { from: string[]; to: string };
+
+// A fn-style signature — richer than the port-list `Signature`: typed, named params plus a
+// return type. Shared by `defn`/`defllmfn`/`defgrammar` (produced by the shared `Signature`
+// grammar rule + actions).
+export type FnSignature = { params: TypedParam[]; returnType: TypeRef };
 
 // A scan-mode grammar match: the produced record paired with the EXACT substring the
 // grammar consumed to produce it. The span is what powers `defextract`'s span-scoped
@@ -62,18 +71,15 @@ export interface AstNodeBase {
 }
 
 // ── The static face of a registry entry ──────────────────────────────────────────
-// What the type checker needs without building any impl: the morphism (from/to over
-// predicates) the entry presents to the rest of the program. (The dynamic face — the
-// emitted JS — is produced by the module's `emit`.) Not yet consumed; here so the
-// shape is on record.
+// The morphism (from/to over predicates) an entry presents to the rest of the program —
+// the static face the runtime boundary (`runtime-api.ts`) and type checker speak in. (The
+// dynamic face — the emitted JS — is produced by the module's `emit`.)
 export type Morphism = { from: string[]; to: string };
-export type EntryDecl = { key: string; arity: number; morphism: Morphism };
 
 // ── The splitter's output ────────────────────────────────────────────────────────
 
 export type Block = {
   kind: ConstructKind;
-  keyword: string; // the leading keyword, e.g. "defrecord"
   text: string; // the full block text, "defX ... end"
   offset: number; // start offset in the source (for diagnostics)
 };

@@ -6,7 +6,6 @@ import { emitEnum } from "./emit.js";
 
 const enumModule: ConstructModule<EnumNode> = {
   kind: ConstructKind.Enum,
-  keyword: "defenum",
   parse: parseEnum,
   emit: emitEnum,
 };

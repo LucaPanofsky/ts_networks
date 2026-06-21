@@ -6,7 +6,6 @@ import { emitParameter } from "./emit.js";
 
 const parameterModule: ConstructModule<ParameterNode> = {
   kind: ConstructKind.Parameter,
-  keyword: "defparameter",
   parse: parseParameter,
   emit: emitParameter,
 };

@@ -4,18 +4,15 @@
 // below is the single source (there is no separate `.ohm` file).
 
 import { grammar as ohmGrammar, type ActionDict } from "ohm-js";
-import type { Block, TypeRef } from "../../core/types.js";
+import type { Block, FnSignature } from "../../core/types.js";
 import { ConstructKind } from "../../core/enums.js";
-import type { LlmFnNode, TypedParam } from "./ast.js";
+import { IDENT_RULES, SIGNATURE_RULES, SIGNATURE_ACTIONS } from "../../shared/grammar.js";
+import type { LlmFnNode } from "./ast.js";
 
 const GRAMMAR_SOURCE = String.raw`
 Llmfn {
   Main = "defllmfn" ident Signature With? Clause+ "end"
-  Signature = "signature" ":" "from" Params? "to" TypeRef ";"
-  Params = "[" ListOf<Param, ","> "]"
-  Param = ident "(" ident ")"
-  TypeRef = "[" ident "]"  -- vec
-          | ident          -- scalar
+  ${SIGNATURE_RULES}
   With = "with" ":" ListOf<ConfigPair, ","> ";"
   ConfigPair = ident "=" ConfigVal
   ConfigVal = string   -- str
@@ -27,8 +24,7 @@ Llmfn {
   string = "'" (~"'" any)* "'"
   number = "-"? digit+ ("." digit+)?
   tripleString = "\"\"\"" (~"\"\"\"" any)* "\"\"\""
-  ident = letter identChar*
-  identChar = alnum | "?" | "_"
+  ${IDENT_RULES}
 }
 `;
 
@@ -36,8 +32,9 @@ type Clause = { channel: "system" | "user"; text: string };
 
 const g = ohmGrammar(GRAMMAR_SOURCE);
 const semantics = g.createSemantics().addOperation<unknown>("ast", {
+  ...SIGNATURE_ACTIONS,
   Main(_kw, name, sig, withOpt, clauses, _end) {
-    const s = sig.ast() as { params: TypedParam[]; returnType: TypeRef };
+    const s = sig.ast() as FnSignature;
     const config = withOpt.numChildren > 0 ? (withOpt.children[0]!.ast() as Record<string, string>) : {};
     // The clause channels carry order-flexibility: the LAST `user`/bare block wins for
     // `user`, the `system` block (if any) for `system` — mirroring the engine collector.
@@ -60,22 +57,6 @@ const semantics = g.createSemantics().addOperation<unknown>("ast", {
     // `system: undefined` deep-equals the omitted key.
     if (system !== undefined) node.system = system;
     return node;
-  },
-  Signature(_sig, _colon, _from, paramsOpt, _to, typeRef, _semi) {
-    const params = paramsOpt.numChildren > 0 ? (paramsOpt.children[0]!.ast() as TypedParam[]) : [];
-    return { params, returnType: typeRef.ast() as TypeRef };
-  },
-  Params(_lb, list, _rb) {
-    return list.asIteration().children.map((c) => c.ast() as TypedParam);
-  },
-  Param(pred, _lp, bound, _rp) {
-    return { predicate: pred.ast() as string, name: bound.ast() as string };
-  },
-  TypeRef_vec(_lb, inner, _rb) {
-    return { kind: "vector", element: inner.ast() as string } satisfies TypeRef;
-  },
-  TypeRef_scalar(inner) {
-    return { kind: "scalar", predicate: inner.ast() as string } satisfies TypeRef;
   },
   With(_with, _colon, list, _semi) {
     const pairs = list.asIteration().children.map((c) => c.ast() as [string, string]);

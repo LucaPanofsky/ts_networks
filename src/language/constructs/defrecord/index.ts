@@ -6,7 +6,6 @@ import { emitRecord } from "./emit.js";
 
 const recordModule: ConstructModule<RecordNode> = {
   kind: ConstructKind.Record,
-  keyword: "defrecord",
   parse: parseRecord,
   emit: emitRecord,
 };
