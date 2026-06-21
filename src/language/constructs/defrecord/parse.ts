@@ -8,8 +8,8 @@
 import { grammar as ohmGrammar } from "ohm-js";
 import type { Block } from "../../core/types.js";
 import { ConstructKind } from "../../core/enums.js";
-import type { TypeRef } from "../../core/types.js";
-import type { FieldDecl, RecordNode } from "./ast.js";
+import type { TypeRef, FieldDecl } from "../../core/types.js";
+import type { RecordNode } from "./ast.js";
 
 const GRAMMAR_SOURCE = String.raw`
 Record {

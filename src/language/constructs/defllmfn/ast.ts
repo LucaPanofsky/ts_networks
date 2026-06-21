@@ -5,13 +5,8 @@
 // as a spec into a single `rt.llmFn(spec, __reg)` call (BUILD), which returns the memoized async
 // leaf (RUN). See ../../core/runtime-api.ts for BUILD vs RUN.
 
-import type { TypeRef } from "../../core/types.js";
+import type { TypeRef, TypedParam } from "../../core/types.js";
 import { ConstructKind } from "../../core/enums.js";
-
-export type TypedParam = {
-  predicate: string;
-  name: string;
-};
 
 export type LlmFnNode = {
   kind: ConstructKind.Llmfn;

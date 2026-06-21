@@ -12,7 +12,8 @@ import type { TypeRef } from "../../core/types.js";
 import { ConstructKind } from "../../core/enums.js";
 import type { Expr } from "../../../data-network/types.js";
 import { exprGrammar, EXPR_ACTIONS } from "../../expr/parse.js";
-import type { FnNode, TypedParam } from "./ast.js";
+import type { FnNode } from "./ast.js";
+import type { TypedParam } from "../../core/types.js";
 
 const GRAMMAR_SOURCE = String.raw`
 TsnDefn <: TsnExpr {

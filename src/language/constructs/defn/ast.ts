@@ -2,16 +2,11 @@
 // (A `defpredicate` is the same shape with isPredicate = true and a Boolean return; it
 // will likely be a thin variant of this module rather than its own.)
 
-import type { TypeRef } from "../../core/types.js";
+import type { TypeRef, TypedParam } from "../../core/types.js";
 import { ConstructKind } from "../../core/enums.js";
 // The expression body REUSES the existing `Expr` AST so the existing `compileExpr` can
 // be reused verbatim (the Expr AST is the contract; only the parser changed Lezer→Ohm).
 import type { Expr } from "../../../data-network/types.js";
-
-export type TypedParam = {
-  predicate: string;
-  name: string;
-};
 
 export type FnNode = {
   kind: ConstructKind.Fn;

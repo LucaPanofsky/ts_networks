@@ -4,10 +4,9 @@
 // The Ohm grammar below is the single source (there is no separate `.ohm` file).
 
 import { grammar as ohmGrammar } from "ohm-js";
-import type { Block } from "../../core/types.js";
-import type { TypeRef } from "../../core/types.js";
+import type { Block, TypeRef, FnSignature } from "../../core/types.js";
 import { ConstructKind } from "../../core/enums.js";
-import type { GrammarNode, GrammarSignature } from "./ast.js";
+import type { GrammarNode } from "./ast.js";
 
 const GRAMMAR_SOURCE = String.raw`
 Grammar {
@@ -26,7 +25,7 @@ Grammar {
 const g = ohmGrammar(GRAMMAR_SOURCE);
 const semantics = g.createSemantics().addOperation<unknown>("ast", {
   Main(_kw, name, sigOpt, body, _end) {
-    const signature = sigOpt.numChildren > 0 ? (sigOpt.children[0]!.ast() as GrammarSignature) : undefined;
+    const signature = sigOpt.numChildren > 0 ? (sigOpt.children[0]!.ast() as FnSignature) : undefined;
     return {
       kind: ConstructKind.Grammar,
       name: name.ast() as string,
@@ -36,7 +35,7 @@ const semantics = g.createSemantics().addOperation<unknown>("ast", {
   },
   Signature(_sig, _colon, _from, paramsOpt, _to, typeRef, _semi) {
     const params = paramsOpt.numChildren > 0 ? (paramsOpt.children[0]!.ast() as { predicate: string; name: string }[]) : [];
-    return { params, returnType: typeRef.ast() as TypeRef } satisfies GrammarSignature;
+    return { params, returnType: typeRef.ast() as TypeRef } satisfies FnSignature;
   },
   Params(_lb, list, _rb) {
     return list.asIteration().children.map((c) => c.ast() as { predicate: string; name: string });

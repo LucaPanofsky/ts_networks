@@ -6,17 +6,12 @@
 // A scalar `to Rec?` parses the whole input into one record; a vector `to [Rec?]` scans for
 // all embedded matches; no signature is a bare recognizer returning the matched text.
 
-import type { TypeRef } from "../../core/types.js";
+import type { FnSignature } from "../../core/types.js";
 import { ConstructKind } from "../../core/enums.js";
-
-export type GrammarSignature = {
-  params: { predicate: string; name: string }[];
-  returnType: TypeRef;
-};
 
 export type GrammarNode = {
   kind: ConstructKind.Grammar;
   name: string;
   source: string;
-  signature?: GrammarSignature;
+  signature?: FnSignature;
 };

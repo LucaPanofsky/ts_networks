@@ -4,9 +4,9 @@
 // below is the single source (there is no separate `.ohm` file).
 
 import { grammar as ohmGrammar, type ActionDict } from "ohm-js";
-import type { Block, TypeRef } from "../../core/types.js";
+import type { Block, TypeRef, TypedParam } from "../../core/types.js";
 import { ConstructKind } from "../../core/enums.js";
-import type { LlmFnNode, TypedParam } from "./ast.js";
+import type { LlmFnNode } from "./ast.js";
 
 const GRAMMAR_SOURCE = String.raw`
 Llmfn {
