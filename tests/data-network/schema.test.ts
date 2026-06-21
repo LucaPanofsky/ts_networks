@@ -1,4 +1,4 @@
-import { parseProgram } from "../../src/data-network/tree-to-network.js";
+import { parseProgramStrict as parseProgram } from "../../src/language/parse-strict.js";
 import { buildSchemas, deriveProtocol } from "../../src/data-network/schema.js";
 
 const src = `

@@ -1,4 +1,4 @@
-import { parseProgram } from "../data-network/tree-to-network.js";
+import { parseProgramStrict } from "../language/parse-strict.js";
 import { buildSchemas } from "../data-network/schema.js";
 import type { JsonSchemaObject } from "../data-network/schema.js";
 import type { Operation } from "./types.js";
@@ -20,7 +20,7 @@ export const compileSchemas: Operation<CompileSchemasInput, CompileSchemasOutput
   },
   handle(input) {
     try {
-      const program = parseProgram(input.source);
+      const program = parseProgramStrict(input.source);
       return { ok: true, schemas: buildSchemas(program) };
     } catch (e) {
       return { ok: false, error: (e as Error).message };

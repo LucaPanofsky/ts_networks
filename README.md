@@ -282,7 +282,8 @@ given-and-correct and changed only deliberately.
 | `information-structures/` ⚠ | core | the richer structures: `MergeObject`, `MergeSet`, `APromise`, deferred values |
 | `registry.ts` | core | the function `Registry` that `propagate` resolves names against |
 | `index.ts` | core | public re-exports |
-| `data-network/` | runtime | DSL frontend: Lezer parser, AST→`DataNetwork`, the static type-checker, JSON-schema derivation |
+| `language/` | runtime | the DSL front end: a modular, per-construct Ohm parser (`split → parse → combine → emit`) producing the AST node bag |
+| `data-network/` | runtime | the parse choke point + AST (`ProgramAST`), AST→`DataNetwork`, the static type-checker, JSON-schema derivation |
 | `network-impl/` | runtime | the propagator engine: cells, propagators, the sync + async runners |
 | `sandbox/` | runtime | compiles a program to a self-contained JS module; grammar / TTable / extract runtimes; the llmfn client + in-language tools |
 | `operations/` | runtime | the uniform `Operation` interface — `parse`, `check`, `typecheck`, `run`, `compile-schemas`, `run-grammar`, `run-ttable`, `diagram` |
@@ -305,10 +306,11 @@ There is **no single "language" module** — and that surprises people, so it is
 explicit. The codebase is organised by **compiler stage**, not by feature, so "the language"
 is spread across the pipeline. Two halves are worth separating:
 
-- **The language's *definition* is extracted** and lives in two files:
-  - **Concrete syntax** — `src/data-network/grammar.grammar`, the [Lezer](https://lezer.codemirror.net/)
-    grammar. It is the single source of truth for what you can write (`@top Document { Definition* }`);
-    `npm run generate` compiles it to `parser.js` / `parser.terms.js`.
+- **The language's *definition* is extracted** and lives in two places:
+  - **Concrete syntax** — the modular front end under `src/language/`. A small splitter chunks
+    source into per-construct blocks, and each construct owns its [Ohm](https://ohmjs.org/)
+    grammar + parser (`src/language/constructs/<construct>/{grammar.ohm,parse.ts}`). There is no
+    generated-parser build step.
   - **Abstract syntax** — `src/data-network/types.ts`: `ProgramAST` and every `*AST` node
     (`RecordAST`, `FnAST`, `GrammarAST`, `ExtractAST`, …). This is the language as data.
 - **The language's *meaning* is distributed by phase.** No single module "is" a construct
@@ -316,36 +318,42 @@ is spread across the pipeline. Two halves are worth separating:
 
 ```
 source .tsn
-  │  grammar.grammar → parser.js              [data-network]   concrete syntax
-  ▼  tree-to-network.ts  (parse tree → AST)   [data-network]   ← 663 loc, the bulk
-ProgramAST
-  │  type-checker.ts     (static checks)      [data-network]
-  ▼  jsgen/*             (AST → a JS module)  [sandbox]        semantics of exprs / records / fns
-sandbox + registry
-  │  {grammar,ttable,extract}-runtime.ts      [sandbox]        semantics of the special forms
-  ▼  buildRegistry → propagators
-network                                       [network-impl]   execution: cells, propagators, runners
-  ▼  values under merge                       [info-structure + information-structures]   what values MEAN
+  │  split → per-construct Ohm parse              [language]            concrete syntax
+  ▼  pipeline/emit.ts (program → self-contained .js)  [language]       semantics of exprs / records / fns
+.js artifact  (imports @tsn/runtime)
+  │  runtime/load.ts  (eval → registry)           [language/runtime]
+registry  (records, fns, llmfns; grammars/tables/extracts as leaves)
+  │  {grammar,ttable,extract}-runtime.ts          [sandbox]            semantics of the special forms (reused)
+  ▼  rt.network → propagator graph                [language/runtime → network-impl]
+network                                           [network-impl]       execution: cells, propagators, runners
+  ▼  values under merge                           [info-structure + information-structures]   what values MEAN
+
+   (static analysis — type-check / schema / diagram — takes the same parse through
+    adapter.ts: node bag → ProgramAST → data-network/type-checker.ts)
 ```
 
-So **`data-network/` is the front end** (syntax, AST, parse, type-check), **`sandbox/` is the
-back end** (what each construct *does*, via code generation plus the grammar/table/extract
-runtimes), **`network-impl/` runs it**, and the **algebra modules** define what the resulting
-values mean under `merge`. The directory names describe *roles in the machine*, not "language",
-which is why it does not announce itself.
+There is ONE emit path: **`language/` is the front end** (syntax, parse) *and* the back end
+(`pipeline/emit.ts` emits a self-contained `.js` module against the small `@tsn/runtime` boundary;
+`runtime/load.ts` runs it). **`data-network/` holds the AST + static analysis** (the `ProgramAST`
+the type-checker / schema / diagram consume via `adapter.ts`). **`sandbox/` provides the reused
+special-form runtimes** (grammar/table/extract) and the LLM client. **`network-impl/` runs the
+graph**, and the **algebra modules** define what values mean under `merge`. The directory names
+describe *roles in the machine*, not "language", which is why it does not announce itself.
 
 The most confusing split is the **special forms** (`defgrammar`, `defextract`, `TTable`):
-their *syntax* sits in `grammar.grammar` like everything else, but their *behaviour* lives in
-`src/sandbox/{grammar,extract,ttable}-runtime.ts`.
+their *syntax* is parsed by their own `src/language/constructs/<construct>/` module like every
+other construct, but their *behaviour* lives in `src/sandbox/{grammar,extract,ttable}-runtime.ts`.
 
-**To add or change a construct** the touch-set is fixed and ordered: `grammar.grammar` →
-regenerate the parser → `tree-to-network.ts` → `types.ts` → `type-checker.ts` → `jsgen/`. That
-walkthrough is [Extending the language](documentation/how_to/extending_the_language.md).
+**To add or change a construct** the touch-set spans the modular front end and the engine: a
+`src/language/constructs/<construct>/` module (`grammar.ohm` + `parse.ts` + `ast.ts` + `emit.ts`,
+registered in `enums.ts` / the `MODULES` table) → `types.ts` (the AST node) → `type-checker.ts`.
+That walkthrough is [Extending the language](documentation/how_to/extending_the_language.md)
+(note: that guide still documents the retired Lezer/jsgen pipeline and is pending a rewrite).
 
 ## Development
 
 ```bash
-npm test        # run all tests (regenerates the Lezer parser + typechecks src + tests first)
+npm test        # run all tests (typechecks src + tests first, then the CJS + ESM passes)
 ```
 
 There is no build step for the alpha — you run programs directly with `npx tsx`
@@ -391,10 +399,9 @@ numbers, booleans, operators, Capitalized types/constructors, and namespaced
 calls (`str/…`, `network/…`). There is **no** error checking, hover,
 go-to-definition, or other LSP behaviour.
 
-**Caveat:** this TextMate grammar is **independent** of the Lezer grammar in
-`src/data-network/grammar.grammar` (VS Code cannot consume Lezer). The two are
-maintained separately; the keyword list is the only thing that must be kept in
-sync when the language changes.
+**Caveat:** this TextMate grammar is **independent** of the language's real grammar
+(the modular Ohm front end under `src/language/`). The two are maintained separately;
+the keyword list is the only thing that must be kept in sync when the language changes.
 
 **Install (local):** symlink the folder into your VS Code extensions directory
 and reload the window:

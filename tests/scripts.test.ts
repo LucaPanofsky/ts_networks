@@ -265,3 +265,73 @@ describe("run: valid invocation", () => {
   test("exits 0", () => expect(r().exitCode).toBe(0));
   test("output cell is printed", () => expect(r().stdout).toContain("output"));
 });
+
+// ── run-artifact (plain-node compile-once/run-anywhere) ─────────────────────────
+//
+// The genuine plain-node round trip: compile a program to a built `.mjs` artifact, run it with
+// `node dist/operations/run-artifact.js`, and assert its cells equal the engine `scripts/run.ts`
+// on the same source/network/cells — the analogue of tests/language/artifact.test.ts for the
+// real-import path. It must run under plain `node` against the BUILT runtime (a `tsx` runner would
+// split the runtime across src/+dist/ and project every cell to null), and the artifact must sit
+// in-tree so its `import "@tsn/runtime"` resolves — both exercised here.
+
+function runNode(args: string[]) {
+  const result = spawnSync("node", ["dist/operations/run-artifact.js", ...args], {
+    encoding: "utf-8",
+    cwd: process.cwd(),
+  });
+  return { exitCode: result.status ?? 1, stdout: result.stdout ?? "", stderr: result.stderr ?? "" };
+}
+
+describe("run-artifact: plain-node round trip", () => {
+  let tmpTsn: string;
+  let artifact: string; // in-tree .mjs so `@tsn/runtime` resolves under plain node
+
+  beforeAll(() => {
+    // The plain-node path resolves `@tsn/runtime` from dist/, so the build must be current.
+    const build = spawnSync("npm", ["run", "build"], { encoding: "utf-8", cwd: process.cwd() });
+    if (build.status !== 0) throw new Error(`build failed:\n${build.stderr}`);
+    tmpTsn = writeTmp(VALID_TSN);
+    artifact = join(process.cwd(), `tsn-artifact-test-${process.pid}-${Date.now()}.mjs`);
+    const compiled = run("compile-js", [tmpTsn, artifact]);
+    if (compiled.exitCode !== 0) throw new Error(`compile-js failed:\n${compiled.stderr}`);
+  }, 180000);
+
+  afterAll(() => {
+    removeTmp(tmpTsn);
+    try { unlinkSync(artifact); } catch { /* ignore */ }
+  });
+
+  test("cells match the engine run exactly", () => {
+    const viaNode = runNode([artifact, "doubleNet", "input=21"]);
+    const viaEngine = run("run", [tmpTsn, "doubleNet", "input=21"]);
+    expect(viaNode.exitCode).toBe(0);
+    expect(viaEngine.exitCode).toBe(0);
+    expect(viaNode.stdout).toBe(viaEngine.stdout);
+    expect(viaNode.stdout).toContain("output = 42");
+  });
+
+  // run-source: compile-and-run a .tsn in one step under plain `node` (no .mjs, in-memory).
+  test("run-source compiles+runs a .tsn directly and matches the engine run", () => {
+    const viaSource = spawnSync("node", ["dist/operations/run-source.js", tmpTsn, "doubleNet", "input=21"], {
+      encoding: "utf-8",
+      cwd: process.cwd(),
+    });
+    const viaEngine = run("run", [tmpTsn, "doubleNet", "input=21"]);
+    expect(viaSource.status ?? 1).toBe(0);
+    expect(viaSource.stdout ?? "").toBe(viaEngine.stdout);
+    expect(viaSource.stdout ?? "").toContain("output = 42");
+  });
+
+  test("an unknown network is a clean error (exit 1, names the network)", () => {
+    const r = runNode([artifact, "nonexistentNet"]);
+    expect(r.exitCode).toBe(1);
+    expect(r.stderr).toContain("nonexistentNet");
+  });
+
+  test("missing arguments print usage", () => {
+    const r = runNode([]);
+    expect(r.exitCode).toBe(1);
+    expect(r.stderr).toContain("Usage:");
+  });
+});

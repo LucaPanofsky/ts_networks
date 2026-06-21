@@ -24,7 +24,7 @@ const MODULES: ModuleDef[] = [
 
 describe("moduleOf — path → module assignment", () => {
   test("a file inside a directory module is assigned to it", () => {
-    expect(moduleOf("src/sandbox/jsgen/runtime.ts", MODULES)).toBe("sandbox");
+    expect(moduleOf("src/sandbox/canonical-key.ts", MODULES)).toBe("sandbox");
   });
 
   test("a loose-file module matches exactly, not by prefix", () => {
@@ -75,7 +75,7 @@ describe("detectCycles", () => {
 describe("computeMetrics — aggregation", () => {
   const srcFiles: SrcFile[] = [
     { path: "src/sandbox/tools.ts", loc: 100, risk: 2 },
-    { path: "src/sandbox/jsgen/runtime.ts", loc: 50, risk: 1 },
+    { path: "src/sandbox/canonical-key.ts", loc: 50, risk: 1 },
     { path: "src/operations/run.ts", loc: 40, risk: 0 },
     { path: "src/info-structure.ts", loc: 200, risk: 0 },
   ];
@@ -85,8 +85,8 @@ describe("computeMetrics — aggregation", () => {
   ];
   const edges: FileEdge[] = [
     { from: "src/sandbox/tools.ts", to: "src/operations/run.ts" },
-    { from: "src/operations/run.ts", to: "src/sandbox/jsgen/runtime.ts" }, // back-edge → cycle
-    { from: "src/sandbox/tools.ts", to: "src/sandbox/jsgen/runtime.ts" }, // intra-module, dropped
+    { from: "src/operations/run.ts", to: "src/sandbox/canonical-key.ts" }, // back-edge → cycle
+    { from: "src/sandbox/tools.ts", to: "src/sandbox/canonical-key.ts" }, // intra-module, dropped
   ];
   const churn: FileChurn[] = [
     { path: "src/sandbox/tools.ts", commits: 10, churn: 500 },
@@ -119,7 +119,7 @@ describe("computeMetrics — aggregation", () => {
   test("coverage aggregates by statement counts, not by averaging percentages", () => {
     const coverage: FileCoverage[] = [
       { path: "src/sandbox/tools.ts", covered: 90, total: 100 }, // 90%
-      { path: "src/sandbox/jsgen/runtime.ts", covered: 0, total: 50 }, // 0%
+      { path: "src/sandbox/canonical-key.ts", covered: 0, total: 50 }, // 0%
     ];
     const r = computeMetrics({ modules: MODULES, srcFiles, testFiles, edges, churn, coverage });
     const sandbox = r.modules.find((m) => m.name === "sandbox")!;

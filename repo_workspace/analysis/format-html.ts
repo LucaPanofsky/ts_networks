@@ -117,7 +117,10 @@ function cyclesSection(cycles: string[][]): string {
   const items = cycles
     .map((c) => `<li><code>${c.map(esc).join(" ↔ ")}</code></li>`)
     .join("");
-  return `<p>Module-level import cycles (mutually-dependent modules):</p>
+  return `<p>Module-level <em>runtime</em> import cycles (mutually-dependent modules). Type-only
+    <code>import type</code> edges are excluded — TypeScript erases them, so they create no runtime
+    cycle; a type-level back-reference (e.g. the front end sharing the engine's AST types) is not
+    a defect:</p>
     <ul class="cycles">${items}</ul>`;
 }
 
@@ -205,7 +208,7 @@ export function formatHtml(
       body: moduleSection(result.modules),
     },
     {
-      id: "cycles", label: "Cycles", title: "Dependency cycles", lead: "",
+      id: "cycles", label: "Cycles", title: "Runtime dependency cycles", lead: "",
       body: cyclesSection(result.cycles),
     },
     ...(hasUnassigned

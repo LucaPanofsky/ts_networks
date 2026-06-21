@@ -1,4 +1,5 @@
-import { parseProgram } from "../../src/data-network/tree-to-network.js";
+import { parseProgramStrict as parseProgram } from "../../src/language/parse-strict.js";
+import { extractsOf } from "../../src/language/select.js";
 import { validateExtract } from "../../src/sandbox/extract-runtime.js";
 
 // Q3: static type-check rules for defextract. validateExtract reads ASTs only (no
@@ -39,7 +40,7 @@ end
 
 function validate(extractBlock: string): string[] {
   const program = parseProgram(BASE + extractBlock);
-  return validateExtract(program.extracts[0]!, program);
+  return validateExtract(extractsOf(program)[0]!, program);
 }
 
 const VALID = `
@@ -149,7 +150,7 @@ end
 `;
   const validateFull = (dsl: string): string[] => {
     const p = parseProgram(dsl);
-    return validateExtract(p.extracts[0]!, p);
+    return validateExtract(extractsOf(p)[0]!, p);
   };
 
   test("scan ... using TTable/<name> validates clean", () => {

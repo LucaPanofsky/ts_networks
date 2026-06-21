@@ -1,5 +1,6 @@
-import { parseProgram } from "../data-network/tree-to-network.js";
-import { createSandbox } from "../sandbox/jsgen/runtime.js";
+import { parseProgramStrict as parseProgram } from "../language/parse-strict.js";
+import { ttablesOf, recordsOf } from "../language/select.js";
+import { recordCtorSandbox } from "../sandbox/record-sandbox.js";
 import { compileTTable, validateTTable } from "../sandbox/ttable-runtime.js";
 import { Contradiction } from "../info-structure.js";
 import type { Operation } from "./types.js";
@@ -45,9 +46,9 @@ export const runTtable: Operation<RunTTableInput, RunTTableOutput> = {
       return { ok: false, kind: "parse", error: (e as Error).message };
     }
 
-    const ast = program.ttables.find(t => t.name === name);
+    const ast = ttablesOf(program).find(t => t.name === name);
     if (!ast) {
-      const known = program.ttables.map(t => t.name).join(", ") || "(none)";
+      const known = ttablesOf(program).map(t => t.name).join(", ") || "(none)";
       return { ok: false, kind: "unknown-ttable", error: `unknown ttable "${name}" — defined ttables: ${known}` };
     }
 
@@ -56,15 +57,10 @@ export const runTtable: Operation<RunTTableInput, RunTTableOutput> = {
     const [staticError] = validateTTable(ast, program);
     if (staticError) return { ok: false, kind: "syntax", error: staticError };
 
-    // Strip grammars before building the sandbox: a TTable needs none, and createSandbox
-    // compiles every grammar eagerly and throws on the first bad body — so an unrelated
-    // broken grammar in the program must not block testing this table. Records are kept.
-    let sandbox;
-    try {
-      sandbox = createSandbox({ ...program, grammars: [] });
-    } catch (e) {
-      return { ok: false, kind: "syntax", error: (e as Error).message };
-    }
+    // A TTable's only sandbox use is its row record's constructor, so a sandbox of plain
+    // record constructors suffices — and it builds no grammars, so an unrelated broken
+    // grammar in the program can't block testing this table.
+    const sandbox = recordCtorSandbox(recordsOf(program));
 
     const result = compileTTable(ast, program, sandbox).impl(text);
 

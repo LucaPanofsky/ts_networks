@@ -38,7 +38,10 @@ function main(): void {
   const result = computeMetrics({ modules: MODULES, srcFiles, testFiles, edges, churn, coverage });
   const hotspots = hotspotRank(result.modules);
 
-  const generatedAt = new Date().toISOString().slice(0, 10);
+  // LOCAL calendar date (YYYY-MM-DD). `toISOString()` is UTC, which stamps a day-behind slug
+  // when generating after local midnight but before UTC midnight; build from local fields instead.
+  const now = new Date();
+  const generatedAt = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   const html = formatHtml(result, hotspots, {
     generatedAt,
     hasCoverage: coverage != null,

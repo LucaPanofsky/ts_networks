@@ -4,7 +4,8 @@ import {
   toolsFromConfig,
   availableToolNames,
 } from "../../src/sandbox/tools.js";
-import { parseProgram } from "../../src/data-network/tree-to-network.js";
+import { parseProgramStrict as parseProgram } from "../../src/language/parse-strict.js";
+import { llmFnsOf } from "../../src/language/select.js";
 
 const VALID_TSN = `defrecord Point
   x: Number?;
@@ -122,6 +123,6 @@ describe("with: tools clause (language integration)", () => {
         `  """Write a program for {{spec}}""";\n` +
         `end\n`,
     );
-    expect(prog.llmFns[0]!.config["tools"]).toBe("parse");
+    expect(llmFnsOf(prog)[0]!.config["tools"]).toBe("parse");
   });
 });

@@ -1,6 +1,7 @@
 # ts-networks — Claude Code Instructions
 
-ts-networks is a **propagation-network runtime** hosting a small language parsed with **Lezer**.
+ts-networks is a **propagation-network runtime** hosting a small language parsed by a modular,
+per-construct **Ohm** front end under [`src/language/`](src/language/).
 The language has three layers: **types** (records and predicates), **functions** (pure
 computation), and **networks** that wire functions together into propagator graphs. See
 [`README.md`](README.md) for a short introduction to the project.
@@ -17,6 +18,40 @@ it (the read-only mount is OS-enforced). It runs headless or as an interactive w
 [`documentation/lang_agent.md`](documentation/lang_agent.md) for the design.
 
 
+## Design principles
+
+The standing principles the codebase is held to — what the `grudge` auditor checks
+against. Testing has its own rubric (see **Test methodology**); these cover
+architecture, code, and naming.
+
+**Single source of truth & functional architecture.** Every concept is defined
+**once**. Two representations of one idea — parallel type families, copy-pasted
+fragments, a runtime shape mirroring a syntax-tree node — reconciled by hand or by
+unsafe casts are the drift failure mode this project exists to avoid: the thesis is
+*one* typed, auditable representation that humans and agents can co-maintain safely.
+Prefer **deriving** one shape from another over duplicating them, and enforce contracts
+at **compile time** rather than trusting a cast. The code is layered **acyclically**,
+and that ordering is load-bearing: when it forbids collapsing two shapes — a lower
+layer cannot import a higher one to share its type — introduce the **minimal
+projection/view type** and document why it is the irreducible limit, rather than
+reaching for a cast. Single-source to a consistent degree, honest about the cases the
+layering forbids.
+
+**Comments & naming.** Names convey the idea; comments stay **in sync with the code**.
+A comment describing behavior that no longer exists — a deleted type, a stale status
+note, a renamed operation — is **worse than none**, because this codebase is read by
+authoring agents that take it literally. Change the comment in the same edit that
+changes the code; treat a stale comment like a stale test fixture.
+
+**Functional design — separate the effect from its representation.** Real code is
+effectful; the discipline is to keep the effect out of the data that describes it. A
+function may be impure for performance, yet from the **consumer's view it must read as
+pure**. Extract the core logic into a possibly-pure implementation that is easy to test
+in isolation (also how new features should be approached — see *Implementation,
+debugging and documenting behavior through tests*). Flag effects entangled with their
+representation, or "pure" surfaces that quietly leak side effects.
+
+
 ## Documentation & how-to guides
 
 The project is documented in the [`documentation/`](documentation/) folder.
@@ -27,13 +62,18 @@ In [`documentation/how_to/`](documentation/how_to/) you will find knowledge abou
 - [`extracting_documents.md`](documentation/how_to/extracting_documents.md) — compose grammars into a `defextract` that produces a nested tree of records.
 - [`extracting_tables.md`](documentation/how_to/extracting_tables.md) — read delimited text tables into records with a `TTable`, standalone or as a `defextract` leaf.
 - [`programmatic_agent_extraction.md`](documentation/how_to/programmatic_agent_extraction.md) — the agent playbook for taking a raw PDF from zero to a working `.tsn` extractor (the two-read loop, the verify loop, design heuristics); links down to the construct how-tos above.
-- [`extending_the_language.md`](documentation/how_to/extending_the_language.md) — add a new construct to the DSL, stage by stage (grammar → AST → tree-to-network → types → checker).
+- [`extending_the_language.md`](documentation/how_to/extending_the_language.md) — add a new construct to the modular DSL front end, stage by stage (enums → construct module → union/registry → emit → checker).
 - [`extending_lang_agent_ui.md`](documentation/how_to/extending_lang_agent_ui.md) — add a feature to the Gavagai chat UI through its event-driven functional (re-frame) architecture.
 - [`mcp_server.md`](documentation/how_to/mcp_server.md) — expose the program-reasoning operations to an external agent over stdio (MCP).
 - [`working_with_the_scripts.md`](documentation/how_to/working_with_the_scripts.md) — the full reference for the `scripts/` CLI adapters (`parse`/`check`/`typecheck`/`run`/`compile-schemas`/`diagram`/`pdf`), with examples and `cell=`/`@file` seeding.
 
 > Session handoff between agents now lives in **GitHub issues** (replacing the old, gitignored
 > `CLAUDE_TUNNEL.md` flat file). An automated issue-driven handoff is a planned follow-up.
+
+> Major achievements are recorded as dated milestones in
+> [`repo_workspace/MILESTONES/`](repo_workspace/MILESTONES/) — a running history of the project.
+> Each entry (`YYYY-MM-DD_slug.md`, with `date`/`working_branch`/`tags` frontmatter) narrates one
+> achievement: its context, the problem, the solution, the path taken, and what landed.
 
 ## Working with the scripts
 
@@ -62,7 +102,7 @@ Always run the full test suite through `npm test`, not `npx jest` directly:
 npm test
 ```
 
-`npm test` regenerates the lezer grammar parser before running jest. Running `npx jest` raw skips this step and produces false failures.
+Always use `npm test`, not `npx jest` raw: the `pretest` hook typechecks src + tests first, and `npm test` runs both the CJS and ESM passes (see below). Raw `npx jest` skips both and gives a misleading picture.
 
 `npm test` runs **two jest passes**: the default CJS pass for most tests, then an ESM pass (`npm run test:esm`, with `--experimental-vm-modules`) for tests that depend on ESM-only packages — currently anything touching `unpdf`/pdf.js, which uses `import.meta` and cannot run in jest's CJS mode. **Tests that transitively import `unpdf` must live under `tests/pdf/`** (the ESM pass's match glob); placing such a test elsewhere makes it fail to load in the CJS pass. The default pass relies on `__dirname`, so the whole suite can't simply switch to ESM.
 

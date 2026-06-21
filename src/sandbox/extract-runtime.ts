@@ -1,4 +1,7 @@
-import type { ExtractAST, ExtractWithin, ExtractStmt, ProgramAST, TypeRef } from "../data-network/types.js";
+import type { TypeRef } from "../data-network/types.js";
+import type { ExtractNode, ExtractWithin, ExtractStmt } from "../language/constructs/defextract/ast.js";
+import type { Program } from "../language/pipeline/program.js";
+import { recordsOf, grammarsOf, ttablesOf } from "../language/select.js";
 import type { ScanMatch } from "./grammar-runtime.js";
 import { Contradiction } from "../info-structure.js";
 
@@ -11,9 +14,9 @@ const fieldRecord = (t: TypeRef): string => stripPred(t.kind === "vector" ? t.el
 
 // The record a grammar produces, or null if the grammar is unknown or unsigned (a bare
 // recognizer returns text, not a record, so it cannot back a scan/parse bind).
-function grammarReturnRecord(ref: string, program: ProgramAST): string | null {
+function grammarReturnRecord(ref: string, program: Program): string | null {
   const name = ref.startsWith("grammar/") ? ref.slice("grammar/".length) : ref;
-  const g = program.grammars.find(x => x.name === name);
+  const g = grammarsOf(program).find(x => x.name === name);
   if (!g?.signature) return null;
   const rt = g.signature.returnType;
   return stripPred(rt.kind === "vector" ? rt.element : rt.predicate);
@@ -26,9 +29,9 @@ function grammarReturnRecord(ref: string, program: ProgramAST): string | null {
 //   - the bind's element record == the field's element record == the grammar's return;
 //   - a nested `within f` targets a vector-of-record field, then recurses into its element;
 //   - the root grammar returns the root record.
-export function validateExtract(ast: ExtractAST, program: ProgramAST): string[] {
+export function validateExtract(ast: ExtractNode, program: Program): string[] {
   const errors: string[] = [];
-  const recordByName = new Map(program.records.map(r => [r.name, r] as const));
+  const recordByName = new Map(recordsOf(program).map(r => [r.name, r] as const));
   const here = `defextract ${ast.name}`;
 
   const checkScope = (within: ExtractWithin, recordName: string): void => {
@@ -54,7 +57,7 @@ export function validateExtract(ast: ExtractAST, program: ProgramAST): string[] 
         // (`TTable/X`, always a vector ⇒ scan only); its produced record must match.
         if (stmt.grammar.startsWith("TTable/")) {
           const tname = stmt.grammar.slice("TTable/".length);
-          const tt = program.ttables.find(t => t.name === tname);
+          const tt = ttablesOf(program).find(t => t.name === tname);
           if (!tt) errors.push(`${here}: ${stmt.grammar} is not a defined TTable`);
           else {
             if (stmt.kind === "parse") errors.push(`${here}: ${stmt.grammar} yields a vector ([${tt.row}?]) — use scan, not parse`);
@@ -109,7 +112,7 @@ export type GrammarLeaves = Record<string, GrammarLeaf>;
 //
 // The span (Ohm's `node.sourceString`) is what frees the author from declaring a `body`
 // region field: the matcher already knows the text each match covered.
-export function compileExtract(ast: ExtractAST, leaves: GrammarLeaves): CompiledExtract {
+export function compileExtract(ast: ExtractNode, leaves: GrammarLeaves): CompiledExtract {
   const callImpl = (ref: string, region: unknown): unknown => {
     const leaf = leaves[ref];
     if (!leaf) return new Contradiction("extract/unknown-grammar", new Set(), new Error(`no leaf "${ref}"`));

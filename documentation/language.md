@@ -776,7 +776,7 @@ expression math/floor(div(total, count));
 
 The prelude is written in the language itself and lives in `src/sandbox/prelude.ts`
 (`PRELUDE_SOURCE`); extend it there. The `math/` builtins live in
-`src/sandbox/jsgen/compiler.ts`.
+`src/language/pipeline/builtins.ts`.
 
 ---
 
@@ -900,5 +900,5 @@ end
 - Arms are tested in order; the first match wins.
 - Compiles to a guarded IIFE with `if (__v.__type === ...)` chains — no runtime dependency.
 
-> See [`tests/sandbox/jsgen/expressions.test.ts`](../tests/sandbox/jsgen/expressions.test.ts) for expression tests and usage.
+> See [`tests/language/expr.test.ts`](../tests/language/expr.test.ts) and [`tests/language/compile-expr.test.ts`](../tests/language/compile-expr.test.ts) for expression parse + lowering tests.
 > See also [`repo_workspace/examples/`](../repo_workspace/examples/) for complete programs.

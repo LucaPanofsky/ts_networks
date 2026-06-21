@@ -10,6 +10,7 @@
     "sourceMap": true,
     "declaration": true,
     "strict": true,
+    "noUnusedLocals": true,
     "noUncheckedIndexedAccess": true,
     "skipLibCheck": true,
     "esModuleInterop": true

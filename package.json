@@ -7,20 +7,20 @@
   "author": "Luca Panofsky",
   "license": "ISC",
   "scripts": {
-    "generate": "lezer-generator src/data-network/grammar.grammar --output src/data-network/parser.js",
-    "build": "npm run generate && tsc && sed 's|from \"./prompt-tokenizer\"|from \"./prompt-tokenizer.js\"|' src/data-network/parser.js > dist/data-network/parser.js && cp src/data-network/parser.terms.js dist/data-network/parser.terms.js",
+    "build": "tsc",
     "typecheck": "tsc -p tsconfig.test.json --noEmit",
     "pretest": "npm run typecheck",
-    "test": "npm run generate && jest && npm run test:esm",
+    "test": "jest && npm run test:esm",
     "test:esm": "ESM_TESTS=1 NODE_OPTIONS=--experimental-vm-modules jest",
     "pretest:all": "npm run typecheck",
-    "test:all": "npm run generate && TEST_ALL=1 jest && npm run test:esm",
+    "test:all": "TEST_ALL=1 jest && npm run test:esm",
     "mcp": "npx tsx scripts/mcp.ts",
+    "run-artifact": "node dist/operations/run-artifact.js",
+    "run-tsn": "node dist/operations/run-source.js",
     "analyze": "jest --coverage --collectCoverageFrom='src/**/*.ts' --coverageReporters=json && npx tsx repo_workspace/analysis/report.ts",
     "analyze:quick": "npx tsx repo_workspace/analysis/report.ts"
   },
   "devDependencies": {
-    "@lezer/generator": "^1.8.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^25.9.0",
     "jest": "^30.4.2",
@@ -30,9 +30,8 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
-    "@lezer/common": "^1.5.2",
-    "@lezer/lr": "^1.4.10",
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "@tsn/runtime": "file:packages/tsn-runtime",
     "ohm-js": "^17.5.0",
     "unpdf": "^1.6.2"
   }

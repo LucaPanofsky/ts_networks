@@ -1,6 +1,6 @@
 // Pure templating core for LLM function prompts (the *runtime* half of the placeholder
-// machinery). The PLACEHOLDER grammar and compile-time path extraction live in
-// data-network/placeholders.ts; this module imports the regex so the runtime renderer
+// machinery). The PLACEHOLDER grammar and compile-time path extraction live in the neutral
+// leaf src/placeholders.ts; this module imports the regex so the runtime renderer
 // and the static analysis never drift.
 //
 // Kept separate from llmfn-client.ts (the effectful SDK boundary) so it can be
@@ -8,7 +8,7 @@
 //   - serializeArg: turn any argument value into prompt text, explicitly.
 //   - renderPrompt: substitute {{placeholders}}, surfacing missing keys as a value.
 
-import { PLACEHOLDER } from "../data-network/placeholders.js";
+import { PLACEHOLDER } from "../placeholders.js";
 
 /**
  * Resolve a dotted path against `args`, one segment at a time. Presence is tested

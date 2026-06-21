@@ -1,4 +1,9 @@
-import type { ProgramAST, RecordAST, FnAST, EnumAST, Expr, TypeRef } from "./types.js";
+import type { Expr, TypeRef } from "./types.js";
+import type { RecordNode } from "../language/constructs/defrecord/ast.js";
+import type { FnNode } from "../language/constructs/defn/ast.js";
+import type { EnumNode } from "../language/constructs/defenum/ast.js";
+import type { Program } from "../language/pipeline/program.js";
+import { fnsOf, recordsOf, enumsOf } from "../language/select.js";
 
 export type JsonSchemaType = "string" | "number" | "boolean" | "object" | "array";
 
@@ -25,16 +30,16 @@ export type ResponseProtocol = {
 // ── Internal indexes ──────────────────────────────────────────────────────────
 
 type Indexes = {
-  predicateIndex: Map<string, FnAST>;
-  recordIndex: Map<string, RecordAST>;
-  enumIndex: Map<string, EnumAST>;
+  predicateIndex: Map<string, FnNode>;
+  recordIndex: Map<string, RecordNode>;
+  enumIndex: Map<string, EnumNode>;
 };
 
-function buildIndexes(program: ProgramAST): Indexes {
+function buildIndexes(program: Program): Indexes {
   return {
-    predicateIndex: new Map(program.fns.filter(f => f.isPredicate).map(f => [f.name, f])),
-    recordIndex:    new Map(program.records.map(r => [r.name, r])),
-    enumIndex:      new Map(program.enums.map(e => [e.name, e])),
+    predicateIndex: new Map(fnsOf(program).filter(f => f.isPredicate).map(f => [f.name, f])),
+    recordIndex:    new Map(recordsOf(program).map(r => [r.name, r])),
+    enumIndex:      new Map(enumsOf(program).map(e => [e.name, e])),
   };
 }
 
@@ -93,7 +98,7 @@ function resolveTypeRef(typeRef: TypeRef, indexes: Indexes): JsonSchemaProperty 
   return resolveProperty(typeRef.predicate, indexes);
 }
 
-export function deriveSchema(record: RecordAST, indexes: Indexes): JsonSchemaObject {
+export function deriveSchema(record: RecordNode, indexes: Indexes): JsonSchemaObject {
   const properties: Record<string, JsonSchemaProperty> = {};
   for (const field of record.fields) {
     properties[field.name] = resolveTypeRef(field.type, indexes);
@@ -107,16 +112,16 @@ export function deriveSchema(record: RecordAST, indexes: Indexes): JsonSchemaObj
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
-export function buildSchemas(program: ProgramAST): Record<string, JsonSchemaObject> {
+export function buildSchemas(program: Program): Record<string, JsonSchemaObject> {
   const indexes = buildIndexes(program);
   const schemas: Record<string, JsonSchemaObject> = {};
-  for (const record of program.records) {
+  for (const record of recordsOf(program)) {
     schemas[record.name] = deriveSchema(record, indexes);
   }
   return schemas;
 }
 
-export function deriveProtocol(returnType: TypeRef, program: ProgramAST): ResponseProtocol {
+export function deriveProtocol(returnType: TypeRef, program: Program): ResponseProtocol {
   const indexes = buildIndexes(program);
 
   if (returnType.kind === "vector") {

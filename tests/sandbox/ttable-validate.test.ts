@@ -1,4 +1,5 @@
-import { parseProgram } from "../../src/data-network/tree-to-network.js";
+import { parseProgramStrict as parseProgram } from "../../src/language/parse-strict.js";
+import { ttablesOf } from "../../src/language/select.js";
 import { validateTTable } from "../../src/sandbox/ttable-runtime.js";
 import { typecheck } from "../../src/operations/typecheck.js";
 
@@ -6,7 +7,7 @@ import { typecheck } from "../../src/operations/typecheck.js";
 
 function validate(dsl: string): string[] {
   const program = parseProgram(dsl);
-  return validateTTable(program.ttables[0]!, program);
+  return validateTTable(ttablesOf(program)[0]!, program);
 }
 
 const VALID = `

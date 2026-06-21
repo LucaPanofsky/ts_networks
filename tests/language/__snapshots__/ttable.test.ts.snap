@@ -1,0 +1,18 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`TTable slice — parse → emitted .js → run parses to a TTableNode matching its frozen golden (Lezer-validated at capture) 1`] = `
+{
+  "cell": "|",
+  "headers": [
+    {
+      "field": "old",
+    },
+    {
+      "field": "newNum",
+    },
+  ],
+  "kind": "ttable",
+  "name": "Rows",
+  "row": "Equivalence",
+}
+`;

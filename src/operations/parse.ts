@@ -1,9 +1,11 @@
-import { parseProgram } from "../data-network/tree-to-network.js";
-import type { ProgramAST } from "../data-network/types.js";
+import { parseProgramStrict } from "../language/parse-strict.js";
+import type { Program } from "../language/pipeline/program.js";
 import type { Operation } from "./types.js";
 
 type ParseInput = { source: string };
-type ParseOutput = { ok: true; ast: ProgramAST } | { ok: false; error: string };
+// The modular program shape: a flat `{ nodes }` bag (each node tagged by `kind`). This is
+// the single program representation now that the engine's grouped `ProgramAST` is gone.
+type ParseOutput = { ok: true; ast: Program } | { ok: false; error: string };
 
 export const parse: Operation<ParseInput, ParseOutput> = {
   name: "parse",
@@ -17,7 +19,7 @@ export const parse: Operation<ParseInput, ParseOutput> = {
   },
   handle(input) {
     try {
-      return { ok: true, ast: parseProgram(input.source) };
+      return { ok: true, ast: parseProgramStrict(input.source) };
     } catch (e) {
       return { ok: false, error: (e as Error).message };
     }
