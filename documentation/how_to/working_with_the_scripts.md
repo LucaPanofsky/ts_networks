@@ -72,6 +72,14 @@ as `run` (`name=jsExpr` or `name=@file`):
   `node_modules/@tsn/runtime`) so its `import "@tsn/runtime"` resolves, and use a `.mjs` extension
   if written outside a `"type":"module"` package. Out-of-tree distribution awaits a published runtime.
 
+- **Compile-and-run a `.tsn` in one step, under `node`:** the built equivalent of `scripts/run.ts`
+  (which runs via `tsx`) — start from source, no `.mjs`, no temp file (it compiles in memory) —
+  ```bash
+  npm run build
+  node dist/operations/run-source.js <file.tsn> <networkName> [cell=jsExpr ...]
+  # or: npm run run-tsn -- <file.tsn> <networkName> [cell=jsExpr ...]
+  ```
+
 **Render a network as a Mermaid diagram (cells, operations, switch cond/value labels, explicit recursion):**
 ```bash
 npx tsx scripts/diagram.ts <file.tsn> [networkName] [live]

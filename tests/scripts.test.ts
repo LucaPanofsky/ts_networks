@@ -311,6 +311,18 @@ describe("run-artifact: plain-node round trip", () => {
     expect(viaNode.stdout).toContain("output = 42");
   });
 
+  // run-source: compile-and-run a .tsn in one step under plain `node` (no .mjs, in-memory).
+  test("run-source compiles+runs a .tsn directly and matches the engine run", () => {
+    const viaSource = spawnSync("node", ["dist/operations/run-source.js", tmpTsn, "doubleNet", "input=21"], {
+      encoding: "utf-8",
+      cwd: process.cwd(),
+    });
+    const viaEngine = run("run", [tmpTsn, "doubleNet", "input=21"]);
+    expect(viaSource.status ?? 1).toBe(0);
+    expect(viaSource.stdout ?? "").toBe(viaEngine.stdout);
+    expect(viaSource.stdout ?? "").toContain("output = 42");
+  });
+
   test("an unknown network is a clean error (exit 1, names the network)", () => {
     const r = runNode([artifact, "nonexistentNet"]);
     expect(r.exitCode).toBe(1);
