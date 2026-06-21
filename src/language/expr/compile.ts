@@ -7,12 +7,23 @@
 
 import type { Expr, RecordPattern } from "../../data-network/types.js";
 import { placeholderPaths } from "../../placeholders.js";
+import { RESERVED_JS_WORDS } from "../core/reserved-js-words.js";
 
+// DSL name → a safe, STABLE JS identifier. The SINGLE definition of mangle (the emit
+// pipeline imports this same function), so a binding and every reference to it always
+// agree. Two jobs:
+//   1. rewrite the chars the grammar allows in a name but JS forbids in an identifier —
+//      `?`, `!`, `/` (qualified names like `str/contains?`), and `-` (kebab names).
+//   2. escape a name that mangles to a bare JS reserved word (`class` → `class_`), so a
+//      param/let/match binder or a fn named `class`/`new`/… emits valid JS.
+// Mangle is applied at identifier positions only (definitions AND references); record DATA
+// keys are emitted verbatim-quoted instead (see defrecord/emit.ts), so output JSON keeps
+// the raw field name. Caveat: the char map is not injective (`?`/`/`/`-` all → `$`, `!`→`_`),
+// so two *distinct* DSL names could in principle collide in one scope — a pre-existing
+// limitation, not addressed here.
 export function mangle(name: string): string {
-  // DSL names may contain `?`, `!`, and `/` (the last for qualified names like
-  // `str/contains?`); none are legal in a JS identifier, so rewrite them to a safe
-  // form. The same mangle runs on both definitions and call sites, so they match.
-  return name.replace(/\?/g, "$").replace(/!/g, "_").replace(/\//g, "$");
+  const mapped = name.replace(/\?/g, "$").replace(/!/g, "_").replace(/\//g, "$").replace(/-/g, "$");
+  return RESERVED_JS_WORDS.has(mapped) ? `${mapped}_` : mapped;
 }
 
 export function compileExpr(expr: Expr): string {

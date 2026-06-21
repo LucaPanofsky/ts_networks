@@ -14,17 +14,18 @@ import type { RecordDescriptor, LlmTypeEnv } from "../core/types.js";
 import { MODULES } from "./registry.js";
 import { withPrelude } from "./prelude.js";
 import { emitBuiltins } from "./builtins.js";
+import { mangle } from "../expr/index.js";
 
 // The runtime import alias every emitted file uses.
 const RT = "rt";
 
-// The default emit context. `mangle` mirrors the existing compiler (DSL names may carry
-// ?, !, / — none legal in a JS identifier). `ref` routes cross-construct references
-// through the registry, so fragments are order-independent and cyclic references
-// (mutual recursion) resolve at run time.
+// The default emit context. `mangle` is the SINGLE shared name→identifier function (defined in
+// expr/compile.ts), so emitted bindings here and the call sites `compileExpr` emits always agree.
+// `ref` routes cross-construct references through the registry, so fragments are order-independent
+// and cyclic references (mutual recursion) resolve at run time.
 export const defaultCtx: EmitCtx = {
   rt: RT,
-  mangle: (name) => name.replace(/\?/g, "$").replace(/!/g, "_").replace(/\//g, "$"),
+  mangle,
   ref: (name) => `__reg.resolve(${JSON.stringify(name)})`,
   // Base: no program context. `emitProgram` overrides these with real lookups so heavy
   // constructs can inline a record they produce / the type env a `defllmfn` needs.

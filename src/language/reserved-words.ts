@@ -8,20 +8,15 @@
 //
 // The `typecheck` operation consumes this to surface the located error early. (Moved out of
 // the retired jsgen compiler; reads the record nodes off a modular `Program`.)
+//
+// NOTE: codegen no longer DEPENDS on this guard — record field keys are emitted quoted
+// (`{ "new": _0 }`) and accessed bracketed, so a reserved-word field would now emit valid JS.
+// This guard is kept as a deliberate, conservative validation (predictable, plain field names),
+// not a codegen necessity. The word list is shared with `mangle` via `core/reserved-js-words`.
 
 import type { Program } from "./pipeline/program.js";
 import { recordsOf } from "./select.js";
-
-const RESERVED_JS_WORDS = new Set<string>([
-  "break", "case", "catch", "class", "const", "continue", "debugger", "default",
-  "delete", "do", "else", "enum", "export", "extends", "false", "finally", "for",
-  "function", "if", "import", "in", "instanceof", "new", "null", "return", "super",
-  "switch", "this", "throw", "true", "try", "typeof", "var", "void", "while", "with",
-  // Reserved in strict mode / modules — our emitted constructors run in contexts that
-  // may be strict, so reject these too rather than risk a context-dependent failure.
-  "let", "static", "yield", "await", "implements", "interface", "package", "private",
-  "protected", "public",
-]);
+import { RESERVED_JS_WORDS } from "./core/reserved-js-words.js";
 
 // One message per record field whose name is a reserved JS word (empty = clean).
 export function reservedFieldErrors(program: Program): string[] {
