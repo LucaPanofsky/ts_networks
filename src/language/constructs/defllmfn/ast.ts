@@ -1,5 +1,5 @@
-// The node `defllmfn` produces — an async, LLM-backed leaf. Structurally the engine's
-// `LLMFnAST` (src/data-network/types.ts): typed params, a return type, the `user` prompt
+// The node `defllmfn` produces — an async, LLM-backed leaf. The SINGLE llmfn AST (the engine
+// `LLMFnAST` twin was removed): typed params, a return type, the `user` prompt
 // (data-bearing, carries `{{placeholders}}`), an optional stable `system` prompt, and the
 // `with:` config (model / max_tokens / tools). It is NOT source-emitted — emit inlines this
 // as a spec into a single `rt.llmFn(spec, __reg)` call (BUILD), which returns the memoized async

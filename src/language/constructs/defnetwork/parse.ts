@@ -1,6 +1,6 @@
-// block text → NetworkNode, via Ohm. Parses the signature + the four term kinds into a node
-// that mirrors the engine's DataNetworkAST (so it deep-equals the Lezer oracle). The `as`
-// coercion and the `with:` clause both fold into a propagate term's `params` map, exactly as
+// block text → NetworkNode, via Ohm. Parses the signature + the four term kinds into the
+// NetworkNode that the reused engine network builder (`astToDataNetwork`) consumes directly.
+// The `as` coercion and the `with:` clause both fold into a propagate term's `params` map, exactly as
 // the engine's collectPropagateTerm does. The grammar source below is the live copy;
 // grammar.ohm is the readable canonical copy (kept in sync by hand).
 

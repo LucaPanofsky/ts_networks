@@ -1,4 +1,4 @@
-import type { DataNetworkAST } from "./types.js";
+import type { NetworkNode } from "../language/constructs/defnetwork/ast.js";
 import { DataNetwork } from "./data-network.js";
 
 function coerce(value: string): unknown {
@@ -8,7 +8,7 @@ function coerce(value: string): unknown {
   return value;
 }
 
-export function astToDataNetwork(ast: DataNetworkAST): DataNetwork {
+export function astToDataNetwork(ast: NetworkNode): DataNetwork {
   const net = new DataNetwork(ast.name, ast.signature);
 
   for (const term of ast.terms) {

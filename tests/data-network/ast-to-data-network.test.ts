@@ -1,8 +1,9 @@
 import { astToDataNetwork } from "../../src/data-network/index.js";
-import type { DataNetworkAST } from "../../src/data-network/index.js";
+import type { NetworkNode } from "../../src/language/constructs/defnetwork/ast.js";
+import { ConstructKind } from "../../src/language/core/enums.js";
 
-const base: DataNetworkAST = {
-  kind: "network",
+const base: NetworkNode = {
+  kind: ConstructKind.Network,
   name: "myNet",
   signature: { from: ["a", "b"], to: "out" },
   terms: [],

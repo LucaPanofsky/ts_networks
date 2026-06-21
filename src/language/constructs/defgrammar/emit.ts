@@ -1,6 +1,6 @@
 // A grammar is a HEAVY construct: it emits a thin `rt.grammar(spec, record, resolve)` call
 // (the runtime function is the COMPILER, run at module-eval time) and registers the result.
-// The spec is the node itself (it doubles as the engine's GrammarAST); the bound record's
+// The spec is the node itself (the single GrammarNode the reused `compileGrammar` consumes); the bound record's
 // descriptor is INLINED via `ctx.record` so the reused `compileGrammar` can build it, while
 // the constructor stays late-bound through `__reg.resolve`.
 

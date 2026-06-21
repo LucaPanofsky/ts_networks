@@ -146,9 +146,9 @@ export interface RuntimeApi extends ValueProtocol, ConstructRuntime {
 
 // ── Spec shapes ─────────────────────────────────────────────────────────────────
 // What the emitter inlines as JS data literals — the construct's node minus the parts
-// emitted inline. The grammar/extract/ttable specs mirror their AST nodes (and the
-// engine's GrammarAST/ExtractAST/TTableAST, which they are structurally cast to in the
-// runtime adapter). Network/llmfn stay loose until their slices.
+// emitted inline. The grammar/extract/ttable specs mirror their construct AST nodes
+// (GrammarNode/ExtractNode/TTableNode), which they are structurally cast to in the runtime
+// adapter. Network/llmfn stay loose until their slices.
 export type GrammarSpec = {
   kind: string;
   name: string;
@@ -169,8 +169,8 @@ export type ExtractBindSpec = { kind: "scan" | "parse"; record: string; as: stri
 export type ExtractStmtSpec = ExtractWithinSpec | ExtractBindSpec;
 export type ExtractSpec = { kind: string; name: string; root: ExtractWithinSpec };
 
-// What a `defnetwork` inlines — its node, structurally the engine's DataNetworkAST (the
-// runtime adapter casts through). `terms` stay opaque here (the four term-kind shapes live in
+// What a `defnetwork` inlines — its node, structurally the NetworkNode (the runtime adapter
+// casts through). `terms` stay opaque here (the four term-kind shapes live in
 // the construct module); the adapter only reads the signature directly.
 export type NetworkSpec = {
   kind: string;
@@ -179,7 +179,7 @@ export type NetworkSpec = {
   terms: unknown[];
 };
 
-// What a `defllmfn` inlines — its node (structurally the engine's LLMFnAST) plus the
+// What a `defllmfn` inlines — its node (structurally the LlmFnNode) plus the
 // program's type environment, so `rt.llmFn` can reuse `deriveProtocol` verbatim. `config`
 // is the `with:` clause (model / max_tokens / tools); `user`/`system` are the rendered-at-
 // run-time prompt templates (the system channel is stable, the user channel data-bearing).

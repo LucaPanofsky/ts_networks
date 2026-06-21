@@ -1,5 +1,5 @@
 import { grammar as ohmGrammar, type Grammar, type Node, type Semantics } from "ohm-js";
-import type { GrammarAST } from "../data-network/types.js";
+import type { GrammarNode } from "../language/constructs/defgrammar/ast.js";
 import type { RecordNode } from "../language/constructs/defrecord/ast.js";
 import type { Program } from "../language/pipeline/program.js";
 import { recordsOf } from "../language/select.js";
@@ -29,7 +29,7 @@ const recordName = (predicate: string): string =>
 
 // The record a signed grammar binds to: a scalar `to Rec?` names it directly, a vector
 // `to [Rec?]` names its element. Bare recognizers (no signature) bind to nothing.
-function signatureRecordName(ast: GrammarAST): string | null {
+function signatureRecordName(ast: GrammarNode): string | null {
   const sig = ast.signature;
   if (!sig) return null;
   const ret = sig.returnType;
@@ -47,7 +47,7 @@ function signatureRecordName(ast: GrammarAST): string | null {
 
 // Structural well-formedness of the Ohm body: it parses, and the Ohm grammar's own
 // name matches the defgrammar name. Returns one message per problem (empty = clean).
-export function validateGrammarSyntax(ast: GrammarAST): string[] {
+export function validateGrammarSyntax(ast: GrammarNode): string[] {
   let g: Grammar;
   try {
     g = ohmGrammar(ast.source);
@@ -63,7 +63,7 @@ export function validateGrammarSyntax(ast: GrammarAST): string[] {
 // Semantic checks against the program: a signed grammar's bound record must exist.
 // (Bare recognizers carry no signature and so have nothing to check here.) Does not
 // re-validate the Ohm body — that is validateGrammarSyntax's responsibility.
-export function validateGrammarSignature(ast: GrammarAST, program: Program): string[] {
+export function validateGrammarSignature(ast: GrammarNode, program: Program): string[] {
   const recName = signatureRecordName(ast);
   if (recName === null) return [];
   const rec = recordsOf(program).find(r => r.name === recName);
@@ -154,7 +154,7 @@ function buildScanner(g: Grammar, astName: string, rec: RecordNode, fields: Set<
   };
 }
 
-export function compileGrammar(ast: GrammarAST, program: Program, sandbox: Sandbox): CompiledGrammar {
+export function compileGrammar(ast: GrammarNode, program: Program, sandbox: Sandbox): CompiledGrammar {
   // Reuse the static validators so the run-time and check-time paths report the same
   // errors. Syntax first (a broken body makes the signature check meaningless), then
   // the signature's record. ohmGrammar(ast.source) below cannot fail past this point.

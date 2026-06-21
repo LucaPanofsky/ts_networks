@@ -1,40 +1,31 @@
 // ── Typed selectors over a modular `Program` ────────────────────────────────────────
 //
-// The sole group-by-`kind` mechanism over a program — the lazy successor to the (now
-// removed) `toProgramAST` adapter's eager fold. Where that adapter materialized ten typed
-// arrays up front, these selectors filter `program.nodes` by `ConstructKind` on demand and
-// return the corresponding engine AST type. A consumer reads `fnsOf(program)` off a
-// `Program` where it once read `program.fns` off the engine's grouped `ProgramAST`.
+// The sole group-by-`kind` mechanism over a program: each selector filters `program.nodes`
+// by its `ConstructKind` and returns that construct's node type. A consumer reads
+// `fnsOf(program)` off a `Program` where it once read `program.fns` off the (removed) grouped
+// `ProgramAST`.
 //
-// The cast is the SAME one the adapter made (`node as FnAST`): a modular node is
-// structurally the engine AST, but not assignable to it — its `.kind` is a `ConstructKind`
-// enum member, the engine AST's `.kind` is a string literal, which TypeScript treats as
-// nominally distinct. The oracle-parity tests prove the structural equality the cast relies
-// on. These selectors are the SOLE group-by-kind mechanism now — the lazy replacement for
-// the (removed) adapter's eager fold.
-//
-// `derivesOf`/`parametersOf` are the two exceptions to the cast: their engine AST types
-// (`DeriveAST`/`ParameterAST`) were deleted with `ProgramAST`, so the modular node *is* the
-// return type — no cast. In particular `derivesOf` returns the `DeriveNode` VERBATIM, keeping
-// its synthetic `name`: that name is the construct's combine/registry key (`combine.ts`
-// `registryKey`), not adapter cruft — the adapter stripped it only to match the old name-less
-// engine `DeriveAST`, which no longer exists. (`derive` subsumption is still dormant — no
-// consumer reads `derivesOf` in production yet.)
+// The per-selector cast (`as FnNode[]`) is a FILTER-NARROWING cast: TypeScript cannot narrow
+// `AstNode[]` to a single union member by an enum field through `.filter`, so each selector
+// asserts the element type its `ConstructKind` guarantees. That cast is now the ONLY one —
+// there is no longer a second "engine AST" type family to convert to: the modular construct
+// node IS the single type, consumed directly by the reused engine compilers / analysis passes.
 
 import { ConstructKind } from "./core/enums.js";
 import type { AstNode, Program } from "./pipeline/program.js";
 import type { RecordNode } from "./constructs/defrecord/ast.js";
 import type { FnNode } from "./constructs/defn/ast.js";
 import type { EnumNode } from "./constructs/defenum/ast.js";
+import type { LlmFnNode } from "./constructs/defllmfn/ast.js";
+import type { GrammarNode } from "./constructs/defgrammar/ast.js";
+import type { NetworkNode } from "./constructs/defnetwork/ast.js";
+import type { ExtractNode } from "./constructs/defextract/ast.js";
+import type { TTableNode } from "./constructs/ttable/ast.js";
 import type { DeriveNode } from "./constructs/derive/ast.js";
 import type { ParameterNode } from "./constructs/defparameter/ast.js";
-import type {
-  LLMFnAST, GrammarAST, DataNetworkAST, ExtractAST, TTableAST,
-} from "../data-network/types.js";
 
-// The per-node cast, lifted to the filtered array: a modular node of a given kind IS the
-// engine AST of that kind (oracle-proven), bar the nominally-distinct `.kind`. `byKind`
-// narrows; each selector applies that one cast (the same the removed adapter applied).
+// The per-node cast lifted to the filtered array: a node of a given kind IS that construct's
+// node type. `byKind` narrows; each selector applies the one filter-narrowing cast.
 const byKind = (p: Program, kind: ConstructKind): AstNode[] =>
   p.nodes.filter((n) => n.kind === kind);
 
@@ -44,27 +35,26 @@ export const recordsOf = (p: Program): RecordNode[] =>
 export const fnsOf = (p: Program): FnNode[] =>
   byKind(p, ConstructKind.Fn) as FnNode[];
 
-export const llmFnsOf = (p: Program): LLMFnAST[] =>
-  byKind(p, ConstructKind.Llmfn) as LLMFnAST[];
+export const llmFnsOf = (p: Program): LlmFnNode[] =>
+  byKind(p, ConstructKind.Llmfn) as LlmFnNode[];
 
-export const grammarsOf = (p: Program): GrammarAST[] =>
-  byKind(p, ConstructKind.Grammar) as GrammarAST[];
+export const grammarsOf = (p: Program): GrammarNode[] =>
+  byKind(p, ConstructKind.Grammar) as GrammarNode[];
 
 export const enumsOf = (p: Program): EnumNode[] =>
   byKind(p, ConstructKind.Enum) as EnumNode[];
 
-export const networksOf = (p: Program): DataNetworkAST[] =>
-  byKind(p, ConstructKind.Network) as DataNetworkAST[];
+export const networksOf = (p: Program): NetworkNode[] =>
+  byKind(p, ConstructKind.Network) as NetworkNode[];
 
-export const extractsOf = (p: Program): ExtractAST[] =>
-  byKind(p, ConstructKind.Extract) as ExtractAST[];
+export const extractsOf = (p: Program): ExtractNode[] =>
+  byKind(p, ConstructKind.Extract) as ExtractNode[];
 
-export const ttablesOf = (p: Program): TTableAST[] =>
-  byKind(p, ConstructKind.TTable) as TTableAST[];
+export const ttablesOf = (p: Program): TTableNode[] =>
+  byKind(p, ConstructKind.TTable) as TTableNode[];
 
-// The two constructs whose engine AST type was deleted with `ProgramAST`: the modular node
-// IS the return type, so no cast. `derivesOf` keeps `DeriveNode.name` (the combine key); both
-// are carry-only today (subsumption + parameter run-wiring are dormant).
+// `derivesOf` keeps `DeriveNode.name` (the combine/registry key — see `combine.ts`). Both are
+// carry-only today (derive subsumption + parameter run-wiring are dormant — no production reader).
 export const derivesOf = (p: Program): DeriveNode[] =>
   byKind(p, ConstructKind.Derive) as DeriveNode[];
 

@@ -1,7 +1,7 @@
 // The node `defgrammar` produces — a named Ohm grammar carried as verbatim source, with
-// an optional signature binding the parse result to a record. Shaped to MIRROR the engine's
-// `GrammarAST` (`src/data-network/types.ts`) — `kind` is the string "grammar" either way —
-// so the runtime adapter casts it straight through to the reused `compileGrammar`.
+// an optional signature binding the parse result to a record. This is the SINGLE grammar AST
+// (the engine `GrammarAST` twin was removed): the reused `compileGrammar` consumes it directly
+// (the runtime adapter structurally casts the inlined spec to it).
 //
 // A scalar `to Rec?` parses the whole input into one record; a vector `to [Rec?]` scans for
 // all embedded matches; no signature is a bare recognizer returning the matched text.

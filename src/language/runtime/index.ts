@@ -27,14 +27,11 @@ import { Deferred } from "../../information-structures/deferred.js";
 import { APromise } from "../../information-structures/apromise.js";
 import { defaultExecutor } from "../../network-impl/executor.js";
 import type { Sandbox } from "../../sandbox/record-sandbox.js";
-import type {
-  GrammarAST,
-  TTableAST,
-  ExtractAST,
-  Expr,
-  TypeRef,
-  DataNetworkAST,
-} from "../../data-network/types.js";
+import type { Expr, TypeRef } from "../../data-network/types.js";
+import type { GrammarNode } from "../constructs/defgrammar/ast.js";
+import type { TTableNode } from "../constructs/ttable/ast.js";
+import type { ExtractNode } from "../constructs/defextract/ast.js";
+import type { NetworkNode } from "../constructs/defnetwork/ast.js";
 import type { Registry, RegistryEntry, Impl, CompiledLeaf, GrammarSpec, TTableSpec, ExtractSpec, ExtractWithinSpec, LlmFnSpec, NetworkSpec } from "../core/runtime-api.js";
 import type { ScanMatch, RecordDescriptor } from "../core/types.js";
 import { ConstructKind } from "../core/enums.js";
@@ -109,9 +106,8 @@ export function registry(): AdaptedRegistry {
 // they want from the inlined spec + late-bound registry resolution. No Ohm capture/scan/
 // orchestration logic is reimplemented.
 
-// A record descriptor → a one-element modular `Program` (the engine's RecordAST is
-// structurally a RecordNode; `compile{Grammar,TTable}` read it through the select.ts
-// selectors) + a one-entry sandbox whose constructor is the LATE-BOUND registry thunk
+// A record descriptor → a one-element modular `Program` (`compile{Grammar,TTable}` read the
+// record through the select.ts selectors) + a one-entry sandbox whose constructor is the LATE-BOUND registry thunk
 // (only *called* at RUN time, so the record may be registered after this leaf is compiled).
 function recordEnv(
   record: RecordDescriptor | undefined,
@@ -128,7 +124,7 @@ export function grammar(
   resolve: Registry["resolve"],
 ): CompiledLeaf {
   const { program, sandbox } = recordEnv(record, resolve);
-  const compiled = compileGrammar(spec as unknown as GrammarAST, program, sandbox);
+  const compiled = compileGrammar(spec as unknown as GrammarNode, program, sandbox);
   return { arity: compiled.arity, impl: compiled.impl, scan: compiled.scan };
 }
 
@@ -138,7 +134,7 @@ export function ttable(
   resolve: Registry["resolve"],
 ): CompiledLeaf {
   const { program, sandbox } = recordEnv(record, resolve);
-  const compiled = compileTTable(spec as unknown as TTableAST, program, sandbox);
+  const compiled = compileTTable(spec as unknown as TTableNode, program, sandbox);
   return { arity: compiled.arity, impl: compiled.impl };
 }
 
@@ -158,7 +154,7 @@ export function extract(
   resolve: Registry["resolve"],
   scanOf: Registry["scanOf"],
 ): Impl {
-  const ast = spec as unknown as ExtractAST;
+  const ast = spec as unknown as ExtractNode;
   const leaves: GrammarLeaves = {};
   for (const ref of collectRefs(spec.root)) {
     leaves[ref] = {
@@ -253,7 +249,7 @@ export type NetworkImpl = Impl & {
 };
 
 export function network(spec: NetworkSpec, reg: Registry): NetworkImpl {
-  const ast = spec as unknown as DataNetworkAST;
+  const ast = spec as unknown as NetworkNode;
   const inputCells = ast.signature.from;
   const outputCell = ast.signature.to;
   const engine = (reg as AdaptedRegistry).backing;

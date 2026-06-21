@@ -55,7 +55,7 @@ export function emitProgram(program: Program, ctx: EmitCtx = defaultCtx): string
 
   // The whole-program type environment a `defllmfn` inlines: every record + enum, and the
   // PREDICATE fns (the schema resolves a field typed by a predicate to its base type). The
-  // pipeline nodes are structurally the engine ASTs, so this is a filter, not a conversion.
+  // pipeline nodes are exactly the AST nodes the env wants, so this is a filter, not a conversion.
   const isRecord = (n: AstNode): n is RecordNode => n.kind === ConstructKind.Record;
   const isEnum = (n: AstNode): n is EnumNode => n.kind === ConstructKind.Enum;
   const isPredicate = (n: AstNode): n is FnNode => n.kind === ConstructKind.Fn && n.isPredicate;

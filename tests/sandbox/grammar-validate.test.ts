@@ -2,12 +2,12 @@ import { validateGrammarSyntax, validateGrammarSignature, compileGrammar } from 
 import { parseProgramStrict as parseProgram } from "../../src/language/parse-strict.js";
 import { recordsOf, grammarsOf } from "../../src/language/select.js";
 import { recordCtorSandbox } from "../../src/sandbox/record-sandbox.js";
-import type { GrammarAST } from "../../src/data-network/types.js";
+import type { GrammarNode } from "../../src/language/constructs/defgrammar/ast.js";
 import type { Program } from "../../src/language/pipeline/program.js";
 
 // Parse a DSL program and pull out a named grammar AST. The validators are pure
 // (no sandbox), so this is all the setup they need.
-function grammarOf(dsl: string, name: string): { ast: GrammarAST; program: Program } {
+function grammarOf(dsl: string, name: string): { ast: GrammarNode; program: Program } {
   const program = parseProgram(dsl);
   const ast = grammarsOf(program).find(g => g.name === name)!;
   return { ast, program };

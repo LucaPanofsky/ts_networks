@@ -1,7 +1,7 @@
 import { deflateSync } from "node:zlib";
 import { parseProgramStrict } from "../language/parse-strict.js";
 import { networksOf } from "../language/select.js";
-import type { DataNetworkAST } from "../data-network/types.js";
+import type { NetworkNode } from "../language/constructs/defnetwork/ast.js";
 import type { Operation } from "./types.js";
 
 // Render a network as a Mermaid flowchart. Pure core (networkToMermaid / mermaidLiveUrl)
@@ -20,7 +20,7 @@ const CLASSDEFS = [
 // (a qualified name could contain `/` or `.`).
 const sid = (s: string): string => s.replace(/[^A-Za-z0-9_]/g, "_");
 
-export function networkToMermaid(net: DataNetworkAST): string {
+export function networkToMermaid(net: NetworkNode): string {
   // Collect cells in appearance order: signature inputs, the output, then term cells.
   const cellNames: string[] = [];
   const seen = new Set<string>();
@@ -113,7 +113,7 @@ export const diagram: Operation<DiagramInput, DiagramOutput> = {
     required: ["source"],
   },
   handle(input) {
-    let networks: DataNetworkAST[];
+    let networks: NetworkNode[];
     try {
       networks = networksOf(parseProgramStrict(input.source));
     } catch (e) {
@@ -121,7 +121,7 @@ export const diagram: Operation<DiagramInput, DiagramOutput> = {
     }
     if (networks.length === 0) return { ok: false, error: "no networks defined in the program" };
 
-    let net: DataNetworkAST | undefined;
+    let net: NetworkNode | undefined;
     if (input.network) {
       net = networks.find(n => n.name === input.network);
       if (!net) return { ok: false, error: `unknown network "${input.network}" — available: ${networks.map(n => n.name).join(", ")}` };

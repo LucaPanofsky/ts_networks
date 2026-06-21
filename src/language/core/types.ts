@@ -14,9 +14,8 @@ export type FieldDecl = { name: string; type: TypeRef };
 
 // The descriptor a heavy construct (grammar, ttable) needs about a record it produces:
 // the name and the ordered, typed fields, so the reused engine compiler can map captures
-// → constructor args (scalar vs vector). Structurally a RecordNode / the engine's
-// RecordAST; named here so neither `core/module.ts` nor `core/runtime-api.ts` depends on
-// the defrecord module.
+// → constructor args (scalar vs vector). Structurally a RecordNode; named here so neither
+// `core/module.ts` nor `core/runtime-api.ts` depends on the defrecord module.
 export type RecordDescriptor = { name: string; fields: FieldDecl[] };
 
 // The type environment a `defllmfn` inlines so the reused engine `deriveProtocol` can

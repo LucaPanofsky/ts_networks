@@ -1,8 +1,8 @@
 // The node `defextract` produces — a constituency extractor: one root `within` (the
 // document tree is a single record) built from nested `within`s and `scan`/`parse` binds.
-// Shaped to MIRROR the engine's `ExtractAST`/`ExtractWithin`/`ExtractBind` (the inner `kind`
-// strings — "within"/"scan"/"parse"/"extract" — match exactly) so the runtime adapter casts
-// it straight to the reused `compileExtract`.
+// This is the SINGLE extract AST (the engine `ExtractAST`/`ExtractWithin`/`ExtractBind` twins
+// were removed): the reused `compileExtract` consumes it directly. The inner `kind` strings —
+// "within"/"scan"/"parse" — are plain literals; only the outer node carries a `ConstructKind`.
 //
 // A `scan`/`parse` binds a record-valued field to a leaf recogniser (grammar or TTable),
 // the verb setting cardinality (scan → vector, parse → scalar). The ROOT within names the

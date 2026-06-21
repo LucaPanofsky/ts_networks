@@ -1,4 +1,5 @@
-import type { ExtractAST, ExtractWithin, ExtractStmt, TypeRef } from "../data-network/types.js";
+import type { TypeRef } from "../data-network/types.js";
+import type { ExtractNode, ExtractWithin, ExtractStmt } from "../language/constructs/defextract/ast.js";
 import type { Program } from "../language/pipeline/program.js";
 import { recordsOf, grammarsOf, ttablesOf } from "../language/select.js";
 import type { ScanMatch } from "./grammar-runtime.js";
@@ -28,7 +29,7 @@ function grammarReturnRecord(ref: string, program: Program): string | null {
 //   - the bind's element record == the field's element record == the grammar's return;
 //   - a nested `within f` targets a vector-of-record field, then recurses into its element;
 //   - the root grammar returns the root record.
-export function validateExtract(ast: ExtractAST, program: Program): string[] {
+export function validateExtract(ast: ExtractNode, program: Program): string[] {
   const errors: string[] = [];
   const recordByName = new Map(recordsOf(program).map(r => [r.name, r] as const));
   const here = `defextract ${ast.name}`;
@@ -111,7 +112,7 @@ export type GrammarLeaves = Record<string, GrammarLeaf>;
 //
 // The span (Ohm's `node.sourceString`) is what frees the author from declaring a `body`
 // region field: the matcher already knows the text each match covered.
-export function compileExtract(ast: ExtractAST, leaves: GrammarLeaves): CompiledExtract {
+export function compileExtract(ast: ExtractNode, leaves: GrammarLeaves): CompiledExtract {
   const callImpl = (ref: string, region: unknown): unknown => {
     const leaf = leaves[ref];
     if (!leaf) return new Contradiction("extract/unknown-grammar", new Set(), new Error(`no leaf "${ref}"`));

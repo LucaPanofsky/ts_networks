@@ -1,4 +1,4 @@
-import type { DataNetworkAST } from "./types.js";
+import type { NetworkNode } from "../language/constructs/defnetwork/ast.js";
 import { typeRefToString } from "./types.js";
 import { placeholderPaths } from "../placeholders.js";
 import type { Program } from "../language/pipeline/program.js";
@@ -173,7 +173,7 @@ export function validateLLMFn(program: Program): string[] {
 
 // ── Core pass ─────────────────────────────────────────────────────────────────
 
-export function typeCheck(network: DataNetworkAST, program: Program): EnrichedNetwork {
+export function typeCheck(network: NetworkNode, program: Program): EnrichedNetwork {
   const fnMap = buildFnMap(program);
   const known = buildKnownPredicates(program);
 

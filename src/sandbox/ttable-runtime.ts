@@ -1,4 +1,4 @@
-import type { TTableAST } from "../data-network/types.js";
+import type { TTableNode } from "../language/constructs/ttable/ast.js";
 import type { Program } from "../language/pipeline/program.js";
 import { recordsOf } from "../language/select.js";
 import type { Sandbox } from "./record-sandbox.js";
@@ -21,7 +21,7 @@ export type CompiledTTable = {
 //      A cell count ≠ the header's column count ⇒ a Contradiction at that row's
 //      position (malformed — refuse to guess). Otherwise build the row record,
 //      placing each field's mapped cell ("" if empty — an asserted absence).
-export function compileTTable(ast: TTableAST, program: Program, sandbox: Sandbox): CompiledTTable {
+export function compileTTable(ast: TTableNode, program: Program, sandbox: Sandbox): CompiledTTable {
   const rec = recordsOf(program).find(r => r.name === ast.row);
   const fieldNames = rec ? rec.fields.map(f => f.name) : [];
   const delim = ast.cell;
@@ -102,7 +102,7 @@ export function compileTTable(ast: TTableAST, program: Program, sandbox: Sandbox
 // every declared header maps to a real field (no unknown / no duplicate); and every
 // field of the row record has a header (no unmapped column). Returns one message per
 // problem (empty = clean).
-export function validateTTable(ast: TTableAST, program: Program): string[] {
+export function validateTTable(ast: TTableNode, program: Program): string[] {
   const errors: string[] = [];
   const here = `TTable ${ast.name}`;
 
