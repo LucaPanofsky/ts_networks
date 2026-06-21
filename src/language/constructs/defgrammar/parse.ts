@@ -4,26 +4,23 @@
 // The Ohm grammar below is the single source (there is no separate `.ohm` file).
 
 import { grammar as ohmGrammar } from "ohm-js";
-import type { Block, TypeRef, FnSignature } from "../../core/types.js";
+import type { Block, FnSignature } from "../../core/types.js";
 import { ConstructKind } from "../../core/enums.js";
+import { IDENT_RULES, SIGNATURE_RULES, SIGNATURE_ACTIONS } from "../../shared/grammar.js";
 import type { GrammarNode } from "./ast.js";
 
 const GRAMMAR_SOURCE = String.raw`
 Grammar {
   Main = "defgrammar" ident Signature? tripleString "end"
-  Signature = "signature" ":" "from" Params? "to" TypeRef ";"
-  Params = "[" ListOf<Param, ","> "]"
-  Param = ident "(" ident ")"
-  TypeRef = "[" ident "]"  -- vec
-          | ident          -- scalar
+  ${SIGNATURE_RULES}
   tripleString = "\"\"\"" (~"\"\"\"" any)* "\"\"\""
-  ident = letter identChar*
-  identChar = alnum | "?"
+  ${IDENT_RULES}
 }
 `;
 
 const g = ohmGrammar(GRAMMAR_SOURCE);
 const semantics = g.createSemantics().addOperation<unknown>("ast", {
+  ...SIGNATURE_ACTIONS,
   Main(_kw, name, sigOpt, body, _end) {
     const signature = sigOpt.numChildren > 0 ? (sigOpt.children[0]!.ast() as FnSignature) : undefined;
     return {
@@ -32,22 +29,6 @@ const semantics = g.createSemantics().addOperation<unknown>("ast", {
       source: body.ast() as string,
       signature,
     } satisfies GrammarNode;
-  },
-  Signature(_sig, _colon, _from, paramsOpt, _to, typeRef, _semi) {
-    const params = paramsOpt.numChildren > 0 ? (paramsOpt.children[0]!.ast() as { predicate: string; name: string }[]) : [];
-    return { params, returnType: typeRef.ast() as TypeRef } satisfies FnSignature;
-  },
-  Params(_lb, list, _rb) {
-    return list.asIteration().children.map((c) => c.ast() as { predicate: string; name: string });
-  },
-  Param(pred, _lp, bound, _rp) {
-    return { predicate: pred.ast() as string, name: bound.ast() as string };
-  },
-  TypeRef_vec(_lb, inner, _rb) {
-    return { kind: "vector", element: inner.ast() as string } satisfies TypeRef;
-  },
-  TypeRef_scalar(inner) {
-    return { kind: "scalar", predicate: inner.ast() as string } satisfies TypeRef;
   },
   tripleString(_open, inner, _close) {
     return inner.sourceString.trim();

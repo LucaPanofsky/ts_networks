@@ -120,3 +120,38 @@ describe("codegen robustness — #3 special-char / reserved-word binders", () =>
     expect(reg.resolve("greet")("Ada")).toBe("Hi Ada");
   });
 });
+
+describe("codegen robustness — #4 unified declaration names (`_`/`!` accepted everywhere)", () => {
+  test("a record field can be named `bar_baz` / `ok!` (was a parse error in defrecord)", () => {
+    const reg = registryOf(`
+      defrecord R
+        bar_baz: Number?;
+        ok!: Boolean?;
+      end
+      defn getbb
+        signature: from [R?(r)] to Number?;
+        expression r.bar_baz;
+      end
+    `);
+    const r = reg.resolve("R")(5, true);
+    expect(r).toEqual({ __type: "R", bar_baz: 5, "ok!": true });
+    expect(reg.resolve("getbb")(r)).toBe(5); // r["bar_baz"]
+  });
+
+  test("the same `_`-name parses as a record field, an enum name, and a fn param (cross-construct)", () => {
+    expect(() =>
+      registryOf(`
+        defrecord Rec_A
+          a_b: Number?;
+        end
+        defenum En_um
+          'x', 'y';
+        end
+        defn fn_x
+          signature: from [Number?(a_b)] to Number?;
+          expression a_b;
+        end
+      `),
+    ).not.toThrow();
+  });
+});

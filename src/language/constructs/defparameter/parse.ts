@@ -5,6 +5,7 @@
 import { grammar as ohmGrammar } from "ohm-js";
 import type { Block } from "../../core/types.js";
 import { ConstructKind } from "../../core/enums.js";
+import { IDENT_RULES } from "../../shared/grammar.js";
 import type { ParameterNode } from "./ast.js";
 
 const GRAMMAR_SOURCE = String.raw`
@@ -13,8 +14,7 @@ Parameter {
   TypeClause = "type" ":" ident ";"
   ValueClause = "value" ":" tripleString ";"
   tripleString = "\"\"\"" (~"\"\"\"" any)* "\"\"\""
-  ident = letter identChar*
-  identChar = alnum | "?"
+  ${IDENT_RULES}
 }
 `;
 

@@ -4,13 +4,13 @@
 import { grammar as ohmGrammar } from "ohm-js";
 import type { Block } from "../../core/types.js";
 import { ConstructKind } from "../../core/enums.js";
+import { IDENT_RULES } from "../../shared/grammar.js";
 import type { DeriveNode } from "./ast.js";
 
 const GRAMMAR_SOURCE = String.raw`
 Derive {
   Main = "derive" ident "from" ident ";"
-  ident = letter identChar*
-  identChar = alnum | "?"
+  ${IDENT_RULES}
 }
 `;
 
