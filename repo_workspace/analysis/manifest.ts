@@ -100,6 +100,12 @@ export const MODULES: ModuleDef[] = [
     kind: "runtime",
     tests: ["tests/language/artifact.test.ts"],
   },
+  // Shared grammar fragments (the single declaration-name rule + the fn-`Signature` block +
+  // actions) interpolated into the construct grammars. A pure leaf (imports only core types +
+  // ohm); its own module so it isn't lumped into the `language` catch-all below — which conflates
+  // it with the entry `index.ts` and fabricates a (file-level non-existent) bucket cycle. Tested
+  // indirectly via every construct's parse test.
+  { name: "language-shared", dir: "src/language/shared", kind: "runtime" },
   // Catch-all for the loose top-level files (index/select/parse-strict/reserved-words);
   // parse-strict.test.ts mirrors here naturally. Sub-layers above win for their own dirs.
   { name: "language", dir: "src/language", kind: "runtime" },
