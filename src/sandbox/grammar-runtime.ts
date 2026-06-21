@@ -1,5 +1,6 @@
 import { grammar as ohmGrammar, type Grammar, type Node, type Semantics } from "ohm-js";
-import type { GrammarAST, RecordAST } from "../data-network/types.js";
+import type { GrammarAST } from "../data-network/types.js";
+import type { RecordNode } from "../language/constructs/defrecord/ast.js";
 import type { Program } from "../language/pipeline/program.js";
 import { recordsOf } from "../language/select.js";
 import { Contradiction } from "../info-structure.js";
@@ -102,7 +103,7 @@ function addCaptures(sem: Semantics, fields: Set<string>): void {
 // Build a record from captured fields. A vector field becomes an array (empty if the
 // rule never matched); a scalar field takes the lone capture (or the first, if a rule
 // happened to match more than once).
-function buildRecord(rec: RecordAST, caps: Record<string, unknown>, sandbox: Sandbox): unknown {
+function buildRecord(rec: RecordNode, caps: Record<string, unknown>, sandbox: Sandbox): unknown {
   const ctor = sandbox[rec.name];
   if (typeof ctor !== "function") {
     return new Contradiction("grammar/unknown-record", new Set(), new Error(`record "${rec.name}" not in sandbox`));
@@ -121,7 +122,7 @@ function buildRecord(rec: RecordAST, caps: Record<string, unknown>, sandbox: San
 // otherwise consumes one character, so it finds all non-overlapping matches left to
 // right and never fails. Shared by scan-mode grammars (their impl) AND by defextract's
 // `scan` over single-element grammars — so the VERB, not the signature, drives scanning.
-function buildScanner(g: Grammar, astName: string, rec: RecordAST, fields: Set<string>, sandbox: Sandbox): (input: unknown) => ScanMatch[] {
+function buildScanner(g: Grammar, astName: string, rec: RecordNode, fields: Set<string>, sandbox: Sandbox): (input: unknown) => ScanMatch[] {
   const startRule = (g as unknown as { defaultStartRule?: string }).defaultStartRule ?? Object.keys(g.rules)[0]!;
   const islandSrc = `Island <: ${g.name} {\n  Items = Item*\n  Item = ${startRule} | any\n}`;
   let island: Grammar;

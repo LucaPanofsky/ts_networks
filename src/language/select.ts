@@ -23,10 +23,13 @@
 
 import { ConstructKind } from "./core/enums.js";
 import type { AstNode, Program } from "./pipeline/program.js";
+import type { RecordNode } from "./constructs/defrecord/ast.js";
+import type { FnNode } from "./constructs/defn/ast.js";
+import type { EnumNode } from "./constructs/defenum/ast.js";
 import type { DeriveNode } from "./constructs/derive/ast.js";
 import type { ParameterNode } from "./constructs/defparameter/ast.js";
 import type {
-  RecordAST, FnAST, LLMFnAST, EnumAST, GrammarAST, DataNetworkAST, ExtractAST, TTableAST,
+  LLMFnAST, GrammarAST, DataNetworkAST, ExtractAST, TTableAST,
 } from "../data-network/types.js";
 
 // The per-node cast, lifted to the filtered array: a modular node of a given kind IS the
@@ -35,11 +38,11 @@ import type {
 const byKind = (p: Program, kind: ConstructKind): AstNode[] =>
   p.nodes.filter((n) => n.kind === kind);
 
-export const recordsOf = (p: Program): RecordAST[] =>
-  byKind(p, ConstructKind.Record) as RecordAST[];
+export const recordsOf = (p: Program): RecordNode[] =>
+  byKind(p, ConstructKind.Record) as RecordNode[];
 
-export const fnsOf = (p: Program): FnAST[] =>
-  byKind(p, ConstructKind.Fn) as FnAST[];
+export const fnsOf = (p: Program): FnNode[] =>
+  byKind(p, ConstructKind.Fn) as FnNode[];
 
 export const llmFnsOf = (p: Program): LLMFnAST[] =>
   byKind(p, ConstructKind.Llmfn) as LLMFnAST[];
@@ -47,8 +50,8 @@ export const llmFnsOf = (p: Program): LLMFnAST[] =>
 export const grammarsOf = (p: Program): GrammarAST[] =>
   byKind(p, ConstructKind.Grammar) as GrammarAST[];
 
-export const enumsOf = (p: Program): EnumAST[] =>
-  byKind(p, ConstructKind.Enum) as EnumAST[];
+export const enumsOf = (p: Program): EnumNode[] =>
+  byKind(p, ConstructKind.Enum) as EnumNode[];
 
 export const networksOf = (p: Program): DataNetworkAST[] =>
   byKind(p, ConstructKind.Network) as DataNetworkAST[];

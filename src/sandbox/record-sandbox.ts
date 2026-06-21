@@ -1,4 +1,4 @@
-import type { RecordAST } from "../data-network/types.js";
+import type { RecordNode } from "../language/constructs/defrecord/ast.js";
 
 // The value bindings a compiled grammar / ttable reads from at run time. Its ONLY use of the
 // sandbox is to look up a record's CONSTRUCTOR by name (see grammar-runtime `buildRecord`:
@@ -11,7 +11,7 @@ export type Sandbox = Record<string, (...args: unknown[]) => unknown>;
 // and the engine's emitted constructor). This is all the `run-grammar` / `run-ttable` isolation
 // tools need to compile ONE grammar/table against the program's records — no codegen, and no
 // building of sibling grammars (whose bad bodies would otherwise throw and block the test).
-export function recordCtorSandbox(records: RecordAST[]): Sandbox {
+export function recordCtorSandbox(records: RecordNode[]): Sandbox {
   const sandbox: Sandbox = {};
   for (const rec of records) {
     sandbox[rec.name] = (...args: unknown[]) => {

@@ -1,4 +1,7 @@
-import type { RecordAST, FnAST, EnumAST, Expr, TypeRef } from "./types.js";
+import type { Expr, TypeRef } from "./types.js";
+import type { RecordNode } from "../language/constructs/defrecord/ast.js";
+import type { FnNode } from "../language/constructs/defn/ast.js";
+import type { EnumNode } from "../language/constructs/defenum/ast.js";
 import type { Program } from "../language/pipeline/program.js";
 import { fnsOf, recordsOf, enumsOf } from "../language/select.js";
 
@@ -27,9 +30,9 @@ export type ResponseProtocol = {
 // ── Internal indexes ──────────────────────────────────────────────────────────
 
 type Indexes = {
-  predicateIndex: Map<string, FnAST>;
-  recordIndex: Map<string, RecordAST>;
-  enumIndex: Map<string, EnumAST>;
+  predicateIndex: Map<string, FnNode>;
+  recordIndex: Map<string, RecordNode>;
+  enumIndex: Map<string, EnumNode>;
 };
 
 function buildIndexes(program: Program): Indexes {
@@ -95,7 +98,7 @@ function resolveTypeRef(typeRef: TypeRef, indexes: Indexes): JsonSchemaProperty 
   return resolveProperty(typeRef.predicate, indexes);
 }
 
-export function deriveSchema(record: RecordAST, indexes: Indexes): JsonSchemaObject {
+export function deriveSchema(record: RecordNode, indexes: Indexes): JsonSchemaObject {
   const properties: Record<string, JsonSchemaProperty> = {};
   for (const field of record.fields) {
     properties[field.name] = resolveTypeRef(field.type, indexes);

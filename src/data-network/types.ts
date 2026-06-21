@@ -45,19 +45,6 @@ export type TypeRef    = ScalarType | VectorType;
 export const typeRefToString = (t: TypeRef): string =>
   t.kind === "scalar" ? t.predicate : `[${t.element}]`;
 
-// ── Record definitions ────────────────────────────────────────────────────────
-
-export type FieldDecl = {
-  name: string;
-  type: TypeRef;
-};
-
-export type RecordAST = {
-  kind: "record";
-  name: string;
-  fields: FieldDecl[];
-};
-
 // ── Expressions ───────────────────────────────────────────────────────────────
 
 export type LiteralExpr = {
@@ -147,23 +134,6 @@ export type Expr = LiteralExpr | VarExpr | CallExpr | BinaryExpr | UnaryExpr | F
 export type TypedParam = {
   predicate: string;
   name: string;
-};
-
-export type FnAST = {
-  kind: "fn";
-  isPredicate: boolean;
-  name: string;
-  params: TypedParam[];
-  returnType: TypeRef;
-  body: Expr;
-};
-
-// ── Enum definitions ──────────────────────────────────────────────────────────
-
-export type EnumAST = {
-  kind: "enum";
-  name: string;
-  values: string[];
 };
 
 // ── LLM function definitions ──────────────────────────────────────────────────

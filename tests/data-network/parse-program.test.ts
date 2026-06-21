@@ -3,7 +3,9 @@ import {
   recordsOf, fnsOf, networksOf, derivesOf, llmFnsOf,
   grammarsOf, extractsOf, ttablesOf, parametersOf, enumsOf,
 } from "../../src/language/select.js";
-import type { BinaryExpr, CallExpr, FieldExpr, FnAST, LetExpr, MatchExpr, RecordAST, UnaryExpr } from "../../src/data-network/types.js";
+import type { BinaryExpr, CallExpr, FieldExpr, LetExpr, MatchExpr, UnaryExpr } from "../../src/data-network/types.js";
+import type { RecordNode } from "../../src/language/constructs/defrecord/ast.js";
+import type { FnNode } from "../../src/language/constructs/defn/ast.js";
 
 // `parseProgram` is the modular front end now (the strict wrapper that fails in the engine's
 // `Syntax error at line X, col Y` format); it returns the modular `Program = { nodes }` bag.
@@ -29,7 +31,7 @@ end
 `;
 
 describe("parseProgram: defrecord", () => {
-  const rec = recordsOf(parseProgram(recordInput))[0]! as RecordAST;
+  const rec = recordsOf(parseProgram(recordInput))[0]! as RecordNode;
 
   test("structure", () => {
     expect(rec.name).toBe("Point");
@@ -53,7 +55,7 @@ end
 `;
 
 describe("parseProgram: defn", () => {
-  const fn = fnsOf(parseProgram(fnSimple))[0]! as FnAST;
+  const fn = fnsOf(parseProgram(fnSimple))[0]! as FnNode;
 
   test("structure", () => {
     expect(fn.name).toBe("add");
@@ -86,7 +88,7 @@ end
 `;
 
 describe("parseProgram: defn interpolate body", () => {
-  const fn = fnsOf(parseProgram(fnInterpolate))[0]! as FnAST;
+  const fn = fnsOf(parseProgram(fnInterpolate))[0]! as FnNode;
 
   test("body is an interpolate node carrying the trimmed template verbatim", () => {
     // The triple quotes are stripped; the inner text (including the literal single
