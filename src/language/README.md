@@ -1,10 +1,12 @@
-# `src/language/` — the construct-module pipeline (sketch)
+# `src/language/` — the construct-module pipeline
 
-> **Status: sketch.** This is the greenfield, modular re-organization of the language
-> front end discussed in the GavaLang exploration. It does **not** yet replace the
-> Lezer + monolithic `tree-to-network` pipeline; it is built up module-by-module, and
-> the current front end stays green until this one is ready to take over. Parsers and
-> lowering are stubs (`throw "TODO"`); the point here is the **organization**.
+> **Status: live.** This modular front end is now the **sole** parser + emitter for the
+> `.tsn` DSL. The old Lezer grammar + monolithic `tree-to-network` collector + `sandbox/jsgen`
+> codegen, the `ProgramAST` container, and the `Program → ProgramAST` adapter have all been
+> deleted; the modular `Program = { nodes }` is the one program shape end-to-end (analysis
+> reads it through [`select.ts`](select.ts)). All eleven constructs parse and emit for real.
+> See [`documentation/how_to/extending_the_language.md`](../../documentation/how_to/extending_the_language.md)
+> for the step-by-step recipe.
 
 ## The idea in one rule
 
@@ -116,20 +118,18 @@ Two rules make this work:
   and stable: every entry is something artifacts depend on forever. When in doubt, push
   logic into the regenerable emitted source, not the un-regenerable runtime.
 
-## Emerging details (parked, decide when they bite)
+## Emerging details
 
 - **Shared primitives vs. self-containment.** `TypeRef` / `Signature` are used by more
-  than one construct; they live in [`core/types.ts`](core/types.ts) for now. If a
-  construct wants to specialize one, revisit.
-- **The expression sub-language** (`defn` bodies) is itself a grammar. The sketch keeps
-  `defn` bodies as raw text (`ExprNode = { kind: "raw" }`), so `emit.ts` for `defn` is a
-  stub — it needs the expression compiler. Promoting expressions to their own parser +
-  emitter is a later slice.
-- **The static face (`morphism`) is on record but unused.** `core/types.ts` defines
-  `Morphism`/`EntryDecl`; today each `emit` writes the morphism inline into the
-  registration. When the type checker arrives it will want morphisms *without* emitting —
-  likely a `morphisms(node)` method beside `emit`. Deferred until there's a checker.
-- **Emit status.** `defrecord` emits for real (the pure path); `defn` and `defnetwork`
-  are documented stubs (their intended output is shown in their `emit.ts`). `split`/
-  `parse` are still stubs, so the end-to-end string isn't runnable yet — the shapes and
-  the contract are what's settled.
+  than one construct; they live in [`core/types.ts`](core/types.ts). If a construct wants
+  to specialize one, revisit.
+- **The expression sub-language** (`defn` bodies) is its own grammar + compiler, in
+  [`expr/`](expr/) (`compile.ts`); `defn`'s `emit.ts` lowers bodies through it. It is no
+  longer raw text.
+- **The static face (`morphism`).** Each `emit` writes the morphism inline into the
+  registration; the type-checker reads it off the modular nodes via
+  [`select.ts`](select.ts) rather than re-emitting — there is no separate `morphisms(node)`
+  method.
+- **Emit status: complete.** Every construct parses and emits for real, and the assembled
+  module runs (in-process via `loadProgram`, or under plain `node` via the built
+  `@tsn/runtime` — see [`runtime/load.ts`](runtime/load.ts)).

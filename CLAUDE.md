@@ -28,7 +28,7 @@ In [`documentation/how_to/`](documentation/how_to/) you will find knowledge abou
 - [`extracting_documents.md`](documentation/how_to/extracting_documents.md) — compose grammars into a `defextract` that produces a nested tree of records.
 - [`extracting_tables.md`](documentation/how_to/extracting_tables.md) — read delimited text tables into records with a `TTable`, standalone or as a `defextract` leaf.
 - [`programmatic_agent_extraction.md`](documentation/how_to/programmatic_agent_extraction.md) — the agent playbook for taking a raw PDF from zero to a working `.tsn` extractor (the two-read loop, the verify loop, design heuristics); links down to the construct how-tos above.
-- [`extending_the_language.md`](documentation/how_to/extending_the_language.md) — add a new construct to the DSL, stage by stage (grammar → AST → tree-to-network → types → checker).
+- [`extending_the_language.md`](documentation/how_to/extending_the_language.md) — add a new construct to the modular DSL front end, stage by stage (enums → construct module → union/registry → emit → checker).
 - [`extending_lang_agent_ui.md`](documentation/how_to/extending_lang_agent_ui.md) — add a feature to the Gavagai chat UI through its event-driven functional (re-frame) architecture.
 - [`mcp_server.md`](documentation/how_to/mcp_server.md) — expose the program-reasoning operations to an external agent over stdio (MCP).
 - [`working_with_the_scripts.md`](documentation/how_to/working_with_the_scripts.md) — the full reference for the `scripts/` CLI adapters (`parse`/`check`/`typecheck`/`run`/`compile-schemas`/`diagram`/`pdf`), with examples and `cell=`/`@file` seeding.
