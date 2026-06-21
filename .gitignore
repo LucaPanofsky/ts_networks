@@ -5,9 +5,11 @@ dist/
 report/
 *.db
 dev
-# Claude Code local state (ignore all of .claude EXCEPT committed, shared skills)
+# Claude Code local state (ignore all of .claude EXCEPT committed, shared assets:
+# skills, and agents — e.g. the `grudge` principles auditor)
 .claude/*
 !.claude/skills/
+!.claude/agents/
 # Playwright MCP scratch (screenshots, snapshots, console logs — regenerable)
 .playwright-mcp/
 # Agent scratch workspace (PDFs/txt the agent materializes — not source)
