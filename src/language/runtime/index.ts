@@ -105,7 +105,7 @@ export function registry(): AdaptedRegistry {
 
 // ── Heavy-construct adapters: ADAPT the existing engine compilers ──────────────────
 // Each reuses `compile{Grammar,TTable,Extract}` verbatim, synthesizing the minimal inputs
-// they want from the inlined spec + late-bound registry resolution. No Ohm capture/scan/
+// they want from the inlined node + late-bound registry resolution. No Ohm capture/scan/
 // orchestration logic is reimplemented.
 
 // A record descriptor → a one-element modular `Program` (`compile{Grammar,TTable}` read the

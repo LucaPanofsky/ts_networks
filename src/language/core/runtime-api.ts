@@ -7,7 +7,8 @@
 // and may call only what the runtime surface declares. This file holds the construct-AGNOSTIC
 // part (the value protocol, the registry, interp). The construct compilers —
 // `grammar`/`ttable`/`extract`/`network`/`llmFn` — name the construct node types (which `core/`
-// may not import), so they live in `../runtime/contract.ts`; together they form `RuntimeApi`.
+// may not import), so they live in `../runtime/contract.ts` as `ConstructRuntime`. The two
+// halves together are the surface emitted code may call.
 // The discipline that makes the whole approach pay off:
 //
 //   • the runtime is the FIXED part of the system — versioned, audited, trusted;
