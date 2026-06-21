@@ -15,6 +15,7 @@
     "pretest:all": "npm run typecheck",
     "test:all": "TEST_ALL=1 jest && npm run test:esm",
     "mcp": "npx tsx scripts/mcp.ts",
+    "run-artifact": "node dist/operations/run-artifact.js",
     "analyze": "jest --coverage --collectCoverageFrom='src/**/*.ts' --coverageReporters=json && npx tsx repo_workspace/analysis/report.ts",
     "analyze:quick": "npx tsx repo_workspace/analysis/report.ts"
   },

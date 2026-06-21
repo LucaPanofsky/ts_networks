@@ -42,6 +42,36 @@ Alternatively, `cell=@filename` seeds the **raw text** of a file from the `WORKS
 npx tsx scripts/run.ts extract.tsn extractInvoice doc=@example_invoice.txt
 ```
 
+## Compile once, run anywhere
+
+`run` compiles the source fresh on every call. To compile **once** to a self-contained JavaScript
+artifact and run it repeatedly, use `compile-js`:
+```bash
+npx tsx scripts/compile-js.ts <file.tsn> [out.js]   # write to out.js, or print to stdout
+```
+The artifact is one ESM module that imports only `@tsn/runtime`, builds the program's registry, and
+carries a `__manifest` of its networks. There are two ways to run it, with the **same** cell-seeding
+as `run` (`name=jsExpr` or `name=@file`):
+
+- **In-process (daily use, no build):** read the artifact and run it through the live runtime —
+  ```bash
+  npx tsx scripts/run-compiled.ts <artifact.js> <networkName> [cell=jsExpr ...]
+  ```
+  This injects the in-memory runtime, so it needs no build and works on any path.
+
+- **Plain `node` (compile-once/run-anywhere):** execute the artifact as a real module against the
+  **built** runtime —
+  ```bash
+  npm run build                                       # produce dist/ (so @tsn/runtime resolves)
+  node dist/operations/run-artifact.js <artifact> <networkName> [cell=jsExpr ...]
+  # or: npm run run-artifact -- <artifact> <networkName> [cell=jsExpr ...]
+  ```
+  Two caveats, both from real module resolution: (1) **run it with `node`, not `tsx`** — the runner
+  and the artifact must share the one built runtime instance, or every cell projects to `null`;
+  (2) the artifact must sit **inside the repo tree** (or any directory whose ancestors contain
+  `node_modules/@tsn/runtime`) so its `import "@tsn/runtime"` resolves, and use a `.mjs` extension
+  if written outside a `"type":"module"` package. Out-of-tree distribution awaits a published runtime.
+
 **Render a network as a Mermaid diagram (cells, operations, switch cond/value labels, explicit recursion):**
 ```bash
 npx tsx scripts/diagram.ts <file.tsn> [networkName] [live]
