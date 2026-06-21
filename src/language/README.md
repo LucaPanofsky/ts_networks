@@ -71,13 +71,12 @@ The key layering move: the **contract** (`core/module.ts`) speaks only `AstNodeB
 `constructs/`. The closed union `AstNode` and the module table are assembled up in
 `pipeline/`, the only layer that names every construct.
 
-## A module is five files
+## A module is four files
 
 ```
 constructs/defrecord/
   ast.ts        the TS type this construct produces  ("what we expect back")
-  grammar.ohm   its own Ohm parser (block text → parse tree)
-  parse.ts      front end: block text → typed ast.ts node
+  parse.ts      front end: its own Ohm grammar (a string) + block text → typed ast.ts node
   emit.ts       back end:  ast.ts node → JS source fragment
   index.ts      exports the ConstructModule { kind, keyword, parse, emit }
 ```

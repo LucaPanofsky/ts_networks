@@ -1,8 +1,7 @@
 // block text → LlmFnNode, via Ohm. Only the SHELL is parsed (keyword, fn-style signature,
 // optional `with:` config, the triple-quoted prompt clauses, `end`); the prompt bodies are
-// opaque text captured verbatim and rendered at RUN time by `callLLMFn`. The grammar source
-// below is the live copy; grammar.ohm is the readable canonical copy (kept in sync by hand —
-// .ohm files are not importable under NodeNext/jest).
+// opaque text captured verbatim and rendered at RUN time by `callLLMFn`. The Ohm grammar
+// below is the single source (there is no separate `.ohm` file).
 
 import { grammar as ohmGrammar, type ActionDict } from "ohm-js";
 import type { Block, TypeRef } from "../../core/types.js";

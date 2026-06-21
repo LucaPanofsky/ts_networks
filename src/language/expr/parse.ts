@@ -1,8 +1,7 @@
 // The expression sub-language, parsed with Ohm into the EXISTING `Expr` AST
 // (`src/data-network/types.ts`) so the existing `compileExpr` can be reused verbatim.
 // The `Expr` AST is the contract: we swap the front end (Lezer → Ohm) and keep the
-// back end. The grammar string below is the live copy; `grammar.ohm` is the readable
-// canonical copy, kept in sync by hand.
+// back end. The grammar string below is the single source (there is no separate `.ohm` file).
 //
 // Precedence (high→low, replicating the Lezer grammar): field `.` › unary `! -` › `* /`
 // › `+ -` › comparison › `&&` › `||`. All binary operators are left-associative; encoded

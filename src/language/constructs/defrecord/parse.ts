@@ -1,6 +1,5 @@
-// block text → RecordNode, via Ohm. The grammar source below is the live copy; the
-// readable canonical copy is grammar.ohm (kept in sync by hand — .ohm files are not
-// importable under NodeNext/jest, so the string here is what runs).
+// block text → RecordNode, via Ohm. The Ohm grammar below is the single source for this construct's
+// parser (there is no separate `.ohm` file).
 //
 // Uppercase rules are syntactic (Ohm skips whitespace between their terms), which is how
 // indentation/newlines between the keyword, fields and `end` are handled; `ident` is

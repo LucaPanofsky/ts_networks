@@ -1,6 +1,5 @@
 // block text → EnumNode, via Ohm. A comma-separated list of single-quoted values, then `;`
-// and `end`. The grammar source below is the live copy; grammar.ohm is the readable
-// canonical copy (kept in sync by hand — .ohm files are not importable under NodeNext/jest).
+// and `end`. The Ohm grammar below is the single source (there is no separate `.ohm` file).
 
 import { grammar as ohmGrammar } from "ohm-js";
 import type { Block } from "../../core/types.js";

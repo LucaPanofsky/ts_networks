@@ -1,8 +1,7 @@
 // block text → GrammarNode, via Ohm. The grammar SHELL (keyword, optional signature, the
 // triple-quoted body, `end`) is parsed here; the body itself is opaque Ohm source captured
 // verbatim and handed to the runtime (which compiles it with the reused `compileGrammar`).
-// The grammar source below is the live copy; grammar.ohm is the readable canonical copy
-// (kept in sync by hand — .ohm files are not importable under NodeNext/jest).
+// The Ohm grammar below is the single source (there is no separate `.ohm` file).
 
 import { grammar as ohmGrammar } from "ohm-js";
 import type { Block } from "../../core/types.js";

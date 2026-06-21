@@ -74,7 +74,7 @@ these) files:
    `ConstructKind` member; map your surface keyword to it in `KEYWORD_TO_KIND`; and, if the
    keyword is new, add it to `DEFINITION_KEYWORDS` (the splitter *anchors* on this set — a
    block runs to the next definition keyword).
-2. **`constructs/<your-construct>/`** — the module folder (five files, below).
+2. **`constructs/<your-construct>/`** — the module folder (four files, below).
 3. **[`pipeline/program.ts`](../../src/language/pipeline/program.ts)** — add your node to the
    `AstNode` union.
 4. **[`pipeline/registry.ts`](../../src/language/pipeline/registry.ts)** — add your module to
@@ -84,22 +84,21 @@ Steps 3 and 4 are the assembly points — the only two files in the whole tree t
 construct. (`core/` deliberately speaks only `AstNodeBase = { kind, name }`, so it never
 depends on `constructs/`; the concrete union is narrowed up in `pipeline/`.)
 
-## A module is five files
+## A module is four files
 
 ```
 constructs/defrecord/
   ast.ts        the TS type this construct produces  ("what we expect back")
-  grammar.ohm   a readable, canonical copy of its Ohm grammar (docs; synced by hand)
-  parse.ts      front end: block text → typed ast.ts node (holds the LIVE grammar string)
+  parse.ts      front end: its own Ohm grammar (a string) + block text → typed ast.ts node
   emit.ts       back end:  ast.ts node → JS source fragment
   index.ts      exports the ConstructModule { kind, keyword, parse, emit }
 ```
 
 The `ConstructModule` contract is in [`core/module.ts`](../../src/language/core/module.ts):
-`parse(block) → node` and `emit(node, ctx) → string`. **Note the grammar lives twice:** the
-live copy is a `GRAMMAR_SOURCE` string inside `parse.ts` (because `.ohm` files are not
-importable under NodeNext/jest), and `grammar.ohm` is the readable canonical copy kept in
-sync **by hand**. When you change one, change the other.
+`parse(block) → node` and `emit(node, ctx) → string`. The construct's grammar lives **once**,
+as the `GRAMMAR_SOURCE` Ohm string inside `parse.ts` — the single source that is actually
+compiled and tested. (`.ohm` files are not importable under NodeNext/jest, so there is no
+separate `.ohm` file to keep in sync.)
 
 ---
 
@@ -114,7 +113,7 @@ sync **by hand**. When you change one, change the other.
    `ConstructKind` member and which carries a `name` (combine keys on it). Reuse shared shapes
    (`TypeRef`, `Signature`) from [`core/types.ts`](../../src/language/core/types.ts).
 4. **Parser** — `constructs/<x>/parse.ts`: an Ohm grammar string + semantics producing the
-   node; mirror it into `grammar.ohm`.
+   node.
 5. **Emitter** — `constructs/<x>/emit.ts`: the node → a JS source fragment (a comment, for a
    carry-only declaration).
 6. **Module + wiring** — `constructs/<x>/index.ts` (the `ConstructModule`), then the union
@@ -204,7 +203,7 @@ export function parseParameter(block: Block): ParameterNode {
 }
 ```
 
-Mirror the grammar into `grammar.ohm` (the readable copy).
+The `GRAMMAR_SOURCE` string above is the construct's whole grammar — the single source.
 
 **5. Emitter** — `constructs/defparameter/emit.ts`. Carry-only, so it emits a documenting
 comment, not a runtime artifact:
@@ -268,10 +267,9 @@ Finally: a runnable `repo_workspace/examples/<name>.tsn` and a line in `README.m
 - **Reuse the shared shapes.** `TypeRef` (scalar / vector) and `Signature` live in
   `core/types.ts` and are used across `defn`, `defpredicate`, `defllmfn`, `defgrammar`. If
   your construct has a type or a signature, reuse them — uniform syntax is a design goal.
-- **Keep the two grammar copies in sync.** `parse.ts` holds the live `GRAMMAR_SOURCE`;
-  `grammar.ohm` is the readable copy. They drift silently if you edit only one (only the live
-  copy is exercised by tests, so a stale `grammar.ohm` is a docs bug, not a test failure —
-  reviewers rely on it).
+- **The grammar lives once.** `parse.ts` holds the `GRAMMAR_SOURCE` Ohm string — the single
+  source, compiled and tested. There is no separate `.ohm` file (they used to be duplicated and
+  kept in sync by hand, which drifted; the duplicate was removed).
 - **The splitter anchors on keywords, it does not count `end`s.** A block runs from its
   keyword to the next `DEFINITION_KEYWORDS` member. So a new top-level keyword **must** be in
   `DEFINITION_KEYWORDS` or it gets swallowed into the preceding block — even constructs with

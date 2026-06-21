@@ -1,8 +1,6 @@
 // block text → ParameterNode, via Ohm. The shell parses keyword, name, the `type:` clause
 // (a single type predicate → a scalar TypeRef), an optional `value:` clause (opaque
-// triple-quoted text), and `end`. The grammar source below is the live copy; grammar.ohm is
-// the readable canonical copy (kept in sync by hand — .ohm files are not importable under
-// NodeNext/jest).
+// triple-quoted text), and `end`. The Ohm grammar below is the single source (there is no separate `.ohm` file).
 
 import { grammar as ohmGrammar } from "ohm-js";
 import type { Block } from "../../core/types.js";

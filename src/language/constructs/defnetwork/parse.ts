@@ -1,8 +1,7 @@
 // block text → NetworkNode, via Ohm. Parses the signature + the four term kinds into the
 // NetworkNode that the reused engine network builder (`astToDataNetwork`) consumes directly.
 // The `as` coercion and the `with:` clause both fold into a propagate term's `params` map, exactly as
-// the engine's collectPropagateTerm does. The grammar source below is the live copy;
-// grammar.ohm is the readable canonical copy (kept in sync by hand).
+// the engine's collectPropagateTerm does. The Ohm grammar below is the single source (there is no separate `.ohm` file).
 
 import { grammar as ohmGrammar, type ActionDict } from "ohm-js";
 import type { Block, Signature } from "../../core/types.js";

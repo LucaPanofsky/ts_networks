@@ -1,6 +1,5 @@
 // block text → DeriveNode, via Ohm. `derive Sub from Sup;` — ends with `;`, no `end`; the
-// names may carry a trailing `?` (they are predicates). The grammar source below is the live
-// copy; grammar.ohm is the readable canonical copy (kept in sync by hand).
+// names may carry a trailing `?` (they are predicates). The Ohm grammar below is the single source (there is no separate `.ohm` file).
 
 import { grammar as ohmGrammar } from "ohm-js";
 import type { Block } from "../../core/types.js";

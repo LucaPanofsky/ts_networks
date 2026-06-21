@@ -1,7 +1,6 @@
 // block text → ExtractNode, via Ohm. The constituency structure (one root `within` with
 // nested `within`s and `scan`/`parse` binds) is parsed here; the span-based orchestration
-// lives in the reused engine `compileExtract`. The grammar source below is the live copy;
-// grammar.ohm is the readable canonical copy (kept in sync by hand).
+// lives in the reused engine `compileExtract`. The Ohm grammar below is the single source (there is no separate `.ohm` file).
 
 import { grammar as ohmGrammar } from "ohm-js";
 import type { Block } from "../../core/types.js";
