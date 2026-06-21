@@ -11,7 +11,9 @@ import type { FnNode } from "./ast.js";
 
 export function emitFn(node: FnNode, ctx: EmitCtx): string {
   const name = ctx.mangle(node.name);
-  const params = node.params.map((p) => p.name);
+  // Params are MANGLED — `compileExpr` emits body references (`var`) through the same mangle,
+  // so a param named `ok?` or `class` (a reserved word) binds and resolves to one valid id.
+  const params = node.params.map((p) => ctx.mangle(p.name));
   const from = node.params.map((p) => p.predicate);
   const to = typeRefToString(node.returnType);
   const q = JSON.stringify;

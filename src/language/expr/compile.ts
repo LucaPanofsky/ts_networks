@@ -75,8 +75,10 @@ export function compileExpr(expr: Expr): string {
       return `(() => { ${lines.join(" ")} })()`;
     }
     case "let": {
+      // Binder mangled (referenced via `var`→mangle in the body), so `let ok? = …` / a
+      // reserved-word binder emit valid, matching identifiers.
       const inner = expr.bindings.reduceRight(
-        (body, b) => `(() => { const ${b.name} = ${compileExpr(b.value)}; return ${body}; })()`,
+        (body, b) => `(() => { const ${mangle(b.name)} = ${compileExpr(b.value)}; return ${body}; })()`,
         compileExpr(expr.body),
       );
       return inner;
@@ -87,8 +89,14 @@ export function compileExpr(expr: Expr): string {
       // as `defllmfn` prompts. The arg object passes exactly the referenced roots
       // — the part of each `{{path}}` before the first `.`. Roots are `\w+`, hence
       // valid JS identifiers matching the (unmangled) parameter names: `{ rec: rec }`.
+      // The KEY is the raw placeholder root (the renderer resolves `{{root.…}}` by it); the
+      // VALUE references the in-scope binding, which is MANGLED (a param/let named `class`
+      // emits `class_`). Roots are `\w+`, so mangle is identity unless the root is reserved.
+      // The KEY is the raw placeholder root (the renderer resolves `{{root.…}}` by it) — roots
+      // are `\w+`, legal bare keys even when reserved. The VALUE references the in-scope binding,
+      // which is MANGLED (a param/let named `class` emits `class_`), so identity unless reserved.
       const roots = [...new Set(placeholderPaths(expr.template).map(p => p.split(".")[0]))];
-      const args = roots.map(r => `${r}: ${r}`).join(", ");
+      const args = roots.map(r => `${r}: ${mangle(r!)}`).join(", ");
       return `__interp(${JSON.stringify(expr.template)}, { ${args} })`;
     }
   }
