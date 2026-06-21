@@ -6,7 +6,6 @@ import { emitGrammar } from "./emit.js";
 
 const grammarModule: ConstructModule<GrammarNode> = {
   kind: ConstructKind.Grammar,
-  keyword: "defgrammar",
   parse: parseGrammar,
   emit: emitGrammar,
 };

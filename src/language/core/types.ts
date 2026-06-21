@@ -62,18 +62,15 @@ export interface AstNodeBase {
 }
 
 // ── The static face of a registry entry ──────────────────────────────────────────
-// What the type checker needs without building any impl: the morphism (from/to over
-// predicates) the entry presents to the rest of the program. (The dynamic face — the
-// emitted JS — is produced by the module's `emit`.) Not yet consumed; here so the
-// shape is on record.
+// The morphism (from/to over predicates) an entry presents to the rest of the program —
+// the static face the runtime boundary (`runtime-api.ts`) and type checker speak in. (The
+// dynamic face — the emitted JS — is produced by the module's `emit`.)
 export type Morphism = { from: string[]; to: string };
-export type EntryDecl = { key: string; arity: number; morphism: Morphism };
 
 // ── The splitter's output ────────────────────────────────────────────────────────
 
 export type Block = {
   kind: ConstructKind;
-  keyword: string; // the leading keyword, e.g. "defrecord"
   text: string; // the full block text, "defX ... end"
   offset: number; // start offset in the source (for diagnostics)
 };

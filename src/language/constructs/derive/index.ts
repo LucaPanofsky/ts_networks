@@ -6,7 +6,6 @@ import { emitDerive } from "./emit.js";
 
 const deriveModule: ConstructModule<DeriveNode> = {
   kind: ConstructKind.Derive,
-  keyword: "derive",
   parse: parseDerive,
   emit: emitDerive,
 };

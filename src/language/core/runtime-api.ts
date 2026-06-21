@@ -148,7 +148,8 @@ export interface RuntimeApi extends ValueProtocol, ConstructRuntime {
 // What the emitter inlines as JS data literals — the construct's node minus the parts
 // emitted inline. The grammar/extract/ttable specs mirror their construct AST nodes
 // (GrammarNode/ExtractNode/TTableNode), which they are structurally cast to in the runtime
-// adapter. Network/llmfn stay loose until their slices.
+// adapter. The network/llmfn specs are looser (the subset the adapter reads); the adapter casts
+// the inlined node to NetworkNode/LlmFnNode.
 export type GrammarSpec = {
   kind: string;
   name: string;

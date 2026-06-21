@@ -3,8 +3,8 @@
 // rule — a `match … end` inside the body is therefore not mistaken for the `defn`'s own
 // `end`. The body's `Expr` is built by the reused expression actions (spread in below).
 //
-// Scope: `expression` bodies only this slice. `interpolate` bodies are not yet matched
-// (they fail parse with a clear error) — deferred until the `__interp` runtime helper.
+// Two body forms: `expression <Expr>` and `interpolate """..."""` (the latter lowered to
+// the `__interp` runtime helper by `compileExpr`).
 
 import { grammar as ohmGrammar, type ActionDict } from "ohm-js";
 import type { Block } from "../../core/types.js";

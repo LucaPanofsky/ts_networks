@@ -6,7 +6,6 @@ import { emitTTable } from "./emit.js";
 
 const ttableModule: ConstructModule<TTableNode> = {
   kind: ConstructKind.TTable,
-  keyword: "TTable",
   parse: parseTTable,
   emit: emitTTable,
 };

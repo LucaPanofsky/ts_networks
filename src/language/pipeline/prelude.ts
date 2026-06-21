@@ -2,9 +2,9 @@
 //
 // `PRELUDE_SOURCE` (the prelude `.tsn` text, in the sibling `prelude-source.ts`) is the prelude
 // written IN THE LANGUAGE as ordinary `defn`s — `not`/`and`/`or`, `add`/`sub`/`mul`/`div`, the
-// comparison family, and propagatable wrappers over the `math/*` intrinsics. Because slice 4 makes
-// the new pipeline compile `defn`, we DOGFOOD the prelude through our own splitter+parser rather
-// than re-encode it: the prelude becomes ordinary `FnNode`s, emitted like any user function.
+// comparison family, and propagatable wrappers over the `math/*` intrinsics. We DOGFOOD the
+// prelude through our own splitter+parser rather than re-encode it: the prelude becomes ordinary
+// `FnNode`s, emitted like any user function.
 //
 // Shadowing: a user definition of the same name WINS — we drop the prelude entry (see `withPrelude`
 // below). Injection happens at EMIT time only, so `parseProgram` keeps reporting exactly the user's

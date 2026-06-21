@@ -42,7 +42,6 @@ export interface EmitCtx {
 
 export interface ConstructModule<N extends AstNodeBase = AstNodeBase> {
   readonly kind: ConstructKind;
-  readonly keyword: string; // the splitter dispatches on this
   parse(block: Block): N;
   emit(node: N, ctx: EmitCtx): string;
 }

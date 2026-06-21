@@ -6,7 +6,6 @@ import { emitLlmFn } from "./emit.js";
 
 const llmfnModule: ConstructModule<LlmFnNode> = {
   kind: ConstructKind.Llmfn,
-  keyword: "defllmfn",
   parse: parseLlmFn,
   emit: emitLlmFn,
 };
