@@ -70,6 +70,11 @@ In [`documentation/how_to/`](documentation/how_to/) you will find knowledge abou
 > Session handoff between agents now lives in **GitHub issues** (replacing the old, gitignored
 > `CLAUDE_TUNNEL.md` flat file). An automated issue-driven handoff is a planned follow-up.
 
+> Major achievements are recorded as dated milestones in
+> [`repo_workspace/MILESTONES/`](repo_workspace/MILESTONES/) — a running history of the project.
+> Each entry (`YYYY-MM-DD_slug.md`, with `date`/`working_branch`/`tags` frontmatter) narrates one
+> achievement: its context, the problem, the solution, the path taken, and what landed.
+
 ## Working with the scripts
 
 The `scripts/` directory holds thin CLI adapters over the operations in `src/operations/`, each
