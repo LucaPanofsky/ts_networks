@@ -17,19 +17,26 @@ export type FieldDecl = { name: string; type: TypeRef };
 // (`defn`/`defpredicate`/`defllmfn`/`defgrammar`).
 export type TypedParam = { predicate: string; name: string };
 
-// The descriptor a heavy construct (grammar, ttable) needs about a record it produces:
-// the name and the ordered, typed fields, so the reused engine compiler can map captures
-// → constructor args (scalar vs vector). Structurally a RecordNode; named here so neither
-// `core/module.ts` nor `core/runtime-api.ts` depends on the defrecord module.
+// The record's DATA shape (name + ordered typed fields) — the construct-agnostic view the
+// heavy-construct compilers (grammar, ttable) and the LLM schema read to map captures →
+// constructor args. This is the SINGLE SOURCE of that shape: `RecordNode` (defrecord/ast.ts)
+// is `RecordDescriptor & { kind }`. It lives in `core/` so neither `core/module.ts` (EmitCtx)
+// nor `core/runtime-api.ts` has to import the defrecord module (which would cycle).
 export type RecordDescriptor = { name: string; fields: FieldDecl[] };
 
-// The type environment a `defllmfn` inlines so the reused engine `deriveProtocol` can
-// build the model's structured-output JSON schema. The schema walks the return type
-// through nested records, enums, and PREDICATE fns (a field typed `Probability?` resolves
-// to its base primitive + a description), so all three are carried. `body` is the
-// predicate's expression — opaque here (an engine `Expr`), used only for the schema's
-// description text; typed `unknown` so `core/` need not depend on the engine AST.
+// Likewise the enum's data shape — `EnumNode` is `EnumDescriptor & { kind }`.
 export type EnumDescriptor = { name: string; values: string[] };
+
+// The type environment a `defllmfn` inlines so the reused engine `deriveProtocol` can build the
+// model's structured-output JSON schema. It walks the return type through nested records, enums,
+// and PREDICATE fns (a field typed `Probability?` resolves to its base primitive + a description),
+// so all three are carried.
+//
+// `PredicateDescriptor` is the ONE descriptor that is NOT a derivable base of its node: it is a
+// PROJECTION of `FnNode` (a fn VIEWED as a predicate for the schema — `body` is its `Expr`,
+// opaque here as `unknown` so `core/` need not depend on the engine AST). `FnNode` can't derive
+// from it (a fn is more than a predicate), and `core/` can't import `FnNode` (cycle), so it stays
+// a hand-written projection — the irreducible limit of single-source here, kept minimal.
 export type PredicateDescriptor = {
   name: string;
   params: TypedParam[];
