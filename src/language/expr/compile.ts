@@ -44,7 +44,9 @@ export function compileExpr(expr: Expr): string {
     case "unary":
       return `(${expr.op}${compileExpr(expr.expr)})`;
     case "field":
-      return `${compileExpr(expr.object)}.${expr.field}`;
+      // Bracket-quoted, NOT `.field`: a record stores fields under their raw name (see
+      // defrecord/emit.ts), and a field name may carry `? ! / -` (illegal in a `.member`).
+      return `${compileExpr(expr.object)}[${JSON.stringify(expr.field)}]`;
     case "call": {
       if (expr.fn === "if") {
         const [cond, then_, else_] = expr.args;
@@ -61,7 +63,9 @@ export function compileExpr(expr: Expr): string {
           lines.push(`return ${compileExpr(arm.body)};`);
         } else {
           const pat = arm.pattern as RecordPattern;
-          const bindings = pat.bindings.map(b => `const ${b.as} = __v.${b.field};`).join(" ");
+          // binder mangled (it's referenced via `var`→mangle in the body); field read by its
+          // QUOTED raw name (records store fields under the raw name; may carry `? ! / -`).
+          const bindings = pat.bindings.map(b => `const ${mangle(b.as)} = __v[${JSON.stringify(b.field)}];`).join(" ");
           const guard = arm.guard ? `if (${compileExpr(arm.guard)}) ` : "";
           const ret = `${guard}return ${compileExpr(arm.body)};`;
           const inner = bindings ? `${bindings} ${ret}` : ret;

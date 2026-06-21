@@ -31,3 +31,40 @@ line2';
     expect(reg.resolve("q")(0)).toBe('a\tb "c"');
   });
 });
+
+describe("codegen robustness — #2 special-char record field names", () => {
+  const reg = () =>
+    registryOf(`
+      defrecord R
+        ok?: Boolean?;
+        name: String?;
+      end
+      defn getOk
+        signature: from [R?(r)] to Boolean?;
+        expression r.ok?;
+      end
+      defn matchOk
+        signature: from [R?(r)] to Boolean?;
+        expression match r | R{ok?: flag} -> flag end;
+      end
+    `);
+
+  test("constructor builds the record with the raw field key (data shape preserved)", () => {
+    expect(reg().resolve("R")(true, "x")).toEqual({ __type: "R", "ok?": true, name: "x" });
+  });
+
+  test("the field accessor reads the special-char field", () => {
+    const r = reg().resolve("R")(true, "x");
+    expect(reg().resolve("R.ok?")(r)).toBe(true);
+  });
+
+  test("`r.ok?` field access in a defn body works", () => {
+    const r = reg().resolve("R")(true, "x");
+    expect(reg().resolve("getOk")(r)).toBe(true);
+  });
+
+  test("a match record-pattern reads the special-char field", () => {
+    const r = reg().resolve("R")(true, "x");
+    expect(reg().resolve("matchOk")(r)).toBe(true);
+  });
+});
