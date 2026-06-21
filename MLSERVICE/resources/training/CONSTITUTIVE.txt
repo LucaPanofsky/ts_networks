@@ -1,0 +1,404 @@
+For the purposes of this Regulation, 'personal data' means any information relating to an identified or identifiable natural person.
+
+For the purposes of this Regulation, 'processing' means any operation or set of operations which is performed on personal data or on sets of personal data, whether or not by automated means.
+
+For the purposes of this Regulation, 'restriction of processing' means the marking of stored personal data with the aim of limiting their processing in the future.
+
+For the purposes of this Regulation, 'profiling' means any form of automated processing of personal data consisting of the use of personal data to evaluate certain personal aspects relating to a natural person.
+
+For the purposes of this Regulation, 'pseudonymisation' means the processing of personal data in such a manner that the personal data can no longer be attributed to a specific data subject without the use of additional information.
+
+For the purposes of this Regulation, 'filing system' means any structured set of personal data which are accessible according to specific criteria.
+
+For the purposes of this Regulation, 'controller' means the natural or legal person, public authority, agency or other body which determines the purposes and means of the processing of personal data.
+
+For the purposes of this Regulation, 'processor' means a natural or legal person, public authority, agency or other body which processes personal data on behalf of the controller.
+
+For the purposes of this Regulation, 'recipient' means a natural or legal person, public authority, agency or another body, to which the personal data are disclosed.
+
+For the purposes of this Regulation, 'third party' means a natural or legal person, public authority, agency or body other than the data subject, controller, processor and persons who are authorised to process personal data.
+
+For the purposes of this Regulation, 'consent' of the data subject means any freely given, specific, informed and unambiguous indication of the data subject's wishes.
+
+For the purposes of this Regulation, 'personal data breach' means a breach of security leading to the accidental or unlawful destruction, loss, alteration, unauthorised disclosure of, or access to, personal data.
+
+For the purposes of this Regulation, 'genetic data' means personal data relating to the inherited or acquired genetic characteristics of a natural person.
+
+For the purposes of this Regulation, 'biometric data' means personal data resulting from specific technical processing relating to the physical, physiological or behavioural characteristics of a natural person.
+
+For the purposes of this Regulation, 'data concerning health' means personal data related to the physical or mental health of a natural person.
+
+For the purposes of this Regulation, 'main establishment' means the place of central administration in the Union of a controller or processor.
+
+For the purposes of this Regulation, 'representative' means a natural or legal person established in the Union who is designated in writing by the controller or processor.
+
+For the purposes of this Regulation, 'enterprise' means a natural or legal person engaged in an economic activity.
+
+For the purposes of this Regulation, 'group of undertakings' means a controlling undertaking and its controlled undertakings.
+
+For the purposes of this Regulation, 'binding corporate rules' means personal data protection policies which are adhered to by a controller or processor.
+
+For the purposes of this Regulation, 'supervisory authority' means an independent public authority which is established by a Member State.
+
+For the purposes of this Regulation, 'international organisation' means an organisation and its subordinate bodies governed by public international law.
+
+This Regulation applies to the processing of personal data wholly or partly by automated means.
+
+This Regulation applies to the processing of personal data other than by automated means which form part of a filing system.
+
+This Regulation applies to the processing of personal data in the context of the activities of an establishment of a controller or a processor in the Union.
+
+This Regulation applies to the processing of personal data of data subjects who are in the Union by a controller or processor not established in the Union.
+
+This Regulation applies to the processing of personal data by a controller not established in the Union but in a place where Member State law applies by virtue of public international law.
+
+This Regulation does not apply to the processing of personal data in the course of an activity which falls outside the scope of Union law.
+
+This Regulation does not apply to the processing of personal data by the Member States when carrying out activities which fall within the scope of Chapter 2 of Title V of the TEU.
+
+This Regulation does not apply to the processing of personal data by a natural person in the course of a purely personal or household activity.
+
+This Regulation does not apply to the processing of personal data by competent authorities for the purposes of the prevention, investigation, detection or prosecution of criminal offences.
+
+Title II of this Regulation lays down the principles relating to the processing of personal data.
+
+The provisions of this Chapter shall apply to all public authorities and bodies at all levels of government.
+
+This Title shall apply to the transfer of personal data to third countries or international organisations.
+
+The provisions of this Regulation are without prejudice to the application of Directive 2000/31/EC, in particular the liability rules of intermediary service providers.
+
+The reference to 'Member State law' in this Regulation means the law of the Member State applicable to the specific processing operation.
+
+For the purposes of the exemption referred to in Article 6, the national competent authority is the authority designated by each Member State.
+
+The term 'public authority' as used in this Regulation includes national, regional and local authorities.
+
+The notion of 'economic activity' referred to in this Article is to be interpreted in accordance with the case-law of the Court of Justice.
+
+The concept of 'establishment' implies the effective and real exercise of activity through stable arrangements.
+
+For the purposes of this Directive, 'waste' means any substance or object which the holder discards or intends or is required to discard.
+
+For the purposes of this Directive, 'hazardous waste' means waste which displays one or more of the hazardous properties listed in Annex III.
+
+For the purposes of this Directive, 'producer' means any person whose activity produces waste.
+
+For the purposes of this Directive, 'holder' means the producer of the waste or the natural or legal person who is in possession of it.
+
+For the purposes of this Directive, 'collection' means the gathering of waste, including the preliminary sorting and preliminary storage.
+
+For the purposes of this Directive, 'recovery' means any operation the principal result of which is waste serving a useful purpose.
+
+For the purposes of this Directive, 'disposal' means any operation which is not recovery even where the operation has a secondary consequence.
+
+For the purposes of this Directive, 'treatment' means recovery or disposal operations, including preparation prior to recovery or disposal.
+
+This Directive applies to all types of waste, with the exception of certain specific categories listed in Article 2.
+
+This Directive does not apply to gaseous effluents emitted into the atmosphere.
+
+This Directive does not apply to radioactive waste, except where explicitly provided.
+
+For the purposes of this Chapter, 'competent authority' means the authority designated by each Member State to carry out the obligations arising from this Regulation.
+
+For the purposes of the application of the derogation in Article 7, the term 'substantial interest' shall be interpreted restrictively.
+
+The definition of 'financial instrument' in this Section includes transferable securities, money-market instruments, and units in collective investment undertakings.
+
+For the purposes of this Title, 'third country' means a country that is not a member of the Union.
+
+The references to 'working day' in this Regulation mean any day other than Saturday, Sunday or a public holiday in the place where the action is to be performed.
+
+The term 'agreement in writing' includes any form of communication that provides a record of the agreement.
+
+For the purposes of this Article, 'effective access' means the right to obtain information without undue delay or cost.
+
+The notion of 'public interest' in this context shall be determined on a case-by-case basis by the competent court.
+
+The term 'subsidiary' for the purposes of this Regulation means a controlled undertaking within the meaning of the applicable company law.
+
+For the purposes of this Directive, 'consumer' means any natural person who is acting for purposes which are outside his trade, business, craft or profession.
+
+For the purposes of this Directive, 'trader' means any natural person or legal entity acting for purposes relating to his trade, business, craft or profession.
+
+This Directive applies to unfair commercial practices occurring before, during and after a commercial transaction in relation to a product.
+
+This Directive does not apply to the contractual rights and obligations of the parties.
+
+The reference to 'product' in this Title includes any goods or service, including immovable property.
+
+For the purposes of this Regulation, 'aid scheme' means any act which enables aid to be granted to undertakings.
+
+For the purposes of this Regulation, 'undertaking in difficulty' means an undertaking that is unable to recover its viability through its own resources.
+
+The definition of 'state aid' in Article 107 of the Treaty applies for the purposes of this Regulation.
+
+For the purposes of this Decision, 'special categories of personal data' are those referred to in Article 9 of the GDPR.
+
+The term 'data protection officer' means the person designated to perform the tasks referred to in Article 39 of the GDPR.
+
+For the purposes of this Chapter, 'parent undertaking' means an undertaking which has a participating interest in a subsidiary.
+
+The reference to 'the Committee' in the following articles means the committee established by Article 93 of this Regulation.
+
+For the purposes of this Part, 'electronic communications network' means transmission systems and, where applicable, switching or routing equipment.
+
+For the purposes of this Part, 'electronic communications service' means a service normally provided for remuneration which consists wholly or mainly in the conveyance of signals.
+
+The term 'end-user' for the purposes of this Directive means a user not providing public communications networks or services.
+
+For the purposes of this Article, 'universal service' means the minimum set of services of specified quality to which all end-users have access.
+
+The reference to 'Member State' in this context includes its designated regulatory authority.
+
+For the purposes of the calculation in paragraph 2, 'turnover' means the amount derived from the sale of products and the provision of services.
+
+The term 'merger' for the purposes of this Regulation means a concentration within the meaning of Article 3 of the Merger Regulation.
+
+For the purposes of this Title, 'foreign direct investment' means an investment of any kind by a foreign investor.
+
+This Regulation applies to foreign direct investments that are likely to affect security or public order.
+
+This Regulation does not apply to portfolio investments.
+
+The reference to 'national security' in this Article is the sole responsibility of each Member State.
+
+For the purposes of this Protocol, 'substance' means a chemical element and its compounds.
+
+For the purposes of this Protocol, 'preparation' means a mixture or solution composed of two or more substances.
+
+The term 'manufacturer' means any natural or legal person who manufactures a product or has a product designed or manufactured.
+
+The term 'authorised representative' means any natural or legal person established within the Union who has a written mandate from a manufacturer.
+
+The term 'importer' means any natural or legal person established within the Union who places a product from a third country on the Union market.
+
+The term 'distributor' means any natural or legal person in the supply chain, other than the manufacturer or importer, who makes a product available on the market.
+
+The reference to 'harmonised standards' in this Chapter means standards adopted by one of the European standardisation organisations.
+
+For the purposes of this Directive, 'making available on the market' means any supply of a product for distribution, consumption or use on the Union market.
+
+For the purposes of this Directive, 'putting into service' means the first use of a product in the Union by the end-user.
+
+The reference to 'the competent authority' in the implementing provisions is the authority designated by the Member State in accordance with Article 27.
+
+For the purposes of this Section, 'security of network and information systems' means the ability of those systems to resist accidental events or unlawful actions.
+
+The term 'operator of essential services' for the purposes of this Directive means a public or private entity of a type listed in Annex II.
+
+The term 'digital service provider' means any legal person that provides a digital service within the meaning of Article 1(2).
+
+For the purposes of this Chapter, 'incident' means any event having an actual adverse effect on the security of network and information systems.
+
+The reference to 'the Board' means the Cooperation Group established under Article 11.
+
+For the purposes of this Regulation, 'the Union institutions' means the institutions, bodies, offices and agencies of the Union.
+
+The term 'official document' for the purposes of this Regulation means any content whatever its medium drawn up or received by an institution.
+
+The reference to 'the Ombudsman' means the European Ombudsman appointed by the European Parliament.
+
+For the purposes of this Title, 'the Court' means the Court of Justice of the European Union, including the General Court.
+
+The term 'appeal' in this Article refers to the remedy provided for in Article 56 of the Statute of the Court of Justice.
+
+For the purposes of this Directive, 'quality standard' means a standard that defines the requirements for quality management systems.
+
+The reference to 'the applicable collective agreement' in this Article shall be determined according to the national law of the host Member State.
+
+For the purposes of this Chapter, 'platform' means a natural or legal person providing a multilateral commercial service.
+
+The term 'recipient of the service' means any natural or legal person who uses the platform for the purpose of offering goods or services.
+
+The reference to 'the register' in this Section means the electronic register maintained by the Commission.
+
+For the purposes of this Decision, 'the designated authority' is the body notified by the Member State to the Commission.
+
+The term 'working time' for the purposes of this Directive means any period during which the worker is working, at the employer's disposal and carrying out his activity.
+
+The reference to 'the social partners' means the organisations representing employers and workers at Union level.
+
+For the purposes of this Protocol, 'adverse effects' means changes in the environment which have harmful effects on human health or on biological diversity.
+
+This Regulation applies to providers placing on the market or putting into service AI systems in the Union.
+
+This Regulation applies to deployers of AI systems that have their place of establishment within the Union.
+
+This Regulation applies to providers and deployers of AI systems that have their place of establishment in a third country, where the output produced by the system is used in the Union.
+
+This Regulation does not apply to AI systems developed or used exclusively for military purposes.
+
+This Regulation does not apply to AI systems used solely for research and innovation purposes.
+
+This Regulation applies to the placing on the market, the putting into service, and the use of high-risk AI systems.
+
+This Directive applies to contracts concluded between a seller and a consumer.
+
+This Directive does not apply to contracts for the supply of water, gas or electricity where they are not put up for sale in a limited volume.
+
+This Directive does not apply to contracts for the supply of digital content which is incorporated in goods.
+
+This Title applies to all undertakings operating in the internal market.
+
+This Chapter applies only to processors established in the Union.
+
+This Section applies to the application of Articles 15 to 20 under specific circumstances.
+
+The obligations laid down in this Article apply only to processing operations that are likely to result in a high risk.
+
+This Article applies only in so far as the processing is carried out by a court or judicial authority.
+
+The provisions relating to the processing of personal data for archiving purposes in the public interest shall apply subject to the conditions set out in this Chapter.
+
+This Regulation shall not apply to the processing of personal data which is not carried out wholly or partly by automated means and which does not form part of a filing system.
+
+The scope of this Directive is limited to distance contracts concluded between the trader and the consumer.
+
+The provisions of this Title shall not affect the application of the rules on competition.
+
+The Commission shall be empowered to adopt delegated acts in accordance with Article 92 for the purpose of further specifying the criteria and requirements established in this Regulation.
+
+The Commission shall adopt implementing acts laying down the technical specifications for the format and procedure of the information to be provided, in accordance with the examination procedure referred to in Article 93(2).
+
+The provisions of Article 13 shall apply mutatis mutandis to the processing of personal data not obtained from the data subject.
+
+Member State law may determine the conditions under which the provisions of this Regulation may be restricted.
+
+The exemptions provided for in Article 89(1) shall apply to the processing of personal data for archiving purposes in the public interest.
+
+The right to object pursuant to Article 21 shall be brought to the attention of the data subject.
+
+The Commission is empowered to adopt delegated acts in accordance with Article 97 to amend the list of high-risk AI systems.
+
+The law of the Member State to which the controller is subject may impose further conditions for the processing of special categories of data.
+
+The provisions relating to the transfer of personal data to third countries shall apply mutatis mutandis to the transfer of data to international organisations.
+
+The power to adopt the delegated acts referred to in Article 10(2) shall be conferred on the Commission for an indeterminate period of time.
+
+The applicable legal basis for the processing shall be determined by Union law or the law of the Member State to which the controller is subject.
+
+The procedure laid down in Article 7 of Directive 89/665/EEC shall apply to the review of decisions taken by the contracting authority.
+
+The obligations set out in Article 32 relating to the security of processing shall be implemented through appropriate technical and organisational measures.
+
+The Commission may adopt delegated acts, in accordance with Article 290 of the TFEU, to supplement this Regulation where necessary.
+
+Member States shall determine the conditions under which processing of personal data for journalistic purposes may be subject to derogations.
+
+The rules on data protection impact assessments laid down in Article 35 shall apply mutatis mutandis to the processor.
+
+The categories of data referred to in Annex I shall be considered as sensitive data for the purposes of this Section.
+
+The delegation of power referred to in Article 42(3) may be revoked at any time by the European Parliament or by the Council.
+
+The competent authority designated by each Member State shall perform the tasks assigned to it under this Regulation in accordance with national law.
+
+The principles set out in Article 5(1) shall apply to all processing operations covered by this Chapter.
+
+The provisions of Article 28 concerning the processor shall apply mutatis mutandis to any sub-processor engaged by the processor.
+
+The details of the registration shall be laid down in implementing acts adopted by the Commission pursuant to Article 54.
+
+The national law of the host Member State may lay down rules relating to the right of Union citizens to vote.
+
+A delegated act adopted pursuant to Article 70 shall enter into force only if no objection has been expressed by the European Parliament.
+
+The notification referred to in Article 33(1) shall be made without undue delay and, where feasible, not later than 72 hours after having become aware of it.
+
+The rights of the data subject referred to in Articles 15 to 18 shall apply mutatis mutandis to the processing for direct marketing purposes.
+
+The determination of whether a third country ensures an adequate level of protection shall be made by the Commission by way of implementing act.
+
+The Commission shall be empowered to adopt delegated acts concerning the calculation of the fees referred to in Article 55.
+
+The provisions of this Directive shall apply without prejudice to the specific rules laid down in Regulation (EC) No 261/2004.
+
+For the purposes of this Article, 'biometric data' means personal data resulting from specific technical processing relating to the physical or physiological characteristics of a natural person.
+
+For the purposes of this Regulation, 'processing' means any operation or set of operations which is performed on personal data or on sets of personal data.
+
+For the purposes of this Chapter, 'establishment' implies the effective and real exercise of activity through stable arrangements.
+
+For the purposes of this Section, 'genetic data' means personal data relating to the inherited or acquired genetic characteristics of a natural person.
+
+The term 'undertaking' for the purposes of this Regulation shall have the same meaning as in Article 101 of the Treaty.
+
+For the purposes of this Protocol, 'adverse effects' means changes in the environment which have harmful effects on human health.
+
+In this Regulation, 'supervisory authority' means an independent public authority which is established by a Member State.
+
+The concept of 'controller' for the purposes of this Section shall be interpreted in accordance with the case-law of the Court of Justice.
+
+The term 'waste' for the purposes of this Chapter means any substance or object which the holder discards or intends to discard.
+
+The term 'manufacturer' for the purposes of this Part means any natural or legal person who manufactures a product or has a product designed or manufactured.
+
+For the purposes of the derogation in Article 7, the term 'substantial interest' shall be interpreted restrictively.
+
+The definitions set out in Article 4 of the GDPR shall apply for the purposes of this Decision.
+
+The term 'importer' in this Section means any natural or legal person established within the Union who places a product from a third country on the Union market.
+
+For the purposes of this Chapter, 'the Board' means the Cooperation Group established under Article 11.
+
+The concept of 'group of undertakings' for the purposes of this Regulation refers to a controlling undertaking and its controlled undertakings.
+
+For the purposes of this Annex, 'economic activity' is to be interpreted in accordance with the case-law of the Court.
+
+The term 'end-user' means a user not providing public communications networks or services.
+
+For the purposes of this Article, 'working day' means any day other than Saturday, Sunday or a public holiday in the place where the action is to be performed.
+
+The notion of 'platform' for the purposes of this Chapter means a natural or legal person providing a multilateral commercial service.
+
+The term 'incident' for the purposes of this Chapter means any event having an actual adverse effect on the security of network and information systems.
+
+The term 'parent undertaking' means an undertaking which has a participating interest in a subsidiary.
+
+The provisions of Chapter III shall apply without prejudice to the specific rules contained in Chapter IV.
+
+The rules of procedure of the Board of Appeal shall be adopted in accordance with the procedure set out in Article 58.
+
+The application of this Article is subject to the general conditions laid down in the framework decision.
+
+The format and manner of the notification shall be determined by the implementing rules referred to in Article 12.
+
+The level of fines shall be calculated in accordance with the methodology established in the delegated acts.
+
+The specific obligations of the data protection officer are further specified in the guidelines adopted by the European Data Protection Board.
+
+The transfer of data under this Section shall be carried out in compliance with the standard contractual clauses approved by the Commission.
+
+The decisions of the supervisory authority may be challenged before the national courts under the conditions set out in national law.
+
+The technical standards for interoperability shall be published in the Official Journal of the European Union.
+
+The procedure for the adoption of the opinion of the Committee shall be governed by Regulation (EU) No 182/2011.
+
+The limitations on the exercise of the rights of the data subject shall be consistent with the essential content of the fundamental rights and freedoms.
+
+The conditions for the renewal of the authorisation shall be laid down in the national implementing legislation.
+
+The arrangements for the cooperation between supervisory authorities shall be established in the cooperation procedure referred to in Article 60.
+
+The content of the data protection impact assessment shall be based on the list published by the supervisory authority.
+
+The criteria for the accreditation of certification bodies shall be defined in the delegated acts adopted pursuant to Article 43(3).
+
+The rules on the protection of personal data in the Member States are subject to the general principles of Union law.
+
+The specific requirements for the processing of data concerning health are further elaborated in the codes of conduct referred to in Article 40.
+
+The jurisdiction of the Court of Justice of the European Union shall be exercised in accordance with the provisions of the Treaties.
+
+The final adoption of the implementing measures shall take place after the expiry of the scrutiny period provided for in the applicable regulation.
+
+The liability of the controller shall be determined in accordance with the provisions of Article 82.
+
+The procedure for the settlement of disputes between Member States shall be as provided for in Article 259 of the TFEU.
+
+The designation of the competent authorities shall be notified to the Commission without delay and shall be published in the Official Journal.
+

@@ -1,0 +1,243 @@
+The controller shall implement appropriate technical and organisational measures to ensure a level of security appropriate to the risk.
+
+Each Member State shall designate one or more independent public authorities to supervise the application of this Regulation.
+
+The processor shall process the personal data only on documented instructions from the controller.
+
+The data subject must be provided with information regarding the purposes of the processing at the time the data are collected.
+
+All employers are required to keep records of working time for each employee for a period of at least three years.
+
+The manufacturer shall carry out a conformity assessment procedure before placing the product on the market.
+
+The importer shall indicate on the product its name, registered trade name or registered trademark and the address at which it can be contacted.
+
+The distributor shall act with due care in relation to the requirements of this Directive.
+
+The competent authority shall notify the applicant of its decision within ninety days of receipt of the complete application.
+
+The operator shall ensure that the installation does not cause any significant pollution of the surrounding environment.
+
+The producer shall take back the waste from the final holder free of charge.
+
+The holder of the authorisation shall comply with all conditions attached to that authorisation.
+
+The court shall give reasons for its judgment and shall state the evidence on which it relies.
+
+The public authority shall respond to requests for access to documents within fifteen working days.
+
+The consumer must pay the agreed price in the currency stipulated in the contract.
+
+The seller is required to deliver goods that are in conformity with the contract of sale.
+
+The trader has the duty to inform the consumer of the total price including all taxes and charges before the contract is concluded.
+
+The online platform shall take down illegal content upon receipt of a valid notice.
+
+The carrier shall compensate the sender for any loss or damage to the goods during transit.
+
+The tenant shall maintain the leased premises in good repair throughout the duration of the lease.
+
+The applicant shall submit all supporting documents together with the application form.
+
+The recipient of the grant shall submit a final report on the use of the funds within six months of the project's completion.
+
+The data exporter shall provide the data importer with any information necessary to comply with the contractual obligations.
+
+The beneficiary shall inform the competent authority of any change in the circumstances that might affect the eligibility for the benefit.
+
+No person shall process personal data concerning a data subject without the explicit consent of that data subject.
+
+The controller shall not transfer personal data to a third country unless the Commission has issued an adequacy decision.
+
+The data subject shall not be subject to a decision based solely on automated processing, including profiling, which produces legal effects concerning him or her.
+
+Member States shall not impose any prior authorisation or equivalent requirement for the provision of information society services.
+
+The trader shall not charge the consumer any fees for the use of a means of payment that exceed the cost borne by the trader.
+
+No consumer shall be required to waive any of the rights conferred by this Directive.
+
+The seller may not alter the price after the conclusion of the contract unless the parties have expressly agreed on a price revision clause.
+
+The manufacturer is prohibited from placing on the market a product that does not comply with the essential requirements of this Directive.
+
+The supplier shall not supply any substance listed in Annex I to any person unless that person holds a valid authorisation.
+
+The supervisory authority shall not disclose the identity of the complainant to the controller without the complainant's consent.
+
+The court shall not admit evidence obtained in violation of the rights of the defence.
+
+The public official shall not use confidential information obtained in the course of his or her duties for personal gain.
+
+The employer must not dismiss an employee for exercising the right to request flexible working arrangements.
+
+The processor is prohibited from engaging another processor without the prior written authorisation of the controller.
+
+No undertaking shall abuse a dominant position within the internal market.
+
+The competent body shall not refuse to recognise a professional qualification obtained in another Member State on grounds of nationality.
+
+The consumer may withdraw from the contract within fourteen days without giving any reason.
+
+The controller may process personal data for a purpose other than that for which they were collected only if the data subject has given consent or if the processing is based on Union or Member State law.
+
+The supervisory authority may impose an administrative fine in addition to or instead of other corrective measures.
+
+The data subject may request from the controller access to and rectification or erasure of personal data.
+
+The Member States may maintain or introduce further conditions for the processing of genetic data, provided that such conditions are compatible with this Regulation.
+
+The Commission may adopt implementing acts specifying the format and procedures for the exchange of information.
+
+The consumer is permitted to cancel the contract by sending a clear statement to the trader by post, fax or email.
+
+The producer may choose between repair and replacement of a defective product, provided that the chosen remedy is not disproportionate.
+
+The importer is allowed to affix the CE marking to the product after the conformity assessment has been successfully completed.
+
+The competent authority may request any additional information it deems necessary to evaluate the application.
+
+The data subject is free to object at any time to the processing of personal data for direct marketing purposes.
+
+The trader may offer a more extensive guarantee than the minimum required by law.
+
+The Member States are allowed to provide for higher penalties for infringements of this Regulation than those set out in Article 83.
+
+The judge may order the disclosure of the documents in the possession of the opposing party if such disclosure is relevant to the case.
+
+The consumer has the option to seek an out-of-court settlement of the dispute through an ombudsman.
+
+The manufacturer is permitted to designate an authorised representative to perform certain tasks on its behalf.
+
+The supervisory authority is at liberty to cooperate with other supervisory authorities to ensure consistent application of this Regulation.
+
+This Regulation shall not apply to the processing of personal data by a natural person in the course of a purely personal or household activity.
+
+The obligation to provide information to the data subject shall not apply where the data subject already has the information.
+
+The right to erasure under Article 17 shall not apply if the processing is necessary for compliance with a legal obligation.
+
+The provisions on data protection impact assessments shall not apply to processing operations that are not likely to result in a high risk to the rights and freedoms of natural persons.
+
+The requirement to designate a data protection officer shall be waived for courts acting in their judicial capacity.
+
+The prohibition on transferring personal data to third countries shall not prevent the transfer of data necessary for the performance of a contract between the data subject and the controller.
+
+The trader is exempt from the obligation to provide the withdrawal form where the contract is concluded in a physical shop.
+
+The product shall not be subject to the safety requirements of this Directive if it was manufactured before the date of entry into force.
+
+The restriction of the rights of the data subject shall not apply in cases where the processing is carried out for journalistic purposes or for academic expression.
+
+The duty to notify the supervisory authority of a personal data breach shall not apply if the breach is unlikely to result in a risk to the rights and freedoms of natural persons.
+
+By way of derogation from the general rule, the consumer shall have a right of withdrawal of twelve months in cases where the trader failed to provide the required information.
+
+The requirement to obtain explicit consent shall not apply to the processing of sensitive data where the data subject is physically or legally incapable of giving consent and the processing is necessary to protect the vital interests of the data subject.
+
+The limitation on the use of automated decision-making shall not apply if the decision is authorised by Union or Member State law.
+
+The provisions of this Directive do not apply to the carriage of passengers by air where the flight is operated on a non-scheduled basis.
+
+The obligation to accept returns shall not extend to products that have been unsealed by the consumer after delivery.
+
+The seller is not required to provide a guarantee for second-hand goods beyond one year from the date of delivery.
+
+The rules on jurisdiction shall not apply to matters relating to the status or legal capacity of natural persons.
+
+The prohibition on discrimination shall not prevent Member States from maintaining differences in treatment based on nationality in the exercise of public authority.
+
+The duty to keep records of processing activities is waived for organisations with fewer than 250 employees.
+
+The requirement for a prior authorisation shall be waived for small-scale clinical trials that involve minimal risk.
+
+The exceptions provided for in this Article shall not apply where the processing is carried out by a public authority.
+
+The general obligation to inform the data subject shall be suspended for as long as the information would compromise an official investigation.
+
+The manufacturer shall be relieved of liability if it can prove that the defect was caused by the product's compliance with mandatory regulatory standards.
+
+The threshold for notification shall be increased for low-risk processing operations, as specified in the guidelines.
+
+The right of access shall be exercised in a manner that does not adversely affect the rights and freedoms of others.
+
+All natural persons shall have the right to vote and to stand as candidates in elections to the European Parliament.
+
+Every citizen has the right to move and reside freely within the territory of the Member States.
+
+The worker has the right to request the employer to provide a written statement of the essential terms of the employment relationship.
+
+The national of a Member State shall enjoy the same social security benefits as the nationals of the host State.
+
+The beneficiary of international protection shall have the right to access employment subject to rules generally applicable to the profession.
+
+The accused has the right to be presumed innocent until proved guilty according to law.
+
+Every person charged with a criminal offence has the right to be informed promptly, in a language which he or she understands, of the nature and cause of the accusation.
+
+The defendant has the right to have adequate time and facilities for the preparation of his or her defence.
+
+The victim of a crime has the right to receive compensation from the offender or the State.
+
+The applicant for asylum has the right to remain in the territory pending the determination of the application.
+
+The child has the right to be heard in any judicial and administrative proceedings affecting the child.
+
+The patient has the right to give informed consent before any medical intervention is performed.
+
+The consumer has the right to receive a copy of the contract concluded with the trader.
+
+The buyer has the right to reject the goods if they are not in conformity with the contract.
+
+The policyholder has the right to cancel the insurance contract within the first fifteen days of the conclusion of the contract.
+
+The shareholder has the right to inspect the books and records of the company.
+
+The employee has the right to be represented by a trade union in collective bargaining.
+
+The author has the right to claim authorship of the work and to object to any distortion of the work.
+
+The patent holder has the right to prevent third parties from making, using or selling the patented invention without consent.
+
+The trademark owner has the right to prevent the registration of a similar sign for identical goods or services.
+
+The data subject has the right to request the controller to transmit the personal data directly to another controller.
+
+The witness has the right to be accompanied by a legal counsel during the testimony.
+
+The taxpayer has the right to appeal against the decision of the tax authority to an independent tribunal.
+
+The consumer has the right to choose between repair, replacement, price reduction or rescission in the case of non-conforming goods.
+
+The passenger has the right to reimbursement of the full cost of the ticket in the event of cancellation of the flight.
+
+The parent has the right to take parental leave of at least four months.
+
+The tenant has the right to sublet the premises with the consent of the landlord, which consent shall not be unreasonably withheld.
+
+The account holder has the right to close the account at any time without penalty.
+
+The patient has the right to access his or her medical records.
+
+The owner of a copyright has the right to authorise or prohibit the reproduction of the work in any form.
+
+The candidate in an election has the right to equal treatment and non-discrimination in the electoral process.
+
+The prisoner has the right to communicate with his or her legal adviser in confidence.
+
+The student has the right to education free of discrimination on any ground.
+
+The worker has the right to a safe and healthy working environment.
+
+The consumer has the right to be protected against unfair commercial practices.
+
+The citizen has the right to petition the European Parliament on any matter that falls within the competence of the Union.
+
+The party to a civil proceeding has the right to be heard and to present evidence in support of his or her case.
+
+The victim of domestic violence has the right to access emergency accommodation and support services.
+
+The person with disabilities has the right to reasonable accommodation in the workplace.
+
+The elderly person has the right to social and medical assistance necessary to maintain a dignified life.

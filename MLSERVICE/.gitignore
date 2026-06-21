@@ -1,0 +1,26 @@
+# Python virtual env — recreate with:
+#   python3 -m venv .venv && .venv/bin/pip install spacy scikit-learn \
+#     && .venv/bin/python -m spacy download en_core_web_sm
+.venv/
+venv/
+env/
+
+# byte-compiled / caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# packaging / build
+*.egg-info/
+build/
+dist/
+
+# exploration artifacts — regenerable by the analysis/ scripts, so not tracked
+# (labels.jsonl IS tracked: it's the dataset snapshot that becomes hand-curated)
+analysis/results.json
+analysis/parse_raw.json
+analysis/audit_batch.jsonl

@@ -1,0 +1,205 @@
+The free movement of personal data within the Union shall be neither restricted nor prohibited for reasons connected with the protection of natural persons with regard to the processing of personal data.
+
+Regulation (EC) No 45/2001 and other Union legal acts applicable to such processing of personal data shall be adapted to the principles and rules of this Regulation in accordance with Article 98.
+
+Personal data shall be processed lawfully, fairly and in a transparent manner in relation to the data subject.
+
+Personal data shall be collected for specified, explicit and legitimate purposes and not further processed in a manner that is incompatible with those purposes.
+
+Personal data shall be adequate, relevant and limited to what is necessary in relation to the purposes for which they are processed.
+
+Personal data shall be accurate and, where necessary, kept up to date; every reasonable step must be taken to ensure that personal data that are inaccurate, having regard to the purposes for which they are processed, are erased or rectified without delay.
+
+Personal data shall be kept in a form which permits identification of data subjects for no longer than is necessary for the purposes for which the personal data are processed.
+
+Personal data shall be processed in a manner that ensures appropriate security of the personal data, including protection against unauthorised or unlawful processing and against accidental loss, destruction or damage, using appropriate technical or organisational measures.
+
+The controller shall be responsible for, and be able to demonstrate compliance with, paragraph 1.
+
+Where processing is based on consent, the controller shall be able to demonstrate that the data subject has consented to processing of his or her personal data.
+
+If the data subject's consent is given in the context of a written declaration which also concerns other matters, the request for consent shall be presented in a manner which is clearly distinguishable from the other matters, in an intelligible and easily accessible form, using clear and plain language.
+
+The controller shall make reasonable efforts to verify in such cases that consent is given or authorised by the holder of parental responsibility over the child, taking into consideration available technology.
+
+Any comprehensive register of criminal convictions shall be kept only under the control of official authority.
+
+The controller shall take appropriate measures to provide any information referred to in Articles 13 and 14 and any communication under Articles 15 to 22 and 34 relating to processing to the data subject in a concise, transparent, intelligible and easily accessible form, using clear and plain language.
+
+The controller shall facilitate the exercise of data subject rights under Articles 15 to 22.
+
+The controller shall provide information on action taken on a request under Articles 15 to 22 to the data subject without undue delay and in any event within one month of receipt of the request.
+
+If the controller does not take action on the request of the data subject, the controller shall inform the data subject without delay and at the latest within one month of receipt of the request of the reasons for not taking action and on the possibility of lodging a complaint with a supervisory authority and seeking a judicial remedy.
+
+The controller shall bear the burden of demonstrating the manifestly unfounded or excessive character of the request.
+
+Where personal data relating to a data subject are collected from the data subject, the controller shall, at the time when personal data are obtained, provide the data subject with the identity and the contact details of the controller and, where applicable, of the controller's representative.
+
+Where the controller intends to further process the personal data for a purpose other than that for which the personal data were collected, the controller shall provide the data subject prior to that further processing with information on that other purpose and with any relevant further information as referred to in paragraph 2.
+
+Where personal data have not been obtained from the data subject, the controller shall provide the data subject with the categories of personal data concerned.
+
+In addition to the information referred to in paragraph 1, the controller shall provide the data subject with the period for which the personal data will be stored, or if that is not possible, the criteria used to determine that period.
+
+The controller shall provide a copy of the personal data undergoing processing.
+
+The data subject shall have the right to obtain from the controller without undue delay the rectification of inaccurate personal data concerning him or her.
+
+The data subject shall have the right to obtain from the controller the erasure of personal data concerning him or her without undue delay and the controller shall have the obligation to erase personal data without undue delay where one of the grounds applies.
+
+Where the controller has made the personal data public and is obliged to erase the personal data, the controller, taking account of available technology and the cost of implementation, shall take reasonable steps, including technical measures, to inform controllers which are processing the personal data that the data subject has requested the erasure by such controllers of any links to, or copy or replication of, those personal data.
+
+A data subject who has obtained restriction of processing shall be informed by the controller before the restriction of processing is lifted.
+
+The controller shall communicate any rectification or erasure of personal data or restriction of processing carried out in accordance with Article 16, Article 17(1) and Article 18 to each recipient to whom the personal data have been disclosed, unless this proves impossible or involves disproportionate effort.
+
+The controller shall inform the data subject about those recipients if the data subject requests it.
+
+At the latest at the time of the first communication with the data subject, the right referred to in paragraphs 1 and 2 shall be explicitly brought to the attention of the data subject and shall be presented clearly and separately from any other information.
+
+Where personal data are processed for direct marketing purposes, the personal data shall no longer be processed for such purposes where the data subject objects.
+
+In the cases referred to in points (a) and (c) of paragraph 2, the data controller shall implement suitable measures to safeguard the data subject's rights and freedoms and legitimate interests, at least the right to obtain human intervention on the part of the controller, to express his or her point of view and to contest the decision.
+
+Taking into account the nature, scope, context and purposes of processing as well as the risks of varying likelihood and severity for the rights and freedoms of natural persons, the controller shall implement appropriate technical and organisational measures to ensure and to be able to demonstrate that processing is performed in accordance with this Regulation.
+
+Those measures shall be reviewed and updated where necessary.
+
+Where proportionate in relation to processing activities, the measures referred to in paragraph 1 shall include the implementation of appropriate data protection policies by the controller.
+
+The controller shall, both at the time of the determination of the means for processing and at the time of the processing itself, implement appropriate technical and organisational measures, such as pseudonymisation, which are designed to implement data-protection principles, such as data minimisation, in an effective manner.
+
+The controller shall implement appropriate technical and organisational measures for ensuring that, by default, only personal data which are necessary for each specific purpose of the processing are processed.
+
+Joint controllers shall in a transparent manner determine their respective responsibilities for compliance with the obligations under this Regulation by means of an arrangement between them.
+
+The arrangement referred to in paragraph 1 shall duly reflect the respective roles and relationships of the joint controllers vis-à-vis the data subjects.
+
+The essence of the arrangement shall be made available to the data subject.
+
+Where Article 3(2) applies, the controller or the processor shall designate in writing a representative in the Union.
+
+The representative shall be mandated by the controller or processor to be addressed in addition to or instead of the controller or the processor by, in particular, supervisory authorities and data subjects, on all issues related to processing, for the purposes of ensuring compliance with this Regulation.
+
+Where processing is to be carried out on behalf of a controller, the controller shall use only processors providing sufficient guarantees to implement appropriate technical and organisational measures in such a manner that processing will meet the requirements of this Regulation and ensure the protection of the rights of the data subject.
+
+The processor shall not engage another processor without prior specific or general written authorisation of the controller.
+
+The processor shall process the personal data only on documented instructions from the controller, including with regard to transfers of personal data to a third country or an international organisation, unless required to do so by Union or Member State law.
+
+The processor shall ensure that persons authorised to process the personal data have committed themselves to confidentiality or are under an appropriate statutory obligation of confidentiality.
+
+The processor shall take all measures required pursuant to Article 32.
+
+The processor shall assist the controller in ensuring compliance with the obligations pursuant to Articles 32 to 36 taking into account the nature of processing and the information available to the processor.
+
+The processor shall, at the choice of the controller, delete or return all the personal data to the controller after the end of the provision of services relating to processing, and delete existing copies unless Union or Member State law requires storage of the personal data.
+
+The processor shall make available to the controller all information necessary to demonstrate compliance with the obligations laid down in this Article and allow for and contribute to audits, including inspections, conducted by the controller or another auditor mandated by the controller.
+
+The processor shall immediately inform the controller if, in its opinion, an instruction infringes this Regulation or other Union or Member State data protection provisions.
+
+Where that other processor fails to fulfil its data protection obligations, the initial processor shall remain fully liable to the controller for the performance of that other processor's obligations.
+
+The contract or the other legal act referred to in paragraphs 3 and 4 shall be in writing, including in electronic form.
+
+The processor and any person acting under the authority of the controller or of the processor, who has access to personal data, shall not process those data except on instructions from the controller, unless required to do so by Union or Member State law.
+
+Each controller and, where applicable, the controller's representative, shall maintain a record of processing activities under its responsibility.
+
+Each processor and, where applicable, the processor's representative shall maintain a record of all categories of processing activities carried out on behalf of a controller.
+
+The records referred to in paragraphs 1 and 2 shall be in writing, including in electronic form.
+
+The controller or the processor and, where applicable, the controller's or the processor's representative, shall make the record available to the supervisory authority on request.
+
+The controller and the processor and, where applicable, their representatives, shall cooperate, on request, with the supervisory authority in the performance of its tasks.
+
+Taking into account the state of the art, the costs of implementation and the nature, scope, context and purposes of processing as well as the risk for the rights and freedoms of natural persons, the controller and the processor shall implement appropriate technical and organisational measures to ensure a level of security appropriate to the risk.
+
+The controller and processor shall take steps to ensure that any natural person acting under the authority of the controller or the processor who has access to personal data does not process them except on instructions from the controller, unless he or she is required to do so by Union or Member State law.
+
+In the case of a personal data breach, the controller shall without undue delay and, where feasible, not later than 72 hours after having become aware of it, notify the personal data breach to the supervisory authority competent in accordance with Article 55, unless the personal data breach is unlikely to result in a risk to the rights and freedoms of natural persons.
+
+The processor shall notify the controller without undue delay after becoming aware of a personal data breach.
+
+The controller shall document any personal data breaches, comprising the facts relating to the personal data breach, its effects and the remedial action taken.
+
+When the personal data breach is likely to result in a high risk to the rights and freedoms of natural persons, the controller shall communicate the personal data breach to the data subject without undue delay.
+
+Where a type of processing is likely to result in a high risk to the rights and freedoms of natural persons, the controller shall, prior to the processing, carry out an assessment of the impact of the envisaged processing operations on the protection of personal data.
+
+The controller shall seek the advice of the data protection officer, where designated, when carrying out a data protection impact assessment.
+
+The supervisory authority shall establish and make public a list of the kind of processing operations which are subject to the requirement for a data protection impact assessment pursuant to paragraph 1.
+
+Where necessary, the controller shall carry out a review to assess if processing is performed in accordance with the data protection impact assessment at least when there is a change of the risk represented by processing operations.
+
+The controller shall consult the supervisory authority prior to processing where a data protection impact assessment under Article 35 indicates that the processing would result in a high risk in the absence of measures taken by the controller to mitigate the risk.
+
+Member States shall consult the supervisory authority during the preparation of a proposal for a legislative measure to be adopted by a national parliament, or of a regulatory measure based on such a legislative measure, which relates to processing.
+
+The controller and the processor shall designate a data protection officer in any case where the processing is carried out by a public authority or body, except for courts acting in their judicial capacity.
+
+The controller or the processor shall publish the contact details of the data protection officer and communicate them to the supervisory authority.
+
+The controller and the processor shall ensure that the data protection officer is involved, properly and in a timely manner, in all issues which relate to the protection of personal data.
+
+The controller and processor shall support the data protection officer in performing the tasks referred to in Article 39 by providing resources necessary to carry out those tasks and access to personal data and processing operations, and to maintain his or her expert knowledge.
+
+The controller and processor shall ensure that the data protection officer does not receive any instructions regarding the exercise of those tasks.
+
+The data protection officer shall directly report to the highest management level of the controller or the processor.
+
+The data protection officer shall be bound by secrecy or confidentiality concerning the performance of his or her tasks, in accordance with Union or Member State law.
+
+In the absence of a decision pursuant to Article 45(3), a controller or processor may transfer personal data to a third country or an international organisation only if the controller or processor has provided appropriate safeguards, and on condition that enforceable data subject rights and effective legal remedies for data subjects are available.
+
+The controller or processor which submits its processing to the certification mechanism shall provide the certification body with all information and access to its processing activities which are necessary to conduct the certification procedure.
+
+The lead supervisory authority shall, without delay, communicate the relevant information on the matter to the other supervisory authorities concerned.
+
+The lead supervisory authority shall without delay submit a draft decision to the other supervisory authorities concerned for their opinion and take due account of their views.
+
+The lead supervisory authority and the other supervisory authorities concerned shall supply the information required under this Article to each other by electronic means, using a standardised format.
+
+The controller or processor shall take the necessary measures to ensure compliance with the decision as regards processing activities in the context of all its establishments in the Union.
+
+The controller or processor shall notify the measures taken for complying with the decision to the lead supervisory authority, which shall inform the other supervisory authorities concerned.
+
+Each supervisory authority shall, on its territory, monitor and enforce the application of this Regulation.
+
+Each supervisory authority shall handle complaints lodged by a data subject, and investigate, to the extent appropriate, the subject matter of the complaint and inform the complainant of the progress and the outcome of the investigation within a reasonable period.
+
+The performance of the tasks of each supervisory authority shall be free of charge for the data subject and, where applicable, for the data protection officer.
+
+Each member of the supervisory authority shall, during their term of office, refrain from any action incompatible with their duties and shall not, during their term of office, engage in any incompatible occupation, whether gainful or not.
+
+The controller or processor shall compensate any damage which a person may suffer as a result of processing that infringes this Regulation.
+
+The Commission shall publish in the Official Journal of the European Union and on its website a list of the third countries, territories and specified sectors within a third country and international organisations for which it has decided that an adequate level of protection is or is no longer ensured.
+
+The Commission shall designate a representative.
+
+The Chair of the Board shall communicate to the Commission the activities of the Board.
+
+The Board shall ensure the consistent application of this Regulation.
+
+In addition to the obligations listed in Articles 53 and 54, providers of general-purpose AI models with systemic risk shall perform model evaluation in accordance with standardised protocols and tools reflecting the state of the art, including conducting and documenting adversarial testing of the model with a view to identifying and mitigating systemic risks.
+
+Providers of general-purpose AI models with systemic risk shall assess and mitigate possible systemic risks at Union level, including their sources, that may stem from the development, the placing on the market, or the use of general-purpose AI models with systemic risk.
+
+Providers of general-purpose AI models with systemic risk shall keep track of, document, and report, without undue delay, to the AI Office and, as appropriate, to national competent authorities, relevant information about serious incidents and possible corrective measures to address them.
+
+Providers of general-purpose AI models with systemic risk shall ensure an adequate level of cybersecurity protection for the general-purpose AI model with systemic risk and the physical infrastructure of the model.
+
+Providers of general-purpose AI models with systemic risks who do not adhere to an approved code of practice or do not comply with a European harmonised standard shall demonstrate alternative adequate means of compliance for assessment by the Commission.
+
+Providers of data processing services shall take all adequate technical, organisational and legal measures, including contracts, in order to prevent international and third-country governmental access and transfer of non-personal data held in the Union where such transfer or access would create a conflict with Union law or with the national law of the relevant Member State.
+
+The provider of data processing services shall provide the minimum amount of data permissible in response to a request, on the basis of the reasonable interpretation of that request.
+
+The provider of data processing services shall inform the customer about the existence of a request of a third-country authority to access its data before complying with that request, except where the request serves law enforcement purposes and for as long as this is necessary to preserve the effectiveness of the law enforcement activity.
+
+The EDIB referred to in Article 42 shall advise and assist the Commission in developing guidelines on the assessment of whether the conditions laid down in the first subparagraph of this paragraph are met.

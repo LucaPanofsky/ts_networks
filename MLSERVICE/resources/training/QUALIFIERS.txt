@@ -1,0 +1,231 @@
+Provided that the data subject has given explicit consent, the processing of special categories of personal data shall be permitted.
+
+Subject to the provisions of Article 6, the controller may process personal data for a purpose other than that for which they were collected.
+
+Unless the data subject objects on compelling legitimate grounds, the controller shall cease processing for direct marketing purposes.
+
+Without prejudice to any other administrative or judicial remedy, every data subject shall have the right to lodge a complaint with a supervisory authority.
+
+Notwithstanding the general prohibition on transferring personal data to third countries, such transfer may take place if the Commission has decided that the third country ensures an adequate level of protection.
+
+If the controller processes personal data for archiving purposes in the public interest, the rights referred to in Articles 15 to 20 may be restricted.
+
+When personal data are transferred to a third country, the controller shall inform the data subject of the transfer and the appropriate safeguards.
+
+As long as the data subject's identity is not required for the processing, the controller may refuse to provide information to the data subject.
+
+In the event that the processor engages another processor, it shall impose the same data protection obligations on that other processor.
+
+On condition that the processing is necessary for the performance of a task carried out in the public interest, the controller may process personal data without consent.
+
+Except where the national law provides otherwise, the data subject shall have the right to receive the personal data in a structured, commonly used format.
+
+Save where the processing is carried out by a public authority, the controller shall designate a data protection officer.
+
+To the extent that the processing is necessary for compliance with a legal obligation, the controller shall be permitted to process personal data without the data subject's consent.
+
+In so far as the personal data are not collected from the data subject, the controller shall provide the information within a reasonable period.
+
+Within 72 hours of becoming aware of the personal data breach, the controller shall notify the breach to the supervisory authority.
+
+No later than 30 days after the receipt of the request, the controller shall provide the data subject with the information requested.
+
+Prior to the start of any processing operation, the controller shall carry out a data protection impact assessment.
+
+After the expiry of the retention period, the controller shall erase or anonymise the personal data without undue delay.
+
+Upon receipt of a valid request for erasure, the controller shall delete the personal data without further delay.
+
+During the period in which the processing is restricted, the personal data may be stored but not otherwise processed.
+
+For a period of six months after the decision, the supervisory authority may review the measures adopted by the controller.
+
+At the request of the data subject, the controller shall provide a copy of the personal data undergoing processing.
+
+With the consent of the data subject, the controller may process the personal data for additional purposes.
+
+Subject to the conditions set out in paragraphs 2 and 3, the Member State may maintain or introduce further conditions for the processing of genetic data.
+
+Without prejudice to the obligation to provide information to the data subject, the controller may delay the provision of information if such provision would jeopardise an official investigation.
+
+Notwithstanding paragraph 1, the processing of personal data for historical or statistical purposes shall be subject to specific safeguards.
+
+If the processing is based on a contract, the controller shall be able to demonstrate that the processing is necessary for the performance of that contract.
+
+When the data subject has withdrawn consent, the controller shall cease processing unless there is another legal basis for the processing.
+
+As long as the data subject is a child, the processing shall be lawful only if consent is given by the holder of parental responsibility.
+
+In the event of a merger or acquisition, the controller shall notify the data subjects of the transfer of personal data.
+
+On condition that the processing is carried out solely for journalistic purposes, derogations from certain provisions may be granted.
+
+Except for cases where the processing is necessary for the establishment of legal claims, the data subject may object at any time.
+
+Save in cases where the law of the Member State requires otherwise, the supervisory authority shall cooperate with other supervisory authorities.
+
+To the extent that the data subject has made the personal data manifestly public, the controller may process them without restriction.
+
+In so far as the processing is necessary for the purposes of preventive or occupational medicine, the processing shall be carried out by a health professional.
+
+Within 24 hours of the request, the controller shall confirm whether personal data concerning the data subject are being processed.
+
+No later than the first communication with the data subject, the controller shall provide the information listed in Article 13.
+
+Prior to the transfer of personal data to a third country, the controller shall assess the level of protection in that country.
+
+After the withdrawal of consent, the controller shall no longer process the personal data for the original purpose.
+
+Upon termination of the contract, the processor shall return all personal data to the controller or delete them.
+
+During the pendency of any objection, the controller shall restrict the processing of the personal data concerned.
+
+For a period not exceeding three years, the supervisory authority may impose a temporary or definitive limitation on processing.
+
+At the request of the Commission, the national competent authority shall provide all information necessary for the exercise of its supervisory powers.
+
+With the prior approval of the supervisory authority, the controller may adopt binding corporate rules.
+
+Subject to the requirements of public interest, the Commission may adopt delegated acts in accordance with Article 290.
+
+Without prejudice to the right of the data subject to receive the personal data, the controller may charge a reasonable fee for additional copies.
+
+Notwithstanding any other provision of this Regulation, Member States may maintain or introduce further conditions for the processing of biometric data.
+
+If the personal data are used for scientific research, the controller shall implement appropriate safeguards to protect the data subjects.
+
+When the processing is carried out by a processor on behalf of a controller, the processor shall act only on the documented instructions of the controller.
+
+As long as the controller has not obtained a valid adequacy decision, the transfer shall be subject to appropriate safeguards.
+
+In the event of a dispute, the data subject shall have the right to seek an effective judicial remedy.
+
+On condition that the processing is necessary for the performance of a task carried out in the public interest, the controller may restrict the data subject's rights.
+
+Except where the data subject has given explicit consent, the controller shall not process special categories of personal data.
+
+Save to the extent necessary for the performance of the contract, the controller shall not process personal data for other purposes.
+
+To the extent that the processing is carried out by a court or judicial authority, the supervisory authority shall not have supervisory powers.
+
+In so far as the personal data are processed for the purposes of archiving in the public interest, derogations may be granted.
+
+Within one month of the receipt of the complaint, the supervisory authority shall inform the complainant of the outcome.
+
+No later than the day of the data collection, the controller shall inform the data subject of the purposes of the processing.
+
+Prior to the adoption of any measure affecting the rights of the data subject, the controller shall consult the data protection officer.
+
+After the completion of the processing, the controller shall ensure that the personal data are securely destroyed.
+
+Upon notification of the breach, the supervisory authority may request additional information from the controller.
+
+During the investigation, the supervisory authority may enter the premises of the controller or processor.
+
+For a period of five years following the final decision, the controller shall retain the records of processing activities.
+
+At the request of the data subject, the controller shall rectify any inaccurate personal data without undue delay.
+
+With the agreement of both parties, the dispute may be submitted to arbitration rather than to the courts.
+
+Subject to the availability of budgetary resources, the Commission shall provide financial support for the implementation of this Regulation.
+
+Without prejudice to the principle of legal certainty, the Member States may adapt their national laws to the provisions of this Directive.
+
+Notwithstanding the expiry of the validity of the authorisation, the holder may continue to use the product for a transitional period.
+
+If the national court considers that a question of interpretation of Union law arises, it may request a preliminary ruling from the Court of Justice.
+
+When the consumer exercises the right of withdrawal, the trader shall reimburse all payments received.
+
+As long as the product is in the possession of the consumer, the consumer shall be responsible for its safe keeping.
+
+In the event that the seller fails to deliver within the agreed time, the buyer may terminate the contract.
+
+On condition that the goods are returned in their original packaging, the consumer shall receive a full refund.
+
+Except in cases of gross negligence, the liability of the service provider shall be limited to the amount of the contract.
+
+Save to the extent that the parties have agreed otherwise, the place of performance shall be the seller's place of business.
+
+To the extent that the contract is governed by the law of a Member State, the provisions of the Unfair Contract Terms Directive shall apply.
+
+In so far as the terms are not individually negotiated, they shall be considered unfair if they cause a significant imbalance.
+
+Within fourteen days of the conclusion of the contract, the consumer may withdraw without giving any reason.
+
+No later than thirty days after withdrawal, the consumer shall return the goods to the trader.
+
+Prior to the delivery of the goods, the trader shall inform the consumer of the total price including all taxes.
+
+After the goods have been delivered, the consumer shall examine them without undue delay.
+
+Upon discovery of a defect, the consumer shall notify the seller within two months.
+
+During the guarantee period, the seller shall repair or replace the defective product free of charge.
+
+For a period of six months after delivery, the burden of proof shall be on the seller to show that the goods were in conformity.
+
+At the request of the consumer, the seller shall provide a copy of the guarantee terms in writing.
+
+With the consent of the consumer, the seller may substitute a different product of equivalent quality.
+
+Subject to the conditions laid down in the national implementing legislation, the consumer may seek an out-of-court settlement.
+
+Without prejudice to the consumer's right to seek a remedy in court, the complaint may be submitted to an ombudsman.
+
+Notwithstanding the provisions of the contract, the consumer shall not be deprived of the rights conferred by this Directive.
+
+If the contract is concluded away from business premises, the consumer shall have a right of withdrawal of fourteen days.
+
+When the trader operates an online marketplace, the trader shall provide clear information about the applicable terms.
+
+As long as the consumer has not paid the price, the seller shall retain title to the goods.
+
+In the event of non-payment, the seller may recover the goods from the consumer.
+
+On condition that the consumer uses the goods for a legitimate purpose, the seller shall not restrict the use.
+
+Except where the product is custom-made, the consumer may return the product within the cooling-off period.
+
+Save in cases of fraud or misrepresentation, the contract shall be binding on both parties.
+
+To the extent that the product is used for commercial purposes, the consumer protection rules shall not apply.
+
+In so far as the product is intended for personal consumption, the trader shall provide a two-year legal guarantee.
+
+Within one year of the discovery of the defect, the consumer may bring an action for damages.
+
+No later than the moment of the sale, the trader shall inform the consumer of the existence of the right of withdrawal.
+
+Prior to the signature of the contract, the trader shall provide the consumer with a copy of the standard terms.
+
+After the expiry of the cancellation period, the consumer shall be bound by the terms of the contract.
+
+Upon the death of the consumer, the rights under the guarantee shall pass to the heirs.
+
+During the period of the offer, the trader shall not withdraw the offer unless otherwise stated.
+
+For a period of ten years after the product is put into circulation, the producer shall be liable for defects.
+
+At the request of the producer, the supplier shall provide all information necessary to identify the origin of the product.
+
+With the authorisation of the competent authority, the manufacturer may place the product on the market before obtaining the full certification.
+
+Subject to the outcome of the risk assessment, the agency may grant a conditional marketing authorisation.
+
+Without prejudice to the obligation to ensure patient safety, the clinical trial may proceed subject to additional monitoring.
+
+Notwithstanding the positive opinion of the committee, the Commission retains the final decision-making power.
+
+If the product is classified as high-risk, the conformity assessment shall be carried out by a notified body.
+
+When the product is intended for use in a sterile environment, the manufacturer shall apply specific sterilisation standards.
+
+As long as the product is in transit, the carrier shall be responsible for any damage to the goods.
+
+In the event that the delivery is delayed due to force majeure, the seller shall notify the buyer within three working days.
+
+On condition that the buyer accepts the late delivery, the contract shall remain valid.
+
+Except for cases of wilful misconduct, the courier's liability shall be limited to the declared value of the shipment.
