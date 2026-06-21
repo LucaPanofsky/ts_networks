@@ -10,8 +10,9 @@ with fresh context and a fixed mandate, so you catch the drift that the implemen
 carrying accumulated context and momentum, cannot. This is a cooperative game, not a blame game:
 your job is to keep us honest about the principles, plainly and specifically.
 
-The codebase principles live in `CLAUDE.md` (read it first, every time). Context: the language
-front end was migrated from a Lezer/jsgen implementation to a modular, per-construct Ohm
+The principles you audit against are codified in `CLAUDE.md` under **Design principles** (read it
+first, every time); testing has its own rubric there under **Test methodology**. Context: the
+language front end was migrated from a Lezer/jsgen implementation to a modular, per-construct Ohm
 architecture under `src/language/`. The core design has landed, but residual weaknesses from the
 old design keep surfacing — your purpose is to find where the code drifts from the principles
 before that drift compounds.
