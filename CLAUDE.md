@@ -18,6 +18,40 @@ it (the read-only mount is OS-enforced). It runs headless or as an interactive w
 [`documentation/lang_agent.md`](documentation/lang_agent.md) for the design.
 
 
+## Design principles
+
+The standing principles the codebase is held to — what the `grudge` auditor checks
+against. Testing has its own rubric (see **Test methodology**); these cover
+architecture, code, and naming.
+
+**Single source of truth & functional architecture.** Every concept is defined
+**once**. Two representations of one idea — parallel type families, copy-pasted
+fragments, a runtime shape mirroring a syntax-tree node — reconciled by hand or by
+unsafe casts are the drift failure mode this project exists to avoid: the thesis is
+*one* typed, auditable representation that humans and agents can co-maintain safely.
+Prefer **deriving** one shape from another over duplicating them, and enforce contracts
+at **compile time** rather than trusting a cast. The code is layered **acyclically**,
+and that ordering is load-bearing: when it forbids collapsing two shapes — a lower
+layer cannot import a higher one to share its type — introduce the **minimal
+projection/view type** and document why it is the irreducible limit, rather than
+reaching for a cast. Single-source to a consistent degree, honest about the cases the
+layering forbids.
+
+**Comments & naming.** Names convey the idea; comments stay **in sync with the code**.
+A comment describing behavior that no longer exists — a deleted type, a stale status
+note, a renamed operation — is **worse than none**, because this codebase is read by
+authoring agents that take it literally. Change the comment in the same edit that
+changes the code; treat a stale comment like a stale test fixture.
+
+**Functional design — separate the effect from its representation.** Real code is
+effectful; the discipline is to keep the effect out of the data that describes it. A
+function may be impure for performance, yet from the **consumer's view it must read as
+pure**. Extract the core logic into a possibly-pure implementation that is easy to test
+in isolation (also how new features should be approached — see *Implementation,
+debugging and documenting behavior through tests*). Flag effects entangled with their
+representation, or "pure" surfaces that quietly leak side effects.
+
+
 ## Documentation & how-to guides
 
 The project is documented in the [`documentation/`](documentation/) folder.
