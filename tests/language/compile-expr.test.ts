@@ -23,6 +23,20 @@ describe("compileExpr — lowering invariants", () => {
   test("string literal escapes backslash and double-quote", () => {
     expect(compileExpr({ kind: "literal", value: 'say "hi" \\here' } as Expr)).toBe('"say \\"hi\\" \\\\here"');
   });
+
+  test("string literal escapes control chars (valid JS, round-trips)", () => {
+    // A multi-line `'…'` literal (the grammar's `any` matches newline) must not emit a raw line
+    // break — that was the bug (SyntaxError at eval). JSON.stringify escapes the chars that are
+    // ILLEGAL raw in a JS string (newline, CR, tab, …); U+2028/U+2029 are legal raw since ES2019
+    // so it may leave them — either way the output must be valid JS that round-trips.
+    expect(compileExpr({ kind: "literal", value: "a\nb" } as Expr)).toBe('"a\\nb"');
+    expect(compileExpr({ kind: "literal", value: "a\tb" } as Expr)).toBe('"a\\tb"');
+    for (const v of ["a\nb", "a\tb", "a\r\nb", "a b", "a b", 'q"q', "back\\slash"]) {
+      const js = compileExpr({ kind: "literal", value: v } as Expr);
+      expect(() => new Function(`return ${js};`)).not.toThrow();
+      expect(new Function(`return ${js};`)()).toBe(v);
+    }
+  });
 });
 
 describe("mangle — total name→identifier map (single source)", () => {
@@ -40,7 +54,7 @@ describe("mangle — total name→identifier map (single source)", () => {
     // not reserved → untouched
     expect(mangle("type")).toBe("type");
     expect(mangle("classy")).toBe("classy");
-    // reserved only checked AFTER char-mapping, so `class?` → `class$` (not reserved)
+    // reserved checked AFTER char-mapping, so `class?` → `class$` (not reserved)
     expect(mangle("class?")).toBe("class$");
   });
 
@@ -50,7 +64,6 @@ describe("mangle — total name→identifier map (single source)", () => {
   });
 
   test("there is ONE mangle — the emit pipeline uses the same function", () => {
-    // expr barrel re-export and pipeline defaultCtx.mangle are the identical function.
     expect(emitMangle).toBe(mangle);
     expect(defaultCtx.mangle).toBe(mangle);
     expect(defaultCtx.mangle("class")).toBe("class_");

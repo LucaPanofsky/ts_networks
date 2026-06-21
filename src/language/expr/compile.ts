@@ -29,7 +29,10 @@ export function mangle(name: string): string {
 export function compileExpr(expr: Expr): string {
   switch (expr.kind) {
     case "literal": {
-      if (typeof expr.value === "string") return `"${expr.value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+      // JSON.stringify escapes ALL control chars + the JS line terminators U+2028/U+2029, so a
+      // multi-line `'…'` literal (the grammar's `any` matches newline) emits valid JS rather than
+      // a raw line break (a SyntaxError at eval). Numbers/booleans pass through as-is.
+      if (typeof expr.value === "string") return JSON.stringify(expr.value);
       return String(expr.value);
     }
     case "var":
