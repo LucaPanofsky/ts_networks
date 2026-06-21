@@ -1,17 +1,23 @@
-// ── Loading a compiled artifact in-process ──────────────────────────────────────────
+// ── Loading a compiled artifact ──────────────────────────────────────────────────────
 //
 // An emitted program is a self-contained `.js` module that opens with
 // `import * as rt from "@tsn/runtime"` and ends with `export default __reg;` (plus an
-// `export const __manifest` describing its networks). That bare `@tsn/runtime` specifier
-// is not resolvable as a real package here (the project is run-from-source, not published),
-// so to RUN an artifact in-process we do what the test harness has always done: strip the
-// module-level `import`/`export` syntax and inject the runtime as the `rt` argument of a
-// `new Function`. This is the entire "@tsn/runtime resolution" story for now — true
-// standalone `node program.js` (a real package / loader / import-map) is a later step.
+// `export const __manifest` describing its networks). There are two ways to load and run it,
+// both producing the same `LoadedProgram` so the shared `runNetworkOnLoaded` core is agnostic:
 //
-// This promotes that one-off test helper into a real, reusable loader so the `run-compiled`
-// operation can execute artifacts the same way the tests do.
+//   • IN-PROCESS — `loadProgram(code)`: strip the module-level `import`/`export` syntax and
+//     inject the LIVE runtime as the `rt` argument of a `new Function`. Needs no build and no
+//     real `@tsn/runtime` resolution (the bare specifier is never resolved), so it is the
+//     daily-use path. Crucially it binds the artifact to THIS module's runtime instance, so
+//     `instanceof` checks (projection, merge) line up.
+//
+//   • PLAIN NODE — `loadArtifactFromPath(absPath)`: a real `import()` of a built artifact, so
+//     its `import * as rt from "@tsn/runtime"` resolves to the BUILT runtime (`dist/`). This is
+//     the "compile once, run anywhere" tail — once a later step, now built. The caller MUST run
+//     in that same `dist/` world (plain `node` on the built tree, not `tsx`), or the two runtime
+//     copies make every Info value fail its `instanceof` and project to null.
 
+import { pathToFileURL } from "node:url";
 import * as rt from "./index.js";
 import type { AdaptedRegistry } from "./index.js";
 
@@ -43,4 +49,32 @@ export function loadProgram(code: string): LoadedProgram {
       .join("\n") +
     '\nreturn { registry: __reg, manifest: (typeof __manifest !== "undefined" ? __manifest : { networks: {} }) };';
   return new Function("rt", body)(rt) as LoadedProgram;
+}
+
+// Load a BUILT artifact by path via a real ESM `import()` — the plain-`node` path. The artifact's
+// own `import * as rt from "@tsn/runtime"` resolves through node_modules to the built runtime, so
+// this must run in that same world (`npm run build` first; invoke with plain `node` on the built
+// tree, never `tsx`). The module's default export is the registry; `__manifest` is a named export.
+export async function loadArtifactFromPath(absPath: string): Promise<LoadedProgram> {
+  let mod: { default?: unknown; __manifest?: Manifest };
+  try {
+    mod = (await import(pathToFileURL(absPath).href)) as typeof mod;
+  } catch (e) {
+    const msg = String((e as Error)?.message ?? e);
+    // The one resolution that fails predictably: `@tsn/runtime` not on disk (build not run).
+    if (/@tsn\/runtime/.test(msg) && /(Cannot find|ERR_MODULE_NOT_FOUND|resolve)/i.test(msg)) {
+      throw new Error(
+        `cannot resolve "@tsn/runtime" while loading ${absPath} — run \`npm run build\` first ` +
+          `so the runtime is built under dist/ (original: ${msg})`,
+      );
+    }
+    throw e;
+  }
+  if (mod.default == null) {
+    throw new Error(`${absPath} is not a ts-networks artifact (no default registry export)`);
+  }
+  return {
+    registry: mod.default as AdaptedRegistry,
+    manifest: mod.__manifest ?? { networks: {} },
+  };
 }
