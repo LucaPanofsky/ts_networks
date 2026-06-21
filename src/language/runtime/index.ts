@@ -27,13 +27,15 @@ import { Deferred } from "../../information-structures/deferred.js";
 import { APromise } from "../../information-structures/apromise.js";
 import { defaultExecutor } from "../../network-impl/executor.js";
 import type { Sandbox } from "../../sandbox/record-sandbox.js";
-import type { Expr, TypeRef } from "../../data-network/types.js";
+import type { Expr } from "../../data-network/types.js";
 import type { GrammarNode } from "../constructs/defgrammar/ast.js";
 import type { TTableNode } from "../constructs/ttable/ast.js";
-import type { ExtractNode } from "../constructs/defextract/ast.js";
+import type { ExtractNode, ExtractWithin, ExtractStmt } from "../constructs/defextract/ast.js";
 import type { NetworkNode } from "../constructs/defnetwork/ast.js";
-import type { Registry, RegistryEntry, Impl, CompiledLeaf, GrammarSpec, TTableSpec, ExtractSpec, ExtractWithinSpec, LlmFnSpec, NetworkSpec } from "../core/runtime-api.js";
-import type { ScanMatch, RecordDescriptor } from "../core/types.js";
+import type { LlmFnNode } from "../constructs/defllmfn/ast.js";
+import type { Registry, RegistryEntry, Impl, CompiledLeaf } from "../core/runtime-api.js";
+import type { ScanMatch, RecordDescriptor, LlmTypeEnv } from "../core/types.js";
+import type { ConstructRuntime } from "./contract.js";
 import { ConstructKind } from "../core/enums.js";
 import type { AstNode, Program } from "../pipeline/program.js";
 
@@ -119,30 +121,30 @@ function recordEnv(
 }
 
 export function grammar(
-  spec: GrammarSpec,
+  node: GrammarNode,
   record: RecordDescriptor | undefined,
   resolve: Registry["resolve"],
 ): CompiledLeaf {
   const { program, sandbox } = recordEnv(record, resolve);
-  const compiled = compileGrammar(spec as unknown as GrammarNode, program, sandbox);
+  const compiled = compileGrammar(node, program, sandbox);
   return { arity: compiled.arity, impl: compiled.impl, scan: compiled.scan };
 }
 
 export function ttable(
-  spec: TTableSpec,
+  node: TTableNode,
   record: RecordDescriptor | undefined,
   resolve: Registry["resolve"],
 ): CompiledLeaf {
   const { program, sandbox } = recordEnv(record, resolve);
-  const compiled = compileTTable(spec as unknown as TTableNode, program, sandbox);
+  const compiled = compileTTable(node, program, sandbox);
   return { arity: compiled.arity, impl: compiled.impl };
 }
 
 // Every leaf ref the extract orchestrates: the root grammar plus each scan/parse target,
 // gathered recursively (nested `within`s carry no grammar of their own).
-function collectRefs(within: ExtractWithinSpec, acc: Set<string> = new Set()): Set<string> {
+function collectRefs(within: ExtractWithin, acc: Set<string> = new Set()): Set<string> {
   if (within.grammar) acc.add(within.grammar);
-  for (const stmt of within.body) {
+  for (const stmt of within.body as ExtractStmt[]) {
     if (stmt.kind === "within") collectRefs(stmt, acc);
     else acc.add(stmt.grammar);
   }
@@ -150,13 +152,12 @@ function collectRefs(within: ExtractWithinSpec, acc: Set<string> = new Set()): S
 }
 
 export function extract(
-  spec: ExtractSpec,
+  node: ExtractNode,
   resolve: Registry["resolve"],
   scanOf: Registry["scanOf"],
 ): Impl {
-  const ast = spec as unknown as ExtractNode;
   const leaves: GrammarLeaves = {};
-  for (const ref of collectRefs(spec.root)) {
+  for (const ref of collectRefs(node.root)) {
     leaves[ref] = {
       impl: (...args: unknown[]) => resolve(ref)(...args),
       // Late-bound: a getter so the scan is fetched at RUN time (when processBody reads
@@ -167,7 +168,7 @@ export function extract(
       },
     };
   }
-  return compileExtract(ast, leaves).impl;
+  return compileExtract(node, leaves).impl;
 }
 
 // defllmfn — the async, memoized LLM-backed leaf. Unlike grammar/extract/ttable there is no
@@ -180,21 +181,21 @@ export function extract(
 //   • config — model / max_tokens / tools from the `with:` clause + the stable `system` prompt.
 //   • memoize — a re-fire over identical inputs shares the in-flight APromise (one model
 //     call, same reference), so re-merging the result can never self-contradict.
-export function llmFn(spec: LlmFnSpec, reg: Registry): Impl {
-  // `deriveProtocol` now reads a modular `Program`; synthesize one carrying only the type
-  // collections it walks (records + enums + predicate fns). The nodes are structurally the
-  // engine ASTs (the `select.ts` selectors cast them back), so one cast suffices.
+export function llmFn(node: LlmFnNode, typeEnv: LlmTypeEnv, reg: Registry): Impl {
+  // `deriveProtocol` reads a modular `Program`; synthesize one carrying only the type
+  // collections it walks (records + enums + predicate fns) from the inlined `typeEnv` — the
+  // whole-program context passed alongside the node (it isn't part of the llmfn's own AST).
   const program: Program = {
     nodes: [
-      ...spec.typeEnv.records.map((r) => ({ kind: ConstructKind.Record, name: r.name, fields: r.fields })),
-      ...spec.typeEnv.enums.map((e) => ({ kind: ConstructKind.Enum, name: e.name, values: e.values })),
-      ...spec.typeEnv.predicates.map(
+      ...typeEnv.records.map((r) => ({ kind: ConstructKind.Record, name: r.name, fields: r.fields })),
+      ...typeEnv.enums.map((e) => ({ kind: ConstructKind.Enum, name: e.name, values: e.values })),
+      ...typeEnv.predicates.map(
         (p) => ({ kind: ConstructKind.Fn, isPredicate: true, name: p.name, params: p.params, returnType: p.returnType, body: p.body as Expr }),
       ),
     ] as AstNode[],
   };
-  const protocol = deriveProtocol(spec.returnType as TypeRef, program);
-  const paramNames = spec.params.map((p) => p.name);
+  const protocol = deriveProtocol(node.returnType, program);
+  const paramNames = node.params.map((p) => p.name);
   const memo = new Map<string, APromise<unknown>>();
   // Resolve `with: tools` LATE — against the registry's injected resolver if a host set one
   // (the full program-reasoning toolset), else the sandbox parse-only `toolsFromConfig`. Built
@@ -202,10 +203,10 @@ export function llmFn(spec: LlmFnSpec, reg: Registry): Impl {
   let config: { model?: string; maxTokens?: number; tools: ReturnType<ToolResolver>; system?: string } | undefined;
   const ensureConfig = () =>
     (config ??= {
-      model: spec.config["model"],
-      maxTokens: spec.config["max_tokens"] !== undefined ? parseInt(spec.config["max_tokens"], 10) : undefined,
-      tools: ((reg as AdaptedRegistry).toolResolver ?? toolsFromConfig)(spec.config["tools"]),
-      system: spec.system,
+      model: node.config["model"],
+      maxTokens: node.config["max_tokens"] !== undefined ? parseInt(node.config["max_tokens"], 10) : undefined,
+      tools: ((reg as AdaptedRegistry).toolResolver ?? toolsFromConfig)(node.config["tools"]),
+      system: node.system,
     });
   return (...args: unknown[]) => {
     const key = canonicalKey(args);
@@ -217,7 +218,7 @@ export function llmFn(spec: LlmFnSpec, reg: Registry): Impl {
     const ap = new APromise(d);
     memo.set(key, ap);
     defaultExecutor
-      .submit(() => callLLMFn(spec.user, namedArgs, protocol, cfg))
+      .submit(() => callLLMFn(node.user, namedArgs, protocol, cfg))
       .then((v) => d.resolve(new Something(v)))
       .catch((e) => d.resolve(new Contradiction("llmfn/error", new Set(), e)));
     return ap;
@@ -248,13 +249,12 @@ export type NetworkImpl = Impl & {
   cells: (inputs: Record<string, unknown>) => Promise<Map<string, unknown>>;
 };
 
-export function network(spec: NetworkSpec, reg: Registry): NetworkImpl {
-  const ast = spec as unknown as NetworkNode;
-  const inputCells = ast.signature.from;
-  const outputCell = ast.signature.to;
+export function network(node: NetworkNode, reg: Registry): NetworkImpl {
+  const inputCells = node.signature.from;
+  const outputCell = node.signature.to;
   const engine = (reg as AdaptedRegistry).backing;
   let runtime: NetworkRuntime | undefined;
-  const ensure = (): NetworkRuntime => (runtime ??= new NetworkRuntime(astToDataNetwork(ast), engine));
+  const ensure = (): NetworkRuntime => (runtime ??= new NetworkRuntime(astToDataNetwork(node), engine));
   const leaf = ((...args: unknown[]) => {
     const d = new Deferred<unknown>();
     const inputs: Record<string, unknown> = {};
@@ -289,3 +289,10 @@ export function network(spec: NetworkSpec, reg: Registry): NetworkImpl {
   };
   return leaf;
 }
+
+// Enforce the construct-runtime contract at compile time: each adapter above must match its
+// node-typed signature in `./contract.ts` (else this assignment fails to type-check). This is
+// what makes the single-source guarantee real — a drift between an adapter and its construct
+// node is a compile error, not a silent `as unknown as` cast.
+const _constructRuntime: ConstructRuntime = { grammar, ttable, extract, network, llmFn };
+void _constructRuntime;
